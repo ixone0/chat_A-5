@@ -1,4 +1,7 @@
 #server/server.py
+from services.auth_service import login_user
+from services.message_service import send_message_service
+
 import socket
 import threading
 import os
@@ -19,46 +22,37 @@ server.listen()
 print("Server started...")
 
 def handle_client(conn, addr):
-    print("Connected:", addr)
+
+    user_id = None
 
     while True:
-        try:
-            data = conn.recv(4096)
-            if not data:
-                break
+        data = conn.recv(4096)
+        pkt = packet.decode(data)
 
-            pkt = packet.decode(data)
+        pkt_type = pkt.get("type")
 
-            # -------- ส่งข้อความ --------
-            if pkt["type"] == "message":
+        # ---------------- LOGIN ----------------
+        if pkt_type == "login":
 
-                print("Saving message:", pkt["content"])
+            user_id = login_user(pkt)
 
-                save_message(
-                    pkt["client_id"],
-                    addr[0],
-                    pkt["content"]
-                )
+            online_users[user_id] = conn
 
-                conn.send(packet.encode({"status": "saved"}))
+            conn.send(packet.encode({"status": "ok"}))
 
-            # -------- sync history --------
-            elif pkt["type"] == "sync":
-                rows = get_messages(pkt["client_id"])
+        # ---------------- SEND MESSAGE ----------------
+        elif pkt_type == "send_message":
 
-                messages = [
-                    {"content": r[0], "time": str(r[1])}
-                    for r in rows
-                ]
+            send_message_service(pkt, user_id, online_users)
 
-                conn.send(packet.encode({
-                    "type": "history",
-                    "messages": messages
-                }))
+        # ---------------- LOAD HISTORY ----------------
+        elif pkt_type == "history":
 
-        except Exception as e:
-            print("Error:", e)
-            break
+            rows = get_messages(pkt["conversation_id"])
+
+            conn.send(packet.encode(rows))
+
+        
 
     conn.close()
 
