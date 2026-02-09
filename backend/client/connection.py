@@ -1,3 +1,4 @@
+#client/connection.py
 import socket
 import os
 from dotenv import load_dotenv

@@ -1,4 +1,4 @@
-#client/packet.py
+#server/packet.py
 import json
 
 def encode(data):
