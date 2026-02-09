@@ -1,6 +1,7 @@
 #server/server.py
 from services.auth_service import login_user
 from services.message_service import send_message_service
+from services.conversation_service import handle_create_conversation
 
 import socket
 import threading
@@ -11,6 +12,8 @@ from db import save_message, get_messages
 import packet
 
 load_dotenv()
+
+online_users = {} # เก็บ mapping ระหว่าง user_id -> socket object
 
 HOST = "0.0.0.0"
 PORT = int(os.getenv("PORT"))
@@ -26,6 +29,7 @@ def handle_client(conn, addr):
     user_id = None
 
     while True:
+        
         data = conn.recv(4096)
         pkt = packet.decode(data)
 
@@ -33,12 +37,12 @@ def handle_client(conn, addr):
 
         # ---------------- LOGIN ----------------
         if pkt_type == "login":
-
             user_id = login_user(pkt)
-
-            online_users[user_id] = conn
-
-            conn.send(packet.encode({"status": "ok"}))
+            if user_id:
+                online_users[user_id] = conn
+                conn.send(packet.encode({"status": "ok", "user_id": user_id}))
+            else:
+                conn.send(packet.encode({"status": "error", "message": "Login failed"}))
 
         # ---------------- SEND MESSAGE ----------------
         elif pkt_type == "send_message":
@@ -52,6 +56,16 @@ def handle_client(conn, addr):
 
             conn.send(packet.encode(rows))
 
+        # ---------------- CREATE CONVERSATION ----------------
+        elif pkt_type == "create_conversation":
+            # เรียก service และรับ response กลับมา
+            response = handle_create_conversation(pkt, user_id)
+            
+            # ส่งผลลัพธ์กลับหาคนสร้าง
+            conn.send(packet.encode(response))
+            
+            # (Optional) แจ้งเตือนคนอื่นๆ ที่โดนดึงเข้ากลุ่ม
+            # โดยการเช็คจาก online_users ถ้าใครออนไลน์อยู่ก็ส่ง packet ไปบอก
         
 
     conn.close()
