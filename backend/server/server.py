@@ -31,6 +31,9 @@ def handle_client(conn, addr):
 
             # -------- ส่งข้อความ --------
             if pkt["type"] == "message":
+
+                print("Saving message:", pkt["content"])
+
                 save_message(
                     pkt["client_id"],
                     addr[0],
