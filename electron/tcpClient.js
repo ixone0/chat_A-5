@@ -22,21 +22,22 @@ function initTcpClient(mainWindow) {
     client.on('data', (data) => {
         try {
             const jsonString = data.toString();
-            console.log('📩 Received from Server:', jsonString);
-            
+            console.log('📩 Received:', jsonString);
             const parsedData = JSON.parse(jsonString);
 
-            // ส่งต่อข้อมูลไปให้ React (ผ่าน preload)
-            // เช็คประเภทข้อมูลนิดนึง ถ้าเป็น login_response ก็ส่งช่องนั้น
-            if (parsedData.type === 'login_response' || parsedData.status) {
+            // ✅ แยกประเภทข้อมูลส่งกลับ
+            if (parsedData.type === 'login_response') {
                 win.webContents.send('login-response', parsedData);
-            } else {
-                // เผื่อเป็น Chat message ทั่วไป
+            } 
+            else if (parsedData.type === 'register_response') {
+                win.webContents.send('register-response', parsedData); // <--- เพิ่มตรงนี้
+            }
+            else {
                 win.webContents.send('server-message', parsedData);
             }
 
         } catch (e) {
-            console.error('❌ JSON Parse Error:', e);
+            console.error(e);
         }
     });
 
@@ -65,4 +66,18 @@ function sendLogin(username, password) {
     console.log('📤 Sent Login Packet:', packet);
 }
 
-module.exports = { initTcpClient, sendLogin };
+function sendRegister(username, password) {
+    if (!client) return;
+
+    const packet = JSON.stringify({
+        type: 'register',
+        username: username,
+        password: password,
+        display_name: username // ใช้ username เป็นชื่อเล่นไปก่อน
+    });
+
+    client.write(packet);
+    console.log('📤 Sent Register:', packet);
+}
+
+module.exports = { initTcpClient, sendLogin, sendRegister };

@@ -7,5 +7,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // รอฟังผลตอบกลับ (Electron -> React)
   onLoginResponse: (callback) => 
-    ipcRenderer.on('login-response', (event, ...args) => callback(...args))
+    ipcRenderer.on('login-response', (event, ...args) => callback(...args)),
+
+  register: (data) => ipcRenderer.send('register-request', data),
+  onRegisterResponse: (callback) => ipcRenderer.on('register-response', (event, ...args) => callback(...args))
 });

@@ -42,6 +42,7 @@ def handle_client(conn, addr):
             # ---------------- REGISTER ----------------
             if pkt_type == "register":
                 response = register_user(pkt)
+                response["type"] = "register_response"
                 conn.send(packet.encode(response))
 
             # ---------------- LOGIN ----------------

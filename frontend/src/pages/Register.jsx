@@ -1,20 +1,37 @@
-import React, { useState } from 'react';
+// src/pages/Register.jsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Register.css';
 
 const Register = () => {
   const navigate = useNavigate();
   
-  // State เก็บข้อมูล
   const [formData, setFormData] = useState({
     username: '',
     password: '',
     confirmPassword: ''
   });
 
-  // State สำหรับลูกตาสลับดูรหัสผ่าน
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // -------------------------------------------------------
+  // 👂 รอฟังผลจาก Server
+  // -------------------------------------------------------
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.onRegisterResponse((response) => {
+        console.log("📩 Register Response:", response);
+
+        if (response.status === 'ok' || response.status === 'success') {
+          alert("✅ Register Success! Please Login.");
+          navigate('/'); // เด้งกลับไปหน้า Login
+        } else {
+          alert("❌ Register Failed: " + response.message);
+        }
+      });
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,11 +46,16 @@ const Register = () => {
     }
 
     console.log("Registering:", formData);
-    // TODO: ตรงนี้เดี๋ยวเราค่อยมาใส่โค้ดส่งข้อมูลไปหา Electron ทีหลัง
-    // window.electronAPI.register(formData);
-    
-    alert("Register Mock Success! Redirecting to login...");
-    navigate('/'); // กลับไปหน้า Login
+
+    // 📤 ส่งข้อมูลไปหา Electron
+    if (window.electronAPI) {
+      window.electronAPI.register({
+        username: formData.username,
+        password: formData.password
+      });
+    } else {
+      alert("Error: Electron API not found");
+    }
   };
 
   return (

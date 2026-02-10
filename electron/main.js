@@ -3,6 +3,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 // 1. นำเข้า tcpClient ที่เพิ่งสร้าง
 const { initTcpClient, sendLogin } = require('./tcpClient');
+const { initTcpClient, sendLogin, sendRegister } = require('./tcpClient');
 
 let mainWindow;
 
@@ -55,4 +56,10 @@ ipcMain.on('login-request', (event, data) => {
   
   // เรียกใช้ฟังก์ชันส่งข้อมูลใน tcpClient.js
   sendLogin(data.username, data.password);
+});
+
+// ✅ เพิ่ม IPC Listener สำหรับ Register
+ipcMain.on('register-request', (event, data) => {
+  console.log('Ui Request Register:', data.username);
+  sendRegister(data.username, data.password);
 });
