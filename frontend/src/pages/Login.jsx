@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // สำหรับเปลี่ยนหน้า
+// src/pages/Login.jsx
+import React, { useState, useEffect } from 'react'; // <--- เพิ่ม useEffect
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
 const Login = () => {
@@ -7,41 +8,44 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  // ฟังก์ชันนี้จะทำงานเมื่อกดปุ่ม Login
-  const handleLogin = async (e) => {
-    e.preventDefault(); // ป้องกันหน้าเว็บ Refresh (Network Concept: Single Page Application)
-
-    // 1. Data Serialization: เตรียมข้อมูลเป็น JSON
-    const payload = {
-      username: username,
-      password: password
-    };
-
-    try {
-      // 2. Network Request: ส่ง HTTP POST ไปยัง Server
-      // หมายเหตุ: ตอนนี้เรา Mock URL ไว้ก่อน ถ้า Backend เสร็จค่อยเปลี่ยนเป็น URL จริง
-      console.log('Sending Payload:', payload); 
-
-      // จำลองการยิง API (เพราะ Backend ยังไม่เสร็จ)
-      // ในสถานการณ์จริงเราจะใช้: 
-      // const response = await fetch('http://localhost:3000/api/login', { ... })
-      
-      const mockResponse = { ok: true, token: 'mock-token-123' }; // สมมติว่า Server ตอบกลับมา
-
-      if (mockResponse.ok) {
-        // 3. Response Handling: เก็บ Token ไว้ใช้ยืนยันตัวตน (Session Management)
-        localStorage.setItem('chatToken', mockResponse.token);
-        localStorage.setItem('username', username);
+  // -------------------------------------------------------
+  // 👂 1. ส่วนรับฟัง (Listener): รอ Electron ตอบกลับมา
+  // -------------------------------------------------------
+  useEffect(() => {
+    // เช็คว่ามีตัวเชื่อม (Bridge) อยู่จริงไหม
+    if (window.electronAPI) {
+      // เมื่อ Electron ตอบกลับมาว่า 'login-response'
+      window.electronAPI.onLoginResponse((response) => {
+        console.log('📩 ได้รับผลจาก Electron:', response);
         
-        // เปลี่ยนหน้าไปห้องแชท
-        navigate('/chat');
-      } else {
-        alert('Login Failed: Unauthorized');
-      }
+        if (response.success) {
+          // Login ผ่าน: เก็บข้อมูลแล้วไปหน้า Chat
+          localStorage.setItem('username', response.username);
+          localStorage.setItem('token', response.token);
+          navigate('/chat');
+        } else {
+          // Login ไม่ผ่าน
+          alert('Login Failed: ' + (response.message || 'Unknown Error'));
+        }
+      });
+    }
+  }, [navigate]); // ทำงานแค่ตอนโหลดหน้าหรือ navigate เปลี่ยน
 
-    } catch (error) {
-      console.error('Network Error:', error);
-      alert('Cannot connect to server');
+  // -------------------------------------------------------
+  // 📤 2. ส่วนส่งคำสั่ง (Sender): ส่งข้อมูลไปหา Electron
+  // -------------------------------------------------------
+  const handleLogin = (e) => {
+    e.preventDefault();
+    
+    const payload = { username, password };
+    console.log('📤 กำลังส่งข้อมูลไป Electron:', payload);
+
+    if (window.electronAPI) {
+      // ใช้สะพานที่สร้างไว้ใน preload.js
+      window.electronAPI.login(payload);
+    } else {
+      // กรณีเปิดผ่าน Browser ธรรมดา (ไม่ใช่ Electron)
+      alert('Error: ไม่พบ Electron API (กรุณาเปิดผ่านแอพ Electron)');
     }
   };
 
