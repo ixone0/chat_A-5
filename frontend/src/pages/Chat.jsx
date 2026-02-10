@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import './Chat.css';
 import { useNavigate } from "react-router-dom";
-const navigate = useNavigate();
 
 // import io from 'socket.io-client'; 
 
 const Chat = () => {
+
+  const navigate = useNavigate(); 
   // --- State Management ---
   const [users, setUsers] = useState([
     { id: 1, name: 'User 1', customId: 'user_01' },

@@ -15,11 +15,19 @@ const Profile = () => {
   const handleChangeId = () => {
     if (!newId.trim()) return;
 
-    // ส่งไป backend ผ่าน electron
     window.electronAPI.updateUserId({
-        user_id: localStorage.getItem("token"),
+        user_id: userId,
         new_id: newId
     });
+
+    window.electronAPI.onUpdateUserIdResponse((res) => {
+    if(res.success){
+        localStorage.setItem("user_id", newId);
+        setUserId(newId);
+    }
+    });
+
+
 
 
     localStorage.setItem("user_id", newId);

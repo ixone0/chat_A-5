@@ -2,7 +2,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 // 1. นำเข้า tcpClient ที่เพิ่งสร้าง
-const { initTcpClient, sendLogin, sendRegister } = require('./tcpClient');
+const tcpClient = require('./tcpClient');
+const { initTcpClient, sendLogin, sendRegister } = tcpClient;
+
 
 let mainWindow;
 
