@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import './Chat.css';
+import { useNavigate } from "react-router-dom";
+const navigate = useNavigate();
+
 // import io from 'socket.io-client'; 
 
 const Chat = () => {
@@ -78,7 +81,12 @@ const Chat = () => {
     <div className="chat-container">
       {/* Sidebar Strip */}
       <div className="sidebar-strip">
-        <div className="profile-circle">User</div>
+        <div 
+          className="profile-circle"
+          onClick={() => navigate("/profile")}
+        >
+          User
+        </div>
         <div className="settings-circle">⚙️</div>
       </div>
 

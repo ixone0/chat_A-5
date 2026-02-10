@@ -3,7 +3,8 @@ import { Routes, Route } from 'react-router-dom';
 
 import Login from './pages/Login'; 
 import Chat from './pages/Chat'; 
-import Register from './pages/Register'; // <--- 1. Import เข้ามา
+import Register from './pages/Register'; 
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} /> 
       <Route path="/chat" element={<Chat />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   );
 }

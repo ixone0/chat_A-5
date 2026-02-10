@@ -62,3 +62,13 @@ ipcMain.on('register-request', (event, data) => {
   console.log('Ui Request Register:', data.username);
   sendRegister(data.username, data.password);
 });
+
+ipcMain.on("update-user-id", async (event, data) => {
+
+  const response = await tcpClient.send({
+    type: "update_user_id",
+    ...data
+  });
+
+  event.reply("update-user-id-response", response);
+});

@@ -48,3 +48,39 @@ def create_user(username, password_hash, display_name):
     finally:
         cursor.close()
         conn.close()
+        
+def update_user_id(user_id, new_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = """
+            UPDATE users
+            SET custom_id = %s
+            WHERE id = %s
+        """
+        cursor.execute(query, (new_id, user_id))
+        conn.commit()
+
+        return True
+
+    except Exception as e:
+        print("Error update custom_id:", e)
+        return False
+
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_by_custom_id(custom_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    query = "SELECT id FROM users WHERE custom_id = %s"
+    cursor.execute(query, (custom_id,))
+    user = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return user

@@ -17,5 +17,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = (event, ...args) => callback(...args);
     ipcRenderer.on('register-response', listener);
     return () => ipcRenderer.removeListener('register-response', listener);
+  },
+
+  onUpdateUserIdResponse: (callback) => {
+    const listener = (event, ...args) => callback(...args);
+    ipcRenderer.on('update-user-id-response', listener);
+    return () => ipcRenderer.removeListener('update-user-id-response', listener);
   }
+
+
 });
