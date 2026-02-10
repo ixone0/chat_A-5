@@ -50,9 +50,19 @@ def handle_client(conn, addr):
                 if user_id:
                     online_users[user_id] = conn
                     print(f"[LOGIN] User {user_id} logged in.")
-                    conn.send(packet.encode({"status": "ok", "user_id": user_id, "message": "Login Success"}))
+                    conn.send(packet.encode({
+                        "type": "login_response", 
+                        "status": "success",  # ใช้ success ให้ตรงกับที่ frontend เช็ค
+                        "user_id": user_id, 
+                        "username": pkt.get("username"), # ส่งชื่อกลับไปโชว์ด้วย
+                        "message": "Login Success"
+                    }))
                 else:
-                    conn.send(packet.encode({"status": "error", "message": "Login failed"}))
+                    conn.send(packet.encode({
+                        "type": "login_response",
+                        "status": "error", 
+                        "message": "Login failed"
+                    }))
 
             # ---------------- CREATE CONVERSATION ----------------
             elif pkt_type == "create_conversation":
