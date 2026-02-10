@@ -1,55 +1,86 @@
 // electron/tcpClient.js
 const net = require('net');
+const { v4: uuidv4 } = require('uuid');
 
 let client = null;
-let win = null; // เก็บตัวแปรหน้าจอหลัก เพื่อส่งข้อมูลกลับไปแสดง
+let win = null;
+const pending = new Map(); // request_id => {resolve, reject, timeout}
 
 const TCP_CONFIG = {
-    port: 8082,        // ⚠️ ต้องตรงกับ Python Server (เช็คใน server.py)
-    host: '13.212.120.46'  // ถ้า Server อยู่ AWS ให้ใส่ IP เช่น '54.x.x.x'
+  host: '13.212.120.46', // ของคุณ
+  port: 8082
 };
 
 function initTcpClient(mainWindow) {
-    win = mainWindow;
-    client = new net.Socket();
+  win = mainWindow;
+  client = new net.Socket();
 
-    // 1. เริ่มการเชื่อมต่อ
-    client.connect(TCP_CONFIG.port, TCP_CONFIG.host, () => {
-        console.log(`✅ TCP Connected to ${TCP_CONFIG.host}:${TCP_CONFIG.port}`);
-    });
+  client.connect(TCP_CONFIG.port, TCP_CONFIG.host, () => {
+    console.log(`✅ TCP Connected to ${TCP_CONFIG.host}:${TCP_CONFIG.port}`);
+  });
 
-    // 2. เมื่อได้รับข้อมูลตอบกลับจาก Python
-    client.on('data', (data) => {
-        try {
-            const jsonString = data.toString();
-            console.log('📩 Received:', jsonString);
-            const parsedData = JSON.parse(jsonString);
+  client.on('data', (data) => {
+    try {
+      const jsonString = data.toString();
+      console.log('📩 Received from server:', jsonString);
+      const parsed = JSON.parse(jsonString);
 
-            // ✅ แยกประเภทข้อมูลส่งกลับ
-            if (parsedData.type === 'login_response') {
-                win.webContents.send('login-response', parsedData);
-            } 
-            else if (parsedData.type === 'register_response') {
-                win.webContents.send('register-response', parsedData); // <--- เพิ่มตรงนี้
-            }
-            else {
-                win.webContents.send('server-message', parsedData);
-            }
+      // ถ้ามี request_id แล้วมี pending, resolve
+      if (parsed.request_id && pending.has(parsed.request_id)) {
+        const { resolve, timeout } = pending.get(parsed.request_id);
+        clearTimeout(timeout);
+        pending.delete(parsed.request_id);
+        resolve(parsed);
+        return;
+      }
 
-        } catch (e) {
-            console.error(e);
-        }
-    });
+      // ถ้าไม่ใช่ response ที่รอ ให้ส่งต่อเป็น generic events ไป renderer
+      if (parsed.type === 'login_response') {
+        win.webContents.send('login-response', parsed);
+      } else if (parsed.type === 'register_response') {
+        win.webContents.send('register-response', parsed);
+      } else {
+        // ส่ง generic server-message
+        win.webContents.send('server-message', parsed);
+      }
+    } catch (e) {
+      console.error('Failed to parse data from TCP server:', e);
+    }
+  });
 
-    client.on('close', () => {
-        console.log('⚠️ Connection closed');
-        // (Optional) Reconnect logic here
-    });
+  client.on('close', () => {
+    console.log('⚠️ TCP Connection closed');
+    // (Optional) reconnect logic...
+  });
 
-    client.on('error', (err) => {
-        console.error('❌ Connection Error:', err.message);
-    });
+  client.on('error', (err) => {
+    console.error('❌ TCP Error:', err.message);
+  });
 }
+
+// send a packet and wait for response (using request_id)
+function send(packet) {
+  return new Promise((resolve, reject) => {
+    if (!client) return reject(new Error('TCP client not connected'));
+
+    const request_id = uuidv4();
+    const msg = JSON.stringify({ request_id, ...packet });
+
+    // write
+    client.write(msg);
+
+    // timeout safety
+    const timeout = setTimeout(() => {
+      if (pending.has(request_id)) {
+        pending.delete(request_id);
+        reject(new Error('TCP request timeout'));
+      }
+    }, 10000); // 10s
+
+    pending.set(request_id, { resolve, reject, timeout });
+  });
+}
+
 
 // ฟังก์ชันส่งข้อมูล Login
 function sendLogin(username, password) {
@@ -66,18 +97,4 @@ function sendLogin(username, password) {
     console.log('📤 Sent Login Packet:', packet);
 }
 
-function sendRegister(username, password) {
-    if (!client) return;
-
-    const packet = JSON.stringify({
-        type: 'register',
-        username: username,
-        password: password,
-        display_name: username // ใช้ username เป็นชื่อเล่นไปก่อน
-    });
-
-    client.write(packet);
-    console.log('📤 Sent Register:', packet);
-}
-
-module.exports = { initTcpClient, sendLogin, sendRegister };
+module.exports = { initTcpClient, sendLogin };

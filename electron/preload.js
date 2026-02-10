@@ -2,30 +2,27 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-
   login: (data) => ipcRenderer.send('login-request', data),
-
-  onLoginResponse: (callback) => {
-    const listener = (event, ...args) => callback(...args);
-    ipcRenderer.on('login-response', listener);
-    return () => ipcRenderer.removeListener('login-response', listener);
+  onLoginResponse: (cb) => {
+    const l = (e, ...args) => cb(...args);
+    ipcRenderer.on('login-response', l);
+    return () => ipcRenderer.removeListener('login-response', l);
   },
 
   register: (data) => ipcRenderer.send('register-request', data),
-
-  onRegisterResponse: (callback) => {
-    const listener = (event, ...args) => callback(...args);
-    ipcRenderer.on('register-response', listener);
-    return () => ipcRenderer.removeListener('register-response', listener);
+  onRegisterResponse: (cb) => {
+    const l = (e, ...args) => cb(...args);
+    ipcRenderer.on('register-response', l);
+    return () => ipcRenderer.removeListener('register-response', l);
   },
 
-  // ⭐⭐ เพิ่มอันนี้ ⭐⭐
+  // ฟังก์ชันส่งออเดอร์ update
   updateUserId: (data) => ipcRenderer.send("update-user-id", data),
 
-  onUpdateUserIdResponse: (callback) => {
-    const listener = (event, ...args) => callback(...args);
-    ipcRenderer.on('update-user-id-response', listener);
-    return () => ipcRenderer.removeListener('update-user-id-response', listener);
+  // listener สำหรับผลลัพธ์
+  onUpdateUserIdResponse: (cb) => {
+    const l = (e, ...args) => cb(...args);
+    ipcRenderer.on('update-user-id-response', l);
+    return () => ipcRenderer.removeListener('update-user-id-response', l);
   }
-
 });

@@ -3,7 +3,8 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 // 1. นำเข้า tcpClient ที่เพิ่งสร้าง
 const tcpClient = require('./tcpClient');
-const { initTcpClient, sendLogin, sendRegister } = tcpClient;
+const { initTcpClient, sendLogin, sendRegister, send } = tcpClient;
+
 
 
 let mainWindow;
@@ -66,11 +67,18 @@ ipcMain.on('register-request', (event, data) => {
 });
 
 ipcMain.on("update-user-id", async (event, data) => {
+  try {
+    // ส่ง packet แบบ request/response
+    const response = await send({
+      type: "update_user_id",
+      user_id: data.user_id,
+      new_id: data.new_id
+    });
 
-  const response = await tcpClient.send({
-    type: "update_user_id",
-    ...data
-  });
-
-  event.reply("update-user-id-response", response);
+    // ส่งกลับไปยัง renderer (preload listener จะรับ)
+    event.reply("update-user-id-response", response);
+  } catch (err) {
+    console.error("update-user-id error:", err);
+    event.reply("update-user-id-response", { success: false, message: err.message });
+  }
 });

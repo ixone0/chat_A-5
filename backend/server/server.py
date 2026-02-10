@@ -3,6 +3,7 @@ import socket
 import threading
 import os
 from dotenv import load_dotenv
+import json
 
 # Import Services
 from services.auth_service import login_user, register_user
@@ -28,6 +29,32 @@ server.listen()
 
 print(f"Server started on {HOST}:{PORT}...")
 
+def handle_incoming_packet(conn, data_bytes):
+    try:
+        pkt = json.loads(data_bytes.decode())
+    except Exception as e:
+        print("Invalid packet:", e)
+        return
+
+    pkt_type = pkt.get("type")
+
+    if pkt_type == "update_user_id":
+        user_id = pkt.get("user_id")
+        new_id = pkt.get("new_id")
+        result = change_custom_id(user_id, new_id)  # returns dict {"success": True/False, "message": ...}
+
+        # keep the same request_id if provided so electron can match
+        resp = {
+            "type": "update_user_id_response",
+            "success": bool(result.get("success")),
+            "message": result.get("message", "")
+        }
+        if "request_id" in pkt:
+            resp["request_id"] = pkt["request_id"]
+
+        conn.send(json.dumps(resp).encode())
+        return
+    
 def handle_client(conn, addr):
     print(f"[NEW CONNECTION] {addr} connected.")
     user_id = None

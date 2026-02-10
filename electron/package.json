@@ -11,6 +11,7 @@
   "type": "commonjs",
   "description": "",
   "dependencies": {
-    "electron": "^40.2.1"
+    "electron": "^40.2.1",
+    "uuid": "^13.0.0"
   }
 }
