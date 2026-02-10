@@ -1,0 +1,105 @@
+/* src/pages/Register.css */
+
+/* จัดหน้าจอให้อยู่ตรงกลางและใส่สีพื้นหลัง */
+.register-container {
+  display: flex;
+  justify-content: center; /* ✅ แก้จาก _ เป็น - ครับ */
+  align-items: center;     /* อันนี้จัดกึ่งกลางแนวตั้ง */
+  height: 100vh;
+  width: 100vw;
+  background-color: #E8E0D1; 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0; /* เพิ่มอันนี้เพื่อกันขอบขาวๆ รอบจอ */
+}
+
+/* กล่องสีฟ้าตรงกลาง */
+.register-box {
+  background-color: #56758F; 
+  padding: 40px 50px;
+  width: 400px;
+  /* box-shadow: 0 10px 25px rgba(0,0,0,0.2); ถ้าอยากให้กล่องดูลอยๆ ให้เปิดบรรทัดนี้ */
+}
+
+/* หัวข้อ Register */
+.register-title {
+  text-align: center;
+  color: white;
+  margin-bottom: 30px;
+  font-weight: normal;
+  font-size: 28px;
+}
+
+/* กลุ่มช่องกรอกข้อมูล */
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  color: white;
+  margin-bottom: 5px;
+  font-size: 18px;
+}
+
+/* input ปกติ */
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  background-color: #8FAAB9; 
+  border: none;
+  color: white; 
+  font-size: 16px;
+  box-sizing: border-box; 
+  outline: none; /* เอาขอบน้ำเงินเวลาคลิกออก */
+}
+
+/* input ที่อยู่ใน wrapper (พวกพาสเวิร์ด) */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding: 10px;
+    background-color: #8FAAB9;
+    border: none;
+    color: white;
+    font-size: 16px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+/* ไอคอนลูกตา */
+.eye-icon {
+  position: absolute;
+  right: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #333; /* หรือจะเปลี่ยนเป็น white ให้กลืนไปกับธีมก็ได้ครับ */
+}
+
+/* ปุ่มกดด้านล่าง */
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 40px;
+}
+
+.btn-register, .btn-login {
+  flex: 1;
+  padding: 10px;
+  background-color: #8FAAB9; 
+  color: white;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background 0.3s;
+}
+
+.btn-register:hover, .btn-login:hover {
+  background-color: #7a94a3; 
+}

@@ -1,52 +1,104 @@
+/* src/pages/Login.css */
+
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
   background-color: #f0f2f5; /* สีพื้นหลังแบบสบายตา */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .login-box {
   background: white;
-  padding: 2rem;
+  padding: 2.5rem; /* เพิ่ม padding อีกนิดให้ดูโปร่ง */
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 400px;
   text-align: center;
 }
 
+.login-box h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
 .input-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
   text-align: left;
 }
 
 .input-group label {
   display: block;
   margin-bottom: 0.5rem;
-  font-weight: bold;
+  font-weight: 600;
+  color: #555;
 }
 
 .input-group input {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 1rem;
+  box-sizing: border-box; /* สำคัญ: ป้องกัน input ล้นกล่อง */
+  transition: border-color 0.3s;
 }
 
+.input-group input:focus {
+  outline: none;
+  border-color: #0084ff;
+}
+
+/* --- ส่วนที่เพิ่มใหม่สำหรับปุ่มคู่ --- */
+
+.button-group {
+  display: flex;
+  gap: 15px; /* ระยะห่างระหว่างปุ่ม */
+  margin-top: 2rem;
+}
+
+/* ปุ่ม Login (สีฟ้าหลัก) */
 .login-btn {
-  width: 100%;
+  flex: 1; /* ขยายเต็มพื้นที่ครึ่งนึง */
   padding: 0.75rem;
-  background-color: #0084ff; /* สีฟ้าสไตล์ Messenger */
+  background-color: #0084ff; 
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 1rem;
+  font-weight: bold;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background 0.3s, transform 0.1s;
 }
 
 .login-btn:hover {
   background-color: #006bcf;
+}
+
+.login-btn:active {
+  transform: scale(0.98);
+}
+
+/* ปุ่ม Register (สีเทารอง) */
+.register-link-btn {
+  flex: 1; /* ขยายเต็มพื้นที่อีกครึ่งนึง */
+  padding: 0.75rem;
+  background-color: #6c757d; /* สีเทาเข้ม */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.1s;
+}
+
+.register-link-btn:hover {
+  background-color: #5a6268;
+}
+
+.register-link-btn:active {
+  transform: scale(0.98);
 }

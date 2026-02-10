@@ -1,5 +1,5 @@
 // src/pages/Login.jsx
-import React, { useState, useEffect } from 'react'; // <--- เพิ่ม useEffect
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
@@ -15,25 +15,32 @@ const Login = () => {
     // เช็คว่ามีตัวเชื่อม (Bridge) อยู่จริงไหม
     if (window.electronAPI) {
       // เมื่อ Electron ตอบกลับมาว่า 'login-response'
+      // เราใช้ .once หรือตรวจสอบเพื่อป้องกันการทำงานซ้ำซ้อนได้ แต่เบื้องต้นใช้แบบนี้ตาม Flow เดิม
       window.electronAPI.onLoginResponse((response) => {
         console.log('📩 ได้รับผลจาก Electron:', response);
         
-        if (response.status === 'success' || response.status === 'ok') {
-          
-          // Login ผ่าน:
+        // เช็คผลลัพธ์ (รองรับทั้งแบบ Mock เดิม และแบบ Python Server ในอนาคต)
+        const isSuccess = response.success || response.status === 'success' || response.status === 'ok';
+
+        if (isSuccess) {
+          // --- Login ผ่าน ---
           console.log("✅ Login Passed!");
-          localStorage.setItem('username', response.username);
-          // Python ส่งมาเป็น user_id แต่ React รอเก็บ token (แก้ให้เก็บ user_id แทนไปก่อนได้)
-          localStorage.setItem('token', response.token || response.user_id); 
+          
+          // เก็บข้อมูลลงเครื่อง
+          localStorage.setItem('username', response.username || username);
+          // เก็บ Token หรือ User ID
+          localStorage.setItem('token', response.token || response.user_id || 'dummy-token'); 
+          
+          // เปลี่ยนไปหน้า Chat
           navigate('/chat');
 
         } else {
-          // Login ไม่ผ่าน
+          // --- Login ไม่ผ่าน ---
           alert('Login Failed: ' + (response.message || 'Unknown Error'));
         }
       });
     }
-  }, [navigate]); // ทำงานแค่ตอนโหลดหน้าหรือ navigate เปลี่ยน
+  }, [navigate, username]); // เพิ่ม dependencies เพื่อความชัวร์
 
   // -------------------------------------------------------
   // 📤 2. ส่วนส่งคำสั่ง (Sender): ส่งข้อมูลไปหา Electron
@@ -58,6 +65,8 @@ const Login = () => {
       <div className="login-box">
         <h2>Enter Chat Room</h2>
         <form onSubmit={handleLogin}>
+          
+          {/* ช่อง Username */}
           <div className="input-group">
             <label>Username</label>
             <input 
@@ -67,6 +76,8 @@ const Login = () => {
               required 
             />
           </div>
+
+          {/* ช่อง Password */}
           <div className="input-group">
             <label>Password</label>
             <input 
@@ -76,7 +87,22 @@ const Login = () => {
               required 
             />
           </div>
-          <button type="submit" className="login-btn">Join Chat</button>
+
+          {/* กลุ่มปุ่มกด (Login + Register) */}
+          <div className="button-group">
+            <button type="submit" className="login-btn">
+              Login
+            </button>
+            
+            <button 
+              type="button" 
+              className="register-link-btn"
+              onClick={() => navigate('/register')}
+            >
+              Register
+            </button>
+          </div>
+
         </form>
       </div>
     </div>
