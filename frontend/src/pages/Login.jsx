@@ -6,6 +6,12 @@ import './Login.css';
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  // Reset input ทุกครั้งที่เข้า Login
+  useEffect(() => {
+    setUsername('');
+    setPassword('');
+  }, []);
   const navigate = useNavigate();
 
   // -------------------------------------------------------
@@ -63,7 +69,7 @@ const Login = () => {
   return (
     <div className="login-container">
       <div className="login-box">
-        <h2>Enter Chat Room</h2>
+        <h2>LogIn</h2>
         <form onSubmit={handleLogin}>
           
           {/* ช่อง Username */}
@@ -100,6 +106,112 @@ const Login = () => {
               onClick={() => navigate('/register')}
             >
               Register
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const Register = () => {
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  // Reset input ทุกครั้งที่เข้า Register
+  useEffect(() => {
+    setFormData({
+      username: '',
+      password: '',
+      confirmPassword: ''
+    });
+  }, []);
+
+  // เพิ่ม useEffect นี้
+  useEffect(() => {
+    setFormData({
+      username: '',
+      password: '',
+      confirmPassword: ''
+    });
+  }, []);
+
+  const handleRegister = (e) => {
+    e.preventDefault();
+    
+    const payload = { 
+      username: formData.username, 
+      password: formData.password, 
+      confirmPassword: formData.confirmPassword 
+    };
+    console.log('📤 กำลังส่งข้อมูลไป Electron:', payload);
+
+    if (window.electronAPI) {
+      // ใช้สะพานที่สร้างไว้ใน preload.js
+      window.electronAPI.register(payload);
+    } else {
+      // กรณีเปิดผ่าน Browser ธรรมดา (ไม่ใช่ Electron)
+      alert('Error: ไม่พบ Electron API (กรุณาเปิดผ่านแอพ Electron)');
+    }
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-box">
+        <h2>Enter Chat Room</h2>
+        <form onSubmit={handleRegister}>
+          
+          {/* ช่อง Username */}
+          <div className="input-group">
+            <label>Username</label>
+            <input 
+              type="text" 
+              value={formData.username} 
+              onChange={(e) => setFormData({...formData, username: e.target.value})} 
+              required 
+            />
+          </div>
+
+          {/* ช่อง Password */}
+          <div className="input-group">
+            <label>Password</label>
+            <input 
+              type="password" 
+              value={formData.password} 
+              onChange={(e) => setFormData({...formData, password: e.target.value})} 
+              required 
+            />
+          </div>
+
+          {/* ช่องยืนยันรหัสผ่าน */}
+          <div className="input-group">
+            <label>Confirm Password</label>
+            <input 
+              type="password" 
+              value={formData.confirmPassword} 
+              onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} 
+              required 
+            />
+          </div>
+
+          {/* กลุ่มปุ่มกด (Login + Register) */}
+          <div className="button-group">
+            <button type="submit" className="login-btn">
+              Register
+            </button>
+            
+            <button 
+              type="button" 
+              className="register-link-btn"
+              onClick={() => navigate('/login')}
+            >
+              Login
             </button>
           </div>
 
