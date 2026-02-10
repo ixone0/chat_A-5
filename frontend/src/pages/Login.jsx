@@ -18,11 +18,15 @@ const Login = () => {
       window.electronAPI.onLoginResponse((response) => {
         console.log('📩 ได้รับผลจาก Electron:', response);
         
-        if (response.success) {
-          // Login ผ่าน: เก็บข้อมูลแล้วไปหน้า Chat
+        if (response.status === 'success' || response.status === 'ok') {
+          
+          // Login ผ่าน:
+          console.log("✅ Login Passed!");
           localStorage.setItem('username', response.username);
-          localStorage.setItem('token', response.token);
+          // Python ส่งมาเป็น user_id แต่ React รอเก็บ token (แก้ให้เก็บ user_id แทนไปก่อนได้)
+          localStorage.setItem('token', response.token || response.user_id); 
           navigate('/chat');
+
         } else {
           // Login ไม่ผ่าน
           alert('Login Failed: ' + (response.message || 'Unknown Error'));
