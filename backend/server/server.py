@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 # Import Services
 from services.auth_service import login_user, register_user
 from services.conversation_service import handle_create_conversation
-from services.user_service import change_user_id
+from services.user_service import change_custom_id
 # หมายเหตุ: services.message_service กับ db.py คุณต้องแก้ให้รองรับ UUID ด้วยนะ
 # ถ้ายังไม่มีไฟล์ message_service ให้ comment บรรทัดนี้ไปก่อน
 # from services.message_service import send_message_service 
@@ -81,7 +81,7 @@ def handle_client(conn, addr):
                 pass
             
             elif pkt["type"] == "update_user_id":
-                res = change_user_id(pkt)
+                res = change_custom_id(pkt)
                 conn.send(packet.encode(res))
 
 
