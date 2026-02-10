@@ -103,3 +103,15 @@
 .btn-register:hover, .btn-login:hover {
   background-color: #7a94a3; 
 }
+
+.error-text {
+  color: #ff4d4f;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.success-text {
+  color: #52c41a;
+  margin-top: 10px;
+  font-size: 14px;
+}

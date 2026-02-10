@@ -5,7 +5,7 @@ import './Register.css';
 
 const Register = () => {
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -15,46 +15,70 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
   // -------------------------------------------------------
   // 👂 รอฟังผลจาก Server
   // -------------------------------------------------------
   useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.onRegisterResponse((response) => {
-        console.log("📩 Register Response:", response);
+    if (!window.electronAPI) return;
 
-        if (response.status === 'ok' || response.status === 'success') {
-          alert("✅ Register Success! Please Login.");
-          navigate('/'); // เด้งกลับไปหน้า Login
-        } else {
-          alert("❌ Register Failed: " + response.message);
-        }
-      });
-    }
+    const unsubscribe = window.electronAPI.onRegisterResponse((response) => {
+      console.log("📩 Register Response:", response);
+
+      setLoading(false);
+
+      if (response.status === 'ok' || response.status === 'success') {
+        setErrorMsg('');
+        setSuccessMsg('Register Success! Redirecting to login...');
+
+        setTimeout(() => {
+          navigate('/');
+        }, 1200);
+      } else {
+        setSuccessMsg('');
+        setErrorMsg(response.message || 'Register failed');
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, [navigate]);
 
+  // -------------------------------------------------------
+  // handle input
+  // -------------------------------------------------------
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+
+    // เคลียร์ข้อความ error/success เมื่อพิมพ์ใหม่
+    setErrorMsg('');
+    setSuccessMsg('');
   };
 
+  // -------------------------------------------------------
+  // submit register
+  // -------------------------------------------------------
   const handleRegister = (e) => {
     e.preventDefault();
-    
+
+    if (loading) return;
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      setErrorMsg("Passwords do not match");
       return;
     }
 
-    console.log("Registering:", formData);
+    setLoading(true);
 
-    // 📤 ส่งข้อมูลไปหา Electron
     if (window.electronAPI) {
       window.electronAPI.register({
         username: formData.username,
         password: formData.password
       });
-    } else {
-      alert("Error: Electron API not found");
     }
   };
 
@@ -62,13 +86,14 @@ const Register = () => {
     <div className="register-container">
       <div className="register-box">
         <h2 className="register-title">Register</h2>
-        
+
         <form onSubmit={handleRegister}>
+
           {/* Username */}
           <div className="input-group">
             <label>User name</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="username"
               value={formData.username}
               onChange={handleChange}
@@ -80,15 +105,15 @@ const Register = () => {
           <div className="input-group">
             <label>Password</label>
             <div className="password-wrapper">
-              <input 
-                type={showPassword ? "text" : "password"} 
+              <input
+                type={showPassword ? "text" : "password"}
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
                 required
               />
-              <span 
-                className="eye-icon" 
+              <span
+                className="eye-icon"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? "👁️" : "👁️‍🗨️"}
@@ -100,28 +125,49 @@ const Register = () => {
           <div className="input-group">
             <label>Confirm Password</label>
             <div className="password-wrapper">
-              <input 
-                type={showConfirmPassword ? "text" : "password"} 
+              <input
+                type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
               />
-              <span 
-                className="eye-icon" 
+              <span
+                className="eye-icon"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
-                 {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
               </span>
             </div>
           </div>
 
-          {/* Buttons Area */}
+          {/* ✅ Error Message */}
+          {errorMsg && (
+            <div className="error-text">
+              {errorMsg}
+            </div>
+          )}
+
+          {/* ✅ Success Message */}
+          {successMsg && (
+            <div className="success-text">
+              {successMsg}
+            </div>
+          )}
+
+          {/* Buttons */}
           <div className="button-group">
-            <button type="submit" className="btn-register">REGISTER</button>
-            <button 
-              type="button" 
-              className="btn-login" 
+            <button
+              type="submit"
+              className="btn-register"
+              disabled={loading}
+            >
+              {loading ? 'Registering...' : 'REGISTER'}
+            </button>
+
+            <button
+              type="button"
+              className="btn-login"
               onClick={() => navigate('/')}
             >
               LOG IN

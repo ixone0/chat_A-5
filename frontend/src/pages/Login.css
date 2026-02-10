@@ -1,5 +1,11 @@
 /* src/pages/Login.css */
 
+.error-text {
+  color: red;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
 .login-container {
   display: flex;
   justify-content: center;

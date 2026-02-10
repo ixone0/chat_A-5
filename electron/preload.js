@@ -2,13 +2,20 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // ส่งข้อมูลออกไป (React -> Electron)
   login: (data) => ipcRenderer.send('login-request', data),
-  
-  // รอฟังผลตอบกลับ (Electron -> React)
-  onLoginResponse: (callback) => 
-    ipcRenderer.on('login-response', (event, ...args) => callback(...args)),
+
+  // onLoginResponse จะคืนฟังก์ชัน unsubscribe
+  onLoginResponse: (callback) => {
+    const listener = (event, ...args) => callback(...args);
+    ipcRenderer.on('login-response', listener);
+    // คืนฟังก์ชันสำหรับถอด listener
+    return () => ipcRenderer.removeListener('login-response', listener);
+  },
 
   register: (data) => ipcRenderer.send('register-request', data),
-  onRegisterResponse: (callback) => ipcRenderer.on('register-response', (event, ...args) => callback(...args))
+  onRegisterResponse: (callback) => {
+    const listener = (event, ...args) => callback(...args);
+    ipcRenderer.on('register-response', listener);
+    return () => ipcRenderer.removeListener('register-response', listener);
+  }
 });
