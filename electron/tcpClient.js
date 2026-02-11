@@ -97,6 +97,15 @@ function sendLogin(username, password) {
     console.log('📤 Sent Login Packet:', packet);
 }
 
+function sendRegister(username, password) {
+  return send({
+    type: 'register',
+    username,
+    password
+  });
+}
+
+
 module.exports = {
   initTcpClient,
   sendLogin,

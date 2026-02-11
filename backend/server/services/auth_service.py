@@ -39,20 +39,31 @@ def login_user(pkt):
 def register_user(pkt):
     username = pkt.get("username")
     password = pkt.get("password")
-    display_name = pkt.get("display_name", username) # ถ้าไม่ส่งมา ให้ใช้ username แทน
+    display_name = pkt.get("display_name", username)
+
+    if not username or not password:
+        return {"status": "error", "message": "Missing username or password"}
 
     # 1. เช็คซ้ำ
     if get_user_by_username(username):
         return {"status": "error", "message": "Username already exists"}
 
-    # 2. Hash Password
+    # ⭐ 2. สร้าง custom_id
+    custom_id = generate_unique_custom_id()
+
+    # 3. Hash Password
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password.encode(), salt).decode('utf-8')
 
-    # 3. บันทึก
-    new_user_id = create_user(username, hashed, display_name)
-    
+    # ⭐ 4. บันทึก
+    new_user_id = create_user(username, hashed, display_name, custom_id)
+
     if new_user_id:
-        return {"status": "ok", "message": "Registration successful", "user_id": new_user_id}
+        return {
+            "status": "ok",
+            "message": "Registration successful",
+            "user_id": new_user_id,
+            "custom_id": custom_id
+        }
     else:
         return {"status": "error", "message": "Database error"}
