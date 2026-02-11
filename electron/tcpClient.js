@@ -105,10 +105,18 @@ function sendRegister(username, password) {
   });
 }
 
+function searchUser(customId) {
+  return send({
+    type: 'search_user',
+    target_id: customId
+  });
+}
+
 
 module.exports = {
   initTcpClient,
   sendLogin,
   sendRegister,
-  send
+  send,
+  searchUser
 };

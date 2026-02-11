@@ -1,14 +1,43 @@
+// AddFriendForm.jsx
 import React, { useState } from 'react';
 import './AddFriendForm.css';
 
 const AddFriendForm = ({ onSave }) => {
-  const [formData, setFormData] = useState({ name: '', id: '' });
+  const [searchId, setSearchId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSearchAndAdd = async (e) => {
     e.preventDefault();
-    if (formData.name && formData.id) {
-      onSave(formData);
-      setFormData({ name: '', id: '' });
+    if (!searchId.trim()) return;
+
+    setError('');
+    setIsLoading(true);
+
+    try {
+        // ✅ เรียกใช้ผ่าน electronAPI ที่เราเพิ่งแก้ใน preload.js
+        console.log("Searching for:", searchId);
+        const result = await window.electronAPI.searchUser(searchId);
+        
+        console.log("Search result:", result);
+
+        if (result && result.status === 'success') {
+            // เจอเพื่อน! ส่งข้อมูลกลับไปบันทึก
+            onSave({
+                name: result.data.display_name, // หรือ username แล้วแต่จะแสดง
+                id: result.data.custom_id,
+                user_id: result.data.user_id
+            });
+            setSearchId('');
+            // อาจจะเพิ่ม alert หรือ notification ว่าเพิ่มสำเร็จ
+        } else {
+            setError(result.message || 'User not found');
+        }
+    } catch (err) {
+        console.error("Error searching user:", err);
+        setError('Connection failed');
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -16,33 +45,32 @@ const AddFriendForm = ({ onSave }) => {
     <div className="add-user-view">
       <div className="add-user-header">
         <div className="window-controls">
-          <span>_</span><span>□</span><span>X</span>
+          <span>_</span><span>□</span><span onClick={() => onSave(null)}>X</span>
         </div>
       </div>
-      <form className="add-user-form" onSubmit={handleSubmit}>
-        <div className="form-avatar-circle"></div>
+      
+      <form className="add-user-form" onSubmit={handleSearchAndAdd}>
+        <div className="form-avatar-circle">?</div>
+        
+        {/* ลบช่อง Name ออก เพราะเราจะค้นหาจาก ID อย่างเดียว */}
+        
         <div className="form-group">
-          <label>User Name :</label>
+          <label>Friend's Custom ID :</label>
           <input 
             type="text" 
             className="underline-input"
-            value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
-            placeholder="Enter name"
+            value={searchId}
+            onChange={(e) => setSearchId(e.target.value)}
+            placeholder="Ex. nh2fy1"
             autoFocus
           />
         </div>
-        <div className="form-group">
-          <label>ID :</label>
-          <input 
-            type="text" 
-            className="underline-input"
-            value={formData.id}
-            onChange={(e) => setFormData({...formData, id: e.target.value})}
-            placeholder="Enter ID"
-          />
-        </div>
-        <button type="submit" className="save-user-btn">CONFIRM ADD</button>
+
+        {error && <p style={{color: 'red', fontSize: '12px'}}>{error}</p>}
+
+        <button type="submit" className="save-user-btn" disabled={isLoading}>
+            {isLoading ? 'SEARCHING...' : 'SEARCH & ADD'}
+        </button>
       </form>
     </div>
   );

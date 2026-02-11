@@ -34,3 +34,34 @@ def get_messages(client_id):
     conn.close()
 
     return rows
+
+def find_user_by_custom_id(custom_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        # ดึงข้อมูล id, username, display_name จากตาราง users
+        cur.execute("""
+            SELECT id, username, display_name, custom_id
+            FROM users
+            WHERE custom_id = %s
+        """, (custom_id,))
+        
+        row = cur.fetchone()
+        
+        if row:
+            # แปลงข้อมูลเป็น Dict เพื่อส่งกลับไปง่ายๆ
+            return {
+                "user_id": row[0], # หรือ row['id'] ถ้าใช้ RealDictCursor
+                "username": row[1],
+                "display_name": row[2],
+                "custom_id": row[3]
+            }
+        return None
+
+    except Exception as e:
+        print(f"Error finding user: {e}")
+        return None
+    finally:
+        cur.close()
+        conn.close()

@@ -3,7 +3,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 // 1. นำเข้า tcpClient ที่เพิ่งสร้าง
 const tcpClient = require('./tcpClient');
-const { initTcpClient, sendLogin, sendRegister, send } = tcpClient;
+const { initTcpClient, sendLogin, sendRegister, send, searchUser } = tcpClient;
 
 
 
@@ -80,5 +80,17 @@ ipcMain.on("update-user-id", async (event, data) => {
   } catch (err) {
     console.error("update-user-id error:", err);
     event.reply("update-user-id-response", { success: false, message: err.message });
+  }
+});
+
+ipcMain.handle('search-user', async (event, customId) => {
+  console.log('UI Request Search User:', customId);
+  try {
+    // เรียกใช้ฟังก์ชัน searchUser ที่เราเขียนเพิ่มใน tcpClient.js
+    const response = await searchUser(customId);
+    return response;
+  } catch (err) {
+    console.error("Search error:", err);
+    return { status: 'error', message: err.message };
   }
 });

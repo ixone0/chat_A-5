@@ -1,3 +1,4 @@
+#server/server.py
 import socket
 import threading
 import os
@@ -7,6 +8,7 @@ import json
 from services.auth_service import login_user, register_user
 from services.conversation_service import handle_create_conversation
 from services.user_service import change_custom_id
+from db import find_user_by_custom_id
 
 import packet
 
@@ -138,6 +140,24 @@ def handle_client(conn, addr):
                             "message": "Unauthorized"
                         }))
 
+                # ---------------- SEARCH USER ----------------
+                elif pkt_type == "search_user":
+                    target_id = pkt.get("target_id")
+                    found_user = find_user_by_custom_id(target_id)
+
+                    if found_user:
+                        conn.send(packet.encode({
+                            "type": "search_user_response",
+                            "status": "success",
+                            "data": found_user
+                        }))
+                    else:
+                        conn.send(packet.encode({
+                            "type": "search_user_response",
+                            "status": "error",
+                            "message": "User not found"
+                        }))
+
                 # ---------------- SEND MESSAGE ----------------
                 elif pkt_type == "send_message":
                     pass
@@ -147,6 +167,8 @@ def handle_client(conn, addr):
                         "type": "error",
                         "message": "Unknown packet type"
                     }))
+
+                
 
             except ConnectionResetError:
                 print(f"[CONN RESET] {addr}")
