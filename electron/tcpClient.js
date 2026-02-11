@@ -7,7 +7,7 @@ let win = null;
 const pending = new Map(); // request_id => {resolve, reject, timeout}
 
 const TCP_CONFIG = {
-  host: '13.212.120.46', // ของคุณ
+  host: '13.212.120.46', // ของคุณ '13.212.120.46
   port: 8082
 };
 
