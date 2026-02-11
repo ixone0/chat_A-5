@@ -58,6 +58,7 @@ def handle_client(conn, addr):
 
                 print(f"[PKT] {addr}: {pkt}")
 
+                request_id = pkt.get("request_id")
                 pkt_type = pkt.get("type")
 
                 # ---------------- REGISTER ----------------
@@ -140,6 +141,8 @@ def handle_client(conn, addr):
                             "message": "Unauthorized"
                         }))
 
+
+                
                 # ---------------- SEARCH USER ----------------
                 elif pkt_type == "search_user":
                     target_id = pkt.get("target_id")
@@ -148,12 +151,14 @@ def handle_client(conn, addr):
                     if found_user:
                         conn.send(packet.encode({
                             "type": "search_user_response",
+                            "request_id": request_id, 
                             "status": "success",
                             "data": found_user
                         }))
                     else:
                         conn.send(packet.encode({
                             "type": "search_user_response",
+                            "request_id": request_id,
                             "status": "error",
                             "message": "User not found"
                         }))
