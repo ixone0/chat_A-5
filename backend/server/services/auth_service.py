@@ -1,8 +1,8 @@
 #/backend/server/services/auth_service.py  
-from repository.user_repo import get_user_by_username, create_user
+from repository.user_repo import get_user_by_username, create_user, get_user_by_custom_id
 import bcrypt
 import random
-
+import string
 
 def generate_custom_id(length=6):
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
