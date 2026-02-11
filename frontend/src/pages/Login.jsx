@@ -23,8 +23,9 @@ const Login = () => {
   useEffect(() => {
     if (!window.electronAPI) return;
 
-    // ผูก listener ตอน mount และเก็บ unsubscribe
     const unsubscribe = window.electronAPI.onLoginResponse((response) => {
+      if (!response) return;
+
       console.log('📩 ได้รับผลจาก Electron:', response);
 
       setLoading(false);
@@ -36,22 +37,29 @@ const Login = () => {
 
       if (isSuccess) {
         setErrorMsg('');
-        localStorage.setItem('username', response.username || username);
-        localStorage.setItem('token', response.token || response.user_id || 'dummy-token'); 
+
+        localStorage.setItem(
+          'username',
+          response.username || username
+        );
+
+        localStorage.setItem('user_id', response.user_id);
+
+        if (response.custom_id) {
+          localStorage.setItem('custom_id', response.custom_id);
+        }
+
         navigate('/chat');
       } else {
         setErrorMsg(response.message || 'Login Failed');
       }
     });
 
-
-
-    // cleanup: ถอด listener เมื่อ component unmount
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, [navigate]); // <-- ลบ username ออก (ไม่ต้องผูกใหม่เมื่อพิมพ์)
 
+  }, []);
 
   // -------------------------------------------------------
   // 📤 2. ส่วนส่งคำสั่ง (Sender): ส่งข้อมูลไปหา Electron
@@ -59,14 +67,19 @@ const Login = () => {
   const handleLogin = (e) => {
     e.preventDefault();
 
-    if (loading) return;   // 🔥 ป้องกันกดซ้ำ
+    if (loading) return;
+
     setLoading(true);
 
+    localStorage.clear(); // ⭐ สำคัญ
+
     const payload = { username, password };
-    console.log('📤 กำลังส่งข้อมูลไป Electron:', payload);
 
     if (window.electronAPI) {
       window.electronAPI.login(payload);
+    } else {
+      setLoading(false);
+      setErrorMsg("Electron bridge not available");
     }
   };
 

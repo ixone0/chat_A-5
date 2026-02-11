@@ -3,25 +3,31 @@ import React, { useState, useEffect } from "react";
 
 const Profile = () => {
   const [username, setUsername] = useState("");
-  const [userId, setUserId] = useState("");
+  const [uuid, setUuid] = useState("");
+  const [customId, setCustomId] = useState("");
   const [newId, setNewId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // โหลดค่าจาก localStorage
   useEffect(() => {
     setUsername(localStorage.getItem("username") || "");
-    setUserId(localStorage.getItem("user_id") || "");
+    setUuid(localStorage.getItem("user_id") || "");
+    setCustomId(localStorage.getItem("custom_id") || "");
   }, []);
 
-  // ฟัง response หนึ่งรอบ (mount) แล้ว unsubscribe (สำคัญ)
+  // ฟัง response จาก electron
   useEffect(() => {
     if (!window.electronAPI?.onUpdateUserIdResponse) return;
 
     const unsubscribe = window.electronAPI.onUpdateUserIdResponse((res) => {
       setLoading(false);
-      if (res && res.success) {
-        localStorage.setItem("user_id", newId);
-        setUserId(newId);
+
+      if (res?.success) {
+        // ✅ อัปเดต custom id ใหม่
+        localStorage.setItem("custom_id", res.new_id || newId);
+
+        setCustomId(res.new_id || newId);
         setNewId("");
         setError("");
       } else {
@@ -32,10 +38,11 @@ const Profile = () => {
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
-  }, []);
+  }, []); // 🔥 ต้องเป็น [] เท่านั้น
 
   const handleChangeId = () => {
     setError("");
+
     if (!newId.trim()) {
       setError("Please enter new ID");
       return;
@@ -43,14 +50,10 @@ const Profile = () => {
 
     setLoading(true);
 
-    const payload = {
-      user_id: userId || localStorage.getItem("user_id"),
+    window.electronAPI.updateUserId({
+      user_id: uuid,
       new_id: newId
-    };
-
-    // ส่งไป electron (preload) — main จะส่งต่อไป server
-    window.electronAPI.updateUserId(payload);
-    // **อย่าอัปเดต localStorage/ UI ตรงนี้** — รอ response
+    });
   };
 
   return (
@@ -58,7 +61,7 @@ const Profile = () => {
       <h2>Profile</h2>
 
       <p><b>Username:</b> {username}</p>
-      <p><b>User ID:</b> {userId}</p>
+      <p><b>ID:</b> {customId}</p>
 
       <hr />
 
@@ -75,7 +78,11 @@ const Profile = () => {
         {loading ? "Changing..." : "Change ID"}
       </button>
 
-      {error && <div style={{ color: "red", marginTop: 8 }}>{error}</div>}
+      {error && (
+        <div style={{ color: "red", marginTop: 8 }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 };
