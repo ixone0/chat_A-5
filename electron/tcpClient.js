@@ -112,11 +112,19 @@ function searchUser(customId) {
   });
 }
 
+function addFriend(friendUserId) {
+  return send({
+    type: 'add_friend',
+    target_id: friendUserId // ส่ง UUID ของเพื่อนไป
+  });
+}
+
 
 module.exports = {
   initTcpClient,
   sendLogin,
   sendRegister,
   send,
-  searchUser
+  searchUser,
+  addFriend
 };

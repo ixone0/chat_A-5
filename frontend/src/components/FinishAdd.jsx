@@ -1,3 +1,4 @@
+//FinishAdd.jsx
 import React from 'react';
 import './FinishAdd.css'; // เดี๋ยวสร้างไฟล์ CSS นี้ต่อ
 const FinishAdd = ({ user, onConfirm, onCancel }) => {

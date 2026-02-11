@@ -1,11 +1,13 @@
 // AddFriendForm.jsx
 import React, { useState } from 'react';
 import './AddFriendForm.css';
+import FinishAdd from './FinishAdd';
 
 const AddFriendForm = ({ onSave }) => {
   const [searchId, setSearchId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [foundUser, setFoundUser] = useState(null);
 
   const handleSearchAndAdd = async (e) => {
     e.preventDefault();
@@ -23,15 +25,15 @@ const AddFriendForm = ({ onSave }) => {
 
         if (result && result.status === 'success') {
             // เจอเพื่อน! ส่งข้อมูลกลับไปบันทึก
-            onSave({
-                name: result.data.display_name, // หรือ username แล้วแต่จะแสดง
-                id: result.data.custom_id,
+            setFoundUser({
+                name: result.data.display_name,
+                customId: result.data.custom_id,
                 user_id: result.data.user_id
             });
-            setSearchId('');
-            // อาจจะเพิ่ม alert หรือ notification ว่าเพิ่มสำเร็จ
+            setError('');
         } else {
             setError(result.message || 'User not found');
+            setFoundUser(null);
         }
     } catch (err) {
         console.error("Error searching user:", err);
@@ -41,6 +43,28 @@ const AddFriendForm = ({ onSave }) => {
     }
   };
 
+  const confirmAddFriend = () => {
+    if (foundUser) {
+        onSave(foundUser); // ส่งข้อมูลกลับไปที่ App หลักเพื่อบันทึก
+        setFoundUser(null); // เคลียร์ค่า
+        setSearchId('');
+    }
+  };
+
+  const cancelAdd = () => {
+    setFoundUser(null);
+    setSearchId('');
+  };
+
+  if (foundUser) {
+      return (
+          <FinishAdd 
+              user={foundUser} 
+              onConfirm={confirmAddFriend} 
+              onCancel={cancelAdd} 
+          />
+      );
+  }
   return (
     <div className="add-user-view">
       <div className="add-user-header">

@@ -65,3 +65,36 @@ def find_user_by_custom_id(custom_id):
     finally:
         cur.close()
         conn.close()
+
+def add_friend(user_id, friend_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        # บันทึกลงตาราง friends
+        cur.execute("""
+            INSERT INTO friends (user_id, friend_id, status)
+            VALUES (%s, %s, 'accepted')
+        """, (user_id, friend_id))
+        
+        conn.commit()
+        return {"success": True, "message": "Friend added successfully"}
+
+    except Exception as e:
+        conn.rollback() # ยกเลิกถ้า error
+        error_msg = str(e)
+        
+        # เช็ค Error Code ของ Postgres (23505 = Unique Violation แปลว่ามีข้อมูลซ้ำ)
+        if "23505" in error_msg or "duplicate key" in error_msg:
+            return {"success": False, "message": "You are already friends with this user."}
+        
+        # เช็ค Constraint (แอดตัวเองไม่ได้)
+        if "check_not_self" in error_msg:
+             return {"success": False, "message": "You cannot add yourself as a friend."}
+
+        print(f"[DB Error] add_friend: {e}")
+        return {"success": False, "message": "Database error"}
+        
+    finally:
+        cur.close()
+        conn.close()
