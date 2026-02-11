@@ -32,7 +32,7 @@ def login_user(pkt):
         password.encode('utf-8'), 
         user["password_hash"].encode('utf-8')
     ):
-        return user["id"] # UUID
+        return user
 
     return None
 
