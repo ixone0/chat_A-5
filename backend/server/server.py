@@ -108,8 +108,17 @@ def handle_client(conn, addr):
                 pass
             
             elif pkt["type"] == "update_user_id":
-                res = change_custom_id(pkt)
-                conn.send(packet.encode(res))
+                result = change_custom_id(
+                    pkt.get("user_id"),
+                    pkt.get("new_id")
+                )
+
+                conn.send(packet.encode({
+                    "type": "update_user_id_response",
+                    "success": result
+                }))
+
+
 
 
     except Exception as e:
