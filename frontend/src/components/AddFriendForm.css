@@ -1,0 +1,83 @@
+/* AddFriendForm.css */
+.add-user-view {
+ flex: 1;
+ display: flex;
+ flex-direction: column;
+ background-color: #fff;
+ height: 100%;
+}
+.add-user-header {
+ height: 40px;
+ display: flex;
+ justify-content: flex-end;
+ padding: 10px;
+}
+.add-user-form {
+ flex: 1;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ padding-bottom: 100px;
+}
+.form-avatar-circle {
+ width: 100px;
+ height: 100px;
+ background-color: #d9d9d9;
+ border-radius: 50%;
+ margin-bottom: 30px;
+}
+.form-group {
+ display: flex;
+ align-items: center;
+ margin-bottom: 25px;
+ width: 60%;
+ max-width: 400px;
+}
+.form-group label {
+ font-size: 1.2rem;
+ font-weight: 500;
+ margin-right: 15px;
+ color: #333;
+ white-space: nowrap;
+}
+/* Input แบบขีดเส้นใต้ */
+.underline-input {
+ flex: 1;
+ border: none;
+ border-bottom: 2px solid #333;
+ padding: 5px 10px;
+ font-size: 1.2rem;
+ outline: none;
+ background: transparent;
+}
+.underline-input:focus {
+ border-bottom-color: #5865f2;
+}
+.save-user-btn {
+ margin-top: 20px;
+ padding: 10px 30px;
+ background-color: #5865f2;
+ color: white;
+ border: none;
+ border-radius: 4px;
+ font-size: 1rem;
+ cursor: pointer;
+ transition: background 0.2s;
+}
+.save-user-btn:hover {
+ background-color: #4752c4;
+}
+
+/* จัดปุ่ม _ □ X ให้มีระยะห่างและสวยงาม */
+.window-controls span {
+ margin-left: 15px;
+ color: #999;
+ cursor: pointer;
+ font-size: 1.2rem;
+ font-weight: bold;
+ transition: color 0.2s;
+}
+.window-controls span:hover {
+ color: #333; /* เปลี่ยนสีให้เข้มขึ้นตอนเอาเมาส์ชี้ */
+}
