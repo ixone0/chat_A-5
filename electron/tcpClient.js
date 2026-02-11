@@ -97,4 +97,9 @@ function sendLogin(username, password) {
     console.log('📤 Sent Login Packet:', packet);
 }
 
-module.exports = { initTcpClient, sendLogin };
+module.exports = {
+  initTcpClient,
+  sendLogin,
+  sendRegister,
+  send
+};

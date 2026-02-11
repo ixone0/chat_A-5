@@ -32,7 +32,7 @@ const Profile = () => {
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
-  }, [newId]);
+  }, []);
 
   const handleChangeId = () => {
     setError("");

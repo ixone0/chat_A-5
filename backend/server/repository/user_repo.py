@@ -29,17 +29,19 @@ def get_user_by_username(username):
     conn.close()
     return user
 
-def create_user(username, password_hash, display_name):
+def create_user(username, password_hash, display_name, custom_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         user_id = str(uuid.uuid4()) # สร้าง UUID
         # เพิ่ม display_name ตาม ER
         query = """
-            INSERT INTO users (id, username, password_hash, display_name, created_at) 
-            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+            INSERT INTO users 
+            (id, username, password_hash, display_name, custom_id, created_at)
+            VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
         """
-        cursor.execute(query, (user_id, username, password_hash, display_name))
+
+        cursor.execute(query, (user_id, username, password_hash, display_name, custom_id))
         conn.commit()
         return user_id
     except Exception as e:

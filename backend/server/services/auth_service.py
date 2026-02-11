@@ -1,6 +1,18 @@
 #/backend/server/services/auth_service.py  
 from repository.user_repo import get_user_by_username, create_user
 import bcrypt
+import random
+
+
+def generate_custom_id(length=6):
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
+def generate_unique_custom_id():
+    while True:
+        new_id = generate_custom_id()
+
+        if not get_user_by_custom_id(new_id):
+            return new_id
 
 def login_user(pkt):
     # ใช้ .get() เพื่อกัน error ถ้าไม่มีคีย์ส่งมา
