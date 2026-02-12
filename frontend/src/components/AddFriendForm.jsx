@@ -43,11 +43,22 @@ const AddFriendForm = ({ onSave }) => {
     }
   };
 
-  const confirmAddFriend = () => {
-    if (foundUser) {
-        onSave(foundUser); // ส่งข้อมูลกลับไปที่ App หลักเพื่อบันทึก
-        setFoundUser(null); // เคลียร์ค่า
-        setSearchId('');
+  const confirmAddFriend = async () => {
+    if (!foundUser) return;
+
+    try {
+        const result = await window.electronAPI.sendFriendRequest(foundUser.customId);
+
+        if (result && result.status === 'success') {
+            if (typeof onSave === 'function') onSave(); 
+            setFoundUser(null);
+            setSearchId('');
+        } else {
+            alert(`Failed: ${result.message}`);
+        }
+    } catch (err) {
+        console.error("Error:", err);
+        alert("Error sending request");
     }
   };
 

@@ -26,5 +26,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('update-user-id-response', l);
   },
 
-  searchUser: (customId) => ipcRenderer.invoke('search-user', customId)
+  searchUser: (customId) => ipcRenderer.invoke('search-user', customId),
+  sendFriendRequest: (targetCustomId) => ipcRenderer.invoke('send-friend-request', targetCustomId)
 });

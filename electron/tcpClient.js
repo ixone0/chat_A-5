@@ -112,10 +112,23 @@ function searchUser(customId) {
   });
 }
 
-function addFriend(friendUserId) {
+function sendFriendRequest(targetCustomId) {
   return send({
-    type: 'add_friend',
-    target_id: friendUserId // ส่ง UUID ของเพื่อนไป
+    type: 'send_friend_request',
+    target_id: targetCustomId // ส่ง Custom ID (เช่น "nh2fy1") ไป
+  });
+}
+
+// เพิ่มฟังก์ชันดึงคำขอ
+function getPendingRequests() {
+  return send({ type: 'get_pending_requests' });
+}
+
+// เพิ่มฟังก์ชันรับเพื่อน
+function acceptFriend(senderId) {
+  return send({
+    type: 'accept_friend',
+    sender_id: senderId
   });
 }
 
@@ -126,5 +139,7 @@ module.exports = {
   sendRegister,
   send,
   searchUser,
-  addFriend
+  sendFriendRequest, 
+  getPendingRequests,
+  acceptFriend
 };

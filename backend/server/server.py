@@ -8,7 +8,7 @@ import json
 from services.auth_service import login_user, register_user
 from services.conversation_service import handle_create_conversation
 from services.user_service import change_custom_id
-from db import find_user_by_custom_id, add_friend
+from db import find_user_by_custom_id, send_friend_request, get_pending_requests, accept_friend_request
 
 import packet
 
@@ -163,26 +163,45 @@ def handle_client(conn, addr):
                             "message": "User not found"
                         }))
 
-                # ---------------- ✅ ADD FRIEND (เพิ่มใหม่ตรงนี้) ----------------
-                elif pkt_type == "add_friend":
-                    target_id = pkt.get("target_id") # นี่คือ UUID ของเพื่อน
+                # ---------------- SEND FRIEND REQUEST ----------------
+                elif pkt_type == "send_friend_request":
+                    target_custom_id = pkt.get("target_id") # รับเป็น Custom ID แทน UUID
                     
-                    if user_id and target_id:
-                        result = add_friend(user_id, target_id)
+                    if user_id and target_custom_id:
+                        result = send_friend_request(user_id, target_custom_id)
                         
                         conn.send(packet.encode({
-                            "type": "add_friend_response",
-                            "request_id": request_id, # สำคัญมาก ต้องส่งกลับ
+                            "type": "send_friend_request_response",
+                            "request_id": request_id,
                             "status": "success" if result["success"] else "error",
                             "message": result["message"]
                         }))
                     else:
                         conn.send(packet.encode({
-                            "type": "add_friend_response",
-                            "request_id": request_id,
-                            "status": "error",
-                            "message": "Invalid data"
+                            "type": "error", "message": "Invalid data"
                         }))
+
+                # ---------------- GET PENDING REQUESTS ----------------
+                elif pkt_type == "get_pending_requests":
+                    reqs = get_pending_requests(user_id)
+                    conn.send(packet.encode({
+                        "type": "get_pending_requests_response",
+                        "request_id": request_id,
+                        "status": "success",
+                        "data": reqs
+                    }))
+
+                # ---------------- ACCEPT FRIEND ----------------
+                elif pkt_type == "accept_friend":
+                    sender_id = pkt.get("sender_id")
+                    result = accept_friend_request(user_id, sender_id)
+                    
+                    conn.send(packet.encode({
+                        "type": "accept_friend_response",
+                        "request_id": request_id,
+                        "status": "success" if result["success"] else "error",
+                        "message": result["message"]
+                    }))
 
                 # ---------------- SEND MESSAGE ----------------
                 elif pkt_type == "send_message":

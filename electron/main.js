@@ -3,7 +3,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 // 1. นำเข้า tcpClient ที่เพิ่งสร้าง
 const tcpClient = require('./tcpClient');
-const { initTcpClient, sendLogin, sendRegister, send, searchUser } = tcpClient;
+const { initTcpClient, sendLogin, sendRegister, send, searchUser, sendFriendRequest } = tcpClient;
 
 
 
@@ -93,4 +93,14 @@ ipcMain.handle('search-user', async (event, customId) => {
     console.error("Search error:", err);
     return { status: 'error', message: err.message };
   }
+});
+
+ipcMain.handle('send-friend-request', async (event, targetCustomId) => {
+    try {
+        console.log("Main: Sending Friend Request to:", targetCustomId);
+        const response = await sendFriendRequest(targetCustomId);
+        return response;
+    } catch (error) {
+        return { status: 'error', message: error.message };
+    }
 });
