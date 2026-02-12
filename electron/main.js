@@ -3,11 +3,12 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 // 1. นำเข้า tcpClient ที่เพิ่งสร้าง
 const tcpClient = require('./tcpClient');
-const { initTcpClient, sendLogin, sendRegister, send, searchUser, sendFriendRequest } = tcpClient;
+const { initTcpClient, sendLogin, sendRegister, send, searchUser, sendFriendRequest, getPendingRequests, acceptFriend } = tcpClient;
 
 
 
 let mainWindow;
+
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -103,4 +104,26 @@ ipcMain.handle('send-friend-request', async (event, targetCustomId) => {
     } catch (error) {
         return { status: 'error', message: error.message };
     }
+});
+
+ipcMain.handle('get-pending-requests', async (event) => {
+  try {
+    console.log("Main: Getting Pending Requests...");
+    const response = await getPendingRequests(); // เรียกฟังก์ชันที่ import มา
+    return response;
+  } catch (error) {
+    console.error("Get Pending Error:", error);
+    return { status: 'error', message: error.message };
+  }
+});
+
+ipcMain.handle('accept-friend', async (event, senderId) => {
+  try {
+    console.log("Main: Accepting Friend:", senderId);
+    const response = await acceptFriend(senderId); // เรียกฟังก์ชันที่ import มา
+    return response;
+  } catch (error) {
+    console.error("Accept Friend Error:", error);
+    return { status: 'error', message: error.message };
+  }
 });

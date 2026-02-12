@@ -1,0 +1,127 @@
+.request-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.request-modal {
+    background: #2f3136; /* สีเทาเข้มแบบ Discord */
+    width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    overflow: hidden;
+    color: white;
+    font-family: sans-serif;
+}
+
+.modal-header {
+    background: #202225;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #40444b;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #b9bbbe;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.close-btn:hover { color: white; }
+
+.request-list {
+    padding: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #b9bbbe;
+}
+
+.request-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.request-item:hover {
+    background: #36393f;
+}
+
+.req-avatar {
+    width: 40px;
+    height: 40px;
+    background: #5865f2; /* สีม่วง Discord */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 12px;
+}
+
+.req-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.req-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.req-id {
+    font-size: 12px;
+    color: #b9bbbe;
+}
+
+.req-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-accept {
+    background: #3ba55c; /* สีเขียว */
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.btn-accept:hover { background: #2d7d46; }
+
+.btn-reject {
+    background: #ed4245; /* สีแดง */
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.btn-reject:hover { background: #c03537; }

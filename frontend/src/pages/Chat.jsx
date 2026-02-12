@@ -5,6 +5,7 @@ import UserList from '../components/UserList';
 import AddFriendForm from '../components/AddFriendForm';
 import ChatWindow from '../components/ChatWindow';
 import FinishAdd from '../components/FinishAdd';
+import FriendRequestList from '../components/FriendRequestList';
 // Import Page Profile (สมมติว่าไฟล์นี้วางอยู่ข้างๆ Chat.jsx ในโฟลเดอร์ pages)
 import Profile from './Profile';
 const Chat = () => {
@@ -25,6 +26,7 @@ const Chat = () => {
  const [currentView, setCurrentView] = useState('chat');
  // เก็บข้อมูลคนที่ค้นหาเจอ (สำหรับหน้า Add Friend)
  const [searchedUser, setSearchedUser] = useState(null);
+ const [showRequests, setShowRequests] = useState(false);
 
  // --- 2. Handlers (ฟังก์ชันจัดการเหตุการณ์ต่างๆ) ---
  // ไปหน้า Profile (เมื่อกดปุ่ม User ใน Sidebar)
@@ -119,29 +121,45 @@ const Chat = () => {
      }
  };
 
- // --- 4. Main Render ---
- return (
-<div className="chat-container">
-     {/* Sidebar Strip */}
-<div className="sidebar-strip">
-       {/* ✅ เพิ่ม onClick ตรงนี้ */}
-<div className="profile-circle" onClick={handleGoToProfile}>
-           User
-</div>
-<div className="settings-circle">⚙️</div>
-</div>
-     {/* User List Panel */}
-<UserList
-       users={users}
-       selectedUser={selectedUser}
-       onSelectUser={handleSelectUser}
-       onAddClick={handleGoToAddPage}
-     />
-     {/* Right Area (Dynamic Content) */}
-<div className="chat-area">
-       {renderRightPanel()}
-</div>
-</div>
- );
+return (
+    <div className="chat-container">
+      {/* Sidebar Strip */}
+      <div className="sidebar-strip">
+        <div className="profile-circle" onClick={handleGoToProfile}>
+            User
+        </div>
+
+        {/* ✅ 3. ปุ่มกดดูคำขอเป็นเพื่อน (รูปกระดิ่ง) */}
+        <div 
+            className="icon-circle" 
+            onClick={() => setShowRequests(true)}
+            style={{ marginTop: '10px', cursor: 'pointer', fontSize: '20px' }}
+        >
+            🔔
+        </div>
+
+        <div className="settings-circle" style={{ marginTop: 'auto' }}>⚙️</div>
+      </div>
+
+      {/* User List Panel */}
+      <UserList
+        users={users}
+        selectedUser={selectedUser}
+        onSelectUser={handleSelectUser}
+        onAddClick={handleGoToAddPage}
+      />
+
+      {/* Right Area */}
+      <div className="chat-area">
+        {renderRightPanel()}
+      </div>
+
+      {/* ✅ 4. แสดง Popup รายการคำขอ (ถ้า showRequests เป็น true) */}
+      {showRequests && (
+        <FriendRequestList onClose={() => setShowRequests(false)} />
+      )}
+    </div>
+  );
 };
+
 export default Chat;

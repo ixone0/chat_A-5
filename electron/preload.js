@@ -27,5 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   searchUser: (customId) => ipcRenderer.invoke('search-user', customId),
-  sendFriendRequest: (targetCustomId) => ipcRenderer.invoke('send-friend-request', targetCustomId)
+  sendFriendRequest: (targetCustomId) => ipcRenderer.invoke('send-friend-request', targetCustomId),
+  getPendingRequests: () => ipcRenderer.invoke('get-pending-requests'),
+  acceptFriend: (senderId) => ipcRenderer.invoke('accept-friend', senderId)
 });
