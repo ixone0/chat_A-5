@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import json
 
 from services.auth_service import login_user, register_user
-from services.conversation_service import handle_create_conversation
+from services.conversation_service import handle_create_conversation, get_user_conversations
 from services.user_service import change_custom_id
 from db import find_user_by_custom_id, send_friend_request, get_pending_requests, accept_friend_request
 from services.message_service import (
@@ -324,33 +324,14 @@ def handle_client(conn, addr):
                                     pass
 
                     # ---------------- GET MY CONVERSATIONS ----------------
-                    elif pkt_type == "get_my_conversations":
-                        if not user_id:
-                            send_packet(conn, {
-                                "type": "get_my_conversations_response",
-                                "request_id": request_id,
-                                "status": "error",
-                                "message": "Unauthorized"
-                            })
-                            continue
+                    elif pkt["type"] == "get_my_conversations":
+                        conversations = get_user_conversations(user_id)
 
-                        try:
-                            from services.conversation_service import get_user_conversations
-                            conversations = get_user_conversations(user_id)
-
-                            send_packet(conn, {
-                                "type": "get_my_conversations_response",
-                                "request_id": request_id,
-                                "status": "success",
-                                "data": conversations
-                            })
-                        except Exception as e:
-                            send_packet(conn, {
-                                "type": "get_my_conversations_response",
-                                "request_id": request_id,
-                                "status": "error",
-                                "message": str(e)
-                            })
+                        return {
+                            "status": "success",
+                            "type": "get_my_conversations_response",
+                            "data": conversations
+                        }
 
                     # ---------------- GET MESSAGES ----------------
                     elif pkt_type == "get_messages":

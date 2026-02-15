@@ -28,7 +28,14 @@ const Chat = () => {
 
         if (res?.status === "success") {
           setConversations(res.data || []);
-        } else {
+        }if (res?.status === "success") {
+          console.log("Conversations data:", res.data);
+          console.log("Type:", typeof res.data);
+          console.log("Is array:", Array.isArray(res.data));
+
+          setConversations(res.data || []);
+        }
+        else {
           console.error("Failed to load conversations:", res);
         }
       } catch (err) {

@@ -32,10 +32,5 @@ def get_conversation_members_service(conversation_id):
     return get_members_by_conversation(conversation_id)
 
 def get_user_conversations(user_id):
-    conversations = get_user_conversations_db(user_id)
+    return get_user_conversations_db(user_id)
 
-    return {
-        "status": "success",
-        "type": "get_my_conversations_response",
-        "data": conversations
-    }
