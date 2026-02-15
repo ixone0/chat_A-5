@@ -1,7 +1,8 @@
 #services/conversation_service.py
 from repository.conversation_repo import (
     create_conversation_db,
-    get_members_by_conversation
+    get_members_by_conversation,
+    get_user_conversations_db
 )
 
 VALID_CHAT_TYPES = ["group", "direct"]
@@ -29,3 +30,12 @@ def handle_create_conversation(pkt, owner_id):
 
 def get_conversation_members_service(conversation_id):
     return get_members_by_conversation(conversation_id)
+
+def get_user_conversations(user_id):
+    conversations = get_user_conversations_db(user_id)
+
+    return {
+        "status": "success",
+        "type": "get_my_conversations_response",
+        "data": conversations
+    }

@@ -53,3 +53,31 @@ def get_members_by_conversation(conversation_id):
             return [str(row[0]) for row in cursor.fetchall()]
     finally:
         conn.close()
+
+def get_user_conversations_db(user_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT c.id, c.title, c.type, c.created_at
+                FROM conversations c
+                JOIN conversation_members cm
+                  ON cm.conversation_id = c.id
+                WHERE cm.user_id = %s
+                ORDER BY c.created_at DESC
+            """, (user_id,))
+
+            rows = cursor.fetchall()
+
+            return [
+                {
+                    "id": str(row[0]),
+                    "title": row[1],
+                    "type": row[2],
+                    "created_at": row[3].isoformat() if row[3] else None
+                }
+                for row in rows
+            ]
+    finally:
+        conn.close()
+
