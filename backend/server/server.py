@@ -13,7 +13,8 @@ from services.message_service import (
     create_message_service,
     get_conversation_members_service
 )
-from repository.friend_repo import get_or_create_direct_conversation
+
+from services.friend_service import handle_get_friends,handle_start_direct_chat
 import packet
 
 import traceback
@@ -332,14 +333,20 @@ def handle_client(conn, addr):
                         }))
                 elif pkt_type == "open_direct":
                     friend_id = pkt.get("friend_id")
-                    conv_id = get_or_create_direct_conversation(user_id, friend_id)
+                    response = handle_start_direct_chat(user_id, friend_id)
+                    response["request_id"] = request_id
+                    conn.send(packet.encode(response))
 
-                    conn.send(packet.encode({
-                        "type": "open_direct_response",
-                        "request_id": request_id,
-                        "status": "success",
-                        "conversation_id": conv_id
-                    }))
+                elif pkt_type == "get_friends":
+                    response = handle_get_friends(user_id)
+                    response["request_id"] = request_id
+                    conn.send(packet.encode(response))
+
+                elif pkt_type == "start_direct_chat":
+                    response = handle_start_direct_chat(user_id, pkt["friend_id"])
+                    response["request_id"] = request_id
+                    conn.send(packet.encode(response))
+
 
                 else:
                     conn.send(packet.encode({
