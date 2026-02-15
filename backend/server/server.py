@@ -324,14 +324,36 @@ def handle_client(conn, addr):
                                     pass
 
                     # ---------------- GET MY CONVERSATIONS ----------------
-                    elif pkt["type"] == "get_my_conversations":
-                        conversations = get_user_conversations(user_id)
+                                        # ---------------- GET MY CONVERSATIONS ----------------
+                    elif pkt_type == "get_my_conversations":
+                        # ถ้าไม่ล็อกอิน
+                        if not user_id:
+                            send_packet(conn, {
+                                "type": "get_my_conversations_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Unauthorized"
+                            })
+                            continue
 
-                        return {
-                            "status": "success",
-                            "type": "get_my_conversations_response",
-                            "data": conversations
-                        }
+                        try:
+                            conversations = get_user_conversations(user_id)
+
+                            send_packet(conn, {
+                                "type": "get_my_conversations_response",
+                                "request_id": request_id,
+                                "status": "success",
+                                "data": conversations
+                            })
+                        except Exception as e:
+                            print(f"[EXC get_my_conversations] {traceback.format_exc()}")
+                            send_packet(conn, {
+                                "type": "get_my_conversations_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(e)
+                            })
+
 
                     # ---------------- GET MESSAGES ----------------
                     elif pkt_type == "get_messages":
