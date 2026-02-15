@@ -4,10 +4,11 @@ const { v4: uuidv4 } = require('uuid');
 
 let client = null;
 let win = null;
+let buffer = ""; // ✅ เพิ่ม buffer สำหรับ TCP framing
 const pending = new Map(); // request_id => {resolve, reject, timeout}
 
 const TCP_CONFIG = {
-  host: '13.212.120.46', // ของคุณ '13.212.120.46
+  host: '13.212.120.46',
   port: 8082
 };
 
@@ -19,43 +20,56 @@ function initTcpClient(mainWindow) {
     console.log(`✅ TCP Connected to ${TCP_CONFIG.host}:${TCP_CONFIG.port}`);
   });
 
+  // ✅ แก้ใหม่ทั้งหมด (รองรับ packet แตกครึ่ง + หลาย packet ในครั้งเดียว)
   client.on('data', (data) => {
-    try {
-      const jsonString = data.toString();
-      console.log('📩 Received from server:', jsonString);
-      const parsed = JSON.parse(jsonString);
+    buffer += data.toString();
 
-      // ถ้ามี request_id แล้วมี pending, resolve
-      if (parsed.request_id && pending.has(parsed.request_id)) {
-        const { resolve, timeout } = pending.get(parsed.request_id);
-        clearTimeout(timeout);
-        pending.delete(parsed.request_id);
-        resolve(parsed);
-        return;
-      }
+    let boundary;
 
-      // ถ้าไม่ใช่ response ที่รอ ให้ส่งต่อเป็น generic events ไป renderer
-      if (parsed.type === 'login_response') {
-        win.webContents.send('login-response', parsed);
-      } else if (parsed.type === 'register_response') {
-        win.webContents.send('register-response', parsed);
-      } else if (parsed.type === 'receive_message') {
-        win.webContents.send('receive-message', parsed);
-      } else if (parsed.type === 'search_user_response') {
-        win.webContents.send('search-user-response', parsed);
+    while ((boundary = buffer.indexOf("\n")) !== -1) {
+      const rawPacket = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 1);
+
+      if (!rawPacket.trim()) continue;
+
+      try {
+        const parsed = JSON.parse(rawPacket);
+        console.log('📩 Parsed packet:', parsed);
+
+        // ถ้ามี request_id แล้วมี pending → resolve promise
+        if (parsed.request_id && pending.has(parsed.request_id)) {
+          const { resolve, timeout } = pending.get(parsed.request_id);
+          clearTimeout(timeout);
+          pending.delete(parsed.request_id);
+          resolve(parsed);
+          continue;
+        }
+
+        // Push event ไป renderer
+        if (parsed.type === 'login_response') {
+          win.webContents.send('login-response', parsed);
+        } 
+        else if (parsed.type === 'register_response') {
+          win.webContents.send('register-response', parsed);
+        } 
+        else if (parsed.type === 'receive_message') {
+          win.webContents.send('receive-message', parsed);
+        } 
+        else if (parsed.type === 'search_user_response') {
+          win.webContents.send('search-user-response', parsed);
+        }
+        else {
+          win.webContents.send('server-message', parsed);
+        }
+
+      } catch (e) {
+        console.error('❌ Failed to parse TCP packet:', e);
       }
-      else {
-        // ส่ง generic server-message
-        win.webContents.send('server-message', parsed);
-      }
-    } catch (e) {
-      console.error('Failed to parse data from TCP server:', e);
     }
   });
 
   client.on('close', () => {
     console.log('⚠️ TCP Connection closed');
-    // (Optional) reconnect logic...
   });
 
   client.on('error', (err) => {
@@ -63,16 +77,13 @@ function initTcpClient(mainWindow) {
   });
 }
 
-// send a packet and wait for response (using request_id)
+// ✅ send พร้อม newline delimiter
 function send(packet) {
   return new Promise((resolve, reject) => {
     if (!client) return reject(new Error('TCP client not connected'));
 
     const request_id = uuidv4();
-    const msg = JSON.stringify({ request_id, ...packet });
-
-    // write
-    client.write(msg);
+    const msg = JSON.stringify({ request_id, ...packet }) + "\n";
 
     // timeout safety
     const timeout = setTimeout(() => {
@@ -80,14 +91,16 @@ function send(packet) {
         pending.delete(request_id);
         reject(new Error('TCP request timeout'));
       }
-    }, 10000); // 10s
+    }, 10000);
 
     pending.set(request_id, { resolve, reject, timeout });
+
+    client.write(msg);
   });
 }
 
+// ---------------- API FUNCTIONS ----------------
 
-// ฟังก์ชันส่งข้อมูล Login
 function sendLogin(username, password) {
   return send({
     type: 'login',
@@ -95,7 +108,6 @@ function sendLogin(username, password) {
     password
   });
 }
-
 
 function sendRegister(username, password) {
   return send({
@@ -115,16 +127,14 @@ function searchUser(customId) {
 function sendFriendRequest(targetCustomId) {
   return send({
     type: 'send_friend_request',
-    target_id: targetCustomId // ส่ง Custom ID (เช่น "nh2fy1") ไป
+    target_id: targetCustomId
   });
 }
 
-// เพิ่มฟังก์ชันดึงคำขอ
 function getPendingRequests() {
   return send({ type: 'get_pending_requests' });
 }
 
-// เพิ่มฟังก์ชันรับเพื่อน
 function acceptFriend(senderId) {
   return send({
     type: 'accept_friend',
@@ -132,12 +142,9 @@ function acceptFriend(senderId) {
   });
 }
 
-// --- เพิ่มที่ส่วนล่างของไฟล์ tcpClient.js ---
 function getMyConversations() {
-  console.log("Sending get_my_conversations packet");
   return send({ type: 'get_my_conversations' });
 }
-
 
 function getMessages(conversation_id) {
   return send({ type: 'get_messages', conversation_id });
@@ -155,4 +162,3 @@ module.exports = {
   getMyConversations,
   getMessages
 };
-

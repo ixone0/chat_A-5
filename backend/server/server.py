@@ -1,4 +1,4 @@
-#server/server.py
+# server/server.py
 import socket
 import threading
 import os
@@ -14,7 +14,7 @@ from services.message_service import (
     get_conversation_members_service
 )
 
-from services.friend_service import handle_get_friends,handle_start_direct_chat
+from services.friend_service import handle_get_friends, handle_start_direct_chat
 import packet
 
 import traceback
@@ -35,9 +35,24 @@ server.listen()
 print(f"Server started on {HOST}:{PORT}...")
 
 
+def send_packet(conn, data: dict):
+    """
+    Helper: encode packet and send with newline delimiter.
+    Uses conn.sendall to ensure full send.
+    """
+    try:
+        # packet.encode should return bytes
+        encoded = packet.encode(data) + b"\n"
+        conn.sendall(encoded)
+    except Exception as e:
+        # don't raise here (caller may be in network handling)
+        print(f"[SEND ERROR] {e}")
+
+
 def handle_client(conn, addr):
     print(f"[NEW CONNECTION] {addr} connected.")
     user_id = None
+    buffer = b""  # buffer for incoming bytes (framing by newline)
 
     try:
         while True:
@@ -47,313 +62,364 @@ def handle_client(conn, addr):
                     print(f"[INFO] {addr} closed connection (no data).")
                     break
 
-                # debug: แสดง raw data เพื่อยืนยันว่าได้รับอะไร
-                print(f"[RAW DATA] from {addr}: {data!r}")
+                # append to buffer and process any full packets separated by '\n'
+                buffer += data
 
-                try:
-                    pkt = packet.decode(data)
-                except Exception as e:
-                    print(f"[ERROR] Failed to decode packet from {addr}: {e}")
-                    # ส่ง response แจ้ง error แล้ว continue
-                    conn.send(packet.encode({
-                        "type": "error",
-                        "message": "Invalid packet format"
-                    }))
-                    continue
+                # debug: show raw bytes chunk received (optional, can be noisy)
+                print(f"[RAW CHUNK] from {addr}: {data!r}")
 
-                print(f"[PKT] {addr}: {pkt}")
+                # process all complete packets
+                while b"\n" in buffer:
+                    raw_packet, buffer = buffer.split(b"\n", 1)
 
-                request_id = pkt.get("request_id")
-                pkt_type = pkt.get("type")
-
-                # ---------------- REGISTER ----------------
-                if pkt_type == "register":
-                    try:
-                        response = register_user(pkt)
-                    except Exception as e:
-                        print(f"[EXC register_user] {traceback.format_exc()}")
-                        response = {"status": "error", "message": "Server error during register"}
-
-                    response["type"] = "register_response"
-                    response["request_id"] = request_id   # ✅ เพิ่มบรรทัดนี้
-
-                    conn.send(packet.encode(response))
-
-                # ---------------- LOGIN ----------------
-                elif pkt_type == "login":
-                    try:
-                        user = login_user(pkt)
-                    except Exception as e:
-                        print(f"[EXC login_user] {traceback.format_exc()}")
-                        conn.send(packet.encode({
-                            "type": "login_response",
-                            "request_id": request_id,   # ✅ เพิ่ม
-                            "status": "error",
-                            "message": "Server error during login"
-                        }))
+                    if not raw_packet.strip():
                         continue
 
-                    if user:
-                        user_id = str(user["user_id"])
-                        online_users[user_id] = conn
+                    # debug raw packet
+                    print(f"[RAW PACKET] {addr}: {raw_packet!r}")
 
-                        conn.send(packet.encode({
-                            "type": "login_response",
-                            "request_id": request_id,   # ✅ เพิ่ม
-                            "status": "success",
-                            "user_id": user_id,
-                            "username": user["username"],
-                            "custom_id": user.get("custom_id"),
-                            "message": "Login Success"
-                        }))
-                    else:
-                        conn.send(packet.encode({
-                            "type": "login_response",
-                            "request_id": request_id,   # ✅ เพิ่ม
-                            "status": "error",
-                            "message": "Login failed"
-                        }))
-
-                # ---------------- UPDATE CUSTOM ID ----------------
-                elif pkt_type == "update_user_id":
                     try:
-                        result = change_custom_id(
-                            pkt.get("user_id"),
-                            pkt.get("new_id")
-                        )
-                        response = {
-                            "type": "update_user_id_response",
-                            "success": result.get("success", False),
-                            "message": result.get("message", "")
-                        }
-                    except Exception:
-                        print(f"[EXC update_user_id] {traceback.format_exc()}")
-                        response = {
-                            "type": "update_user_id_response",
-                            "success": False,
-                            "message": "Server error"
-                        }
-                    conn.send(packet.encode(response))
+                        pkt = packet.decode(raw_packet)
+                    except Exception as e:
+                        print(f"[ERROR] Failed to decode packet from {addr}: {e}")
+                        send_packet(conn, {
+                            "type": "error",
+                            "message": "Invalid packet format"
+                        })
+                        # continue to next packet (if any)
+                        continue
 
-                # ---------------- CREATE CONVERSATION ----------------
-                elif pkt_type == "create_conversation":
-                    if user_id:
+                    print(f"[PKT] {addr}: {pkt}")
+
+                    request_id = pkt.get("request_id")
+                    pkt_type = pkt.get("type")
+
+                    # ---------------- REGISTER ----------------
+                    if pkt_type == "register":
                         try:
-                            response = handle_create_conversation(pkt, user_id)
+                            response = register_user(pkt)
                         except Exception:
-                            print(f"[EXC create_conversation] {traceback.format_exc()}")
-                            response = {"status": "error", "message": "Server error"}
-                        conn.send(packet.encode(response))
-                    else:
-                        conn.send(packet.encode({
-                            "status": "error",
-                            "message": "Unauthorized"
-                        }))
+                            print(f"[EXC register_user] {traceback.format_exc()}")
+                            response = {"status": "error", "message": "Server error during register"}
 
+                        response["type"] = "register_response"
+                        response["request_id"] = request_id
+                        send_packet(conn, response)
 
-                
-                # ---------------- SEARCH USER ----------------
-                elif pkt_type == "search_user":
-                    target_id = pkt.get("target_id")
-                    found_user = find_user_by_custom_id(target_id)
+                    # ---------------- LOGIN ----------------
+                    elif pkt_type == "login":
+                        try:
+                            user = login_user(pkt)
+                        except Exception:
+                            print(f"[EXC login_user] {traceback.format_exc()}")
+                            send_packet(conn, {
+                                "type": "login_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Server error during login"
+                            })
+                            continue
 
-                    if found_user:
-                        conn.send(packet.encode({
-                            "type": "search_user_response",
-                            "request_id": request_id, 
-                            "status": "success",
-                            "data": found_user
-                        }))
-                    else:
-                        conn.send(packet.encode({
-                            "type": "search_user_response",
-                            "request_id": request_id,
-                            "status": "error",
-                            "message": "User not found"
-                        }))
+                        if user:
+                            user_id = str(user["user_id"])
+                            online_users[user_id] = conn
 
-                # ---------------- SEND FRIEND REQUEST ----------------
-                elif pkt_type == "send_friend_request":
-                    target_custom_id = pkt.get("target_id") # รับเป็น Custom ID แทน UUID
-                    
-                    if user_id and target_custom_id:
-                        result = send_friend_request(user_id, target_custom_id)
-                        
-                        conn.send(packet.encode({
-                            "type": "send_friend_request_response",
-                            "request_id": request_id,
-                            "status": "success" if result["success"] else "error",
-                            "message": result["message"]
-                        }))
-                    else:
-                        conn.send(packet.encode({
-                            "type": "error", "message": "Invalid data"
-                        }))
+                            send_packet(conn, {
+                                "type": "login_response",
+                                "request_id": request_id,
+                                "status": "success",
+                                "user_id": user_id,
+                                "username": user["username"],
+                                "custom_id": user.get("custom_id"),
+                                "message": "Login Success"
+                            })
+                        else:
+                            send_packet(conn, {
+                                "type": "login_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Login failed"
+                            })
 
-                # ---------------- GET PENDING REQUESTS ----------------
-                elif pkt_type == "get_pending_requests":
-                    reqs = get_pending_requests(user_id)
-                    conn.send(packet.encode({
-                        "type": "get_pending_requests_response",
-                        "request_id": request_id,
-                        "status": "success",
-                        "data": reqs
-                    }))
+                    # ---------------- UPDATE CUSTOM ID ----------------
+                    elif pkt_type == "update_user_id":
+                        try:
+                            result = change_custom_id(
+                                pkt.get("user_id"),
+                                pkt.get("new_id")
+                            )
+                            response = {
+                                "type": "update_user_id_response",
+                                "success": result.get("success", False),
+                                "message": result.get("message", "")
+                            }
+                        except Exception:
+                            print(f"[EXC update_user_id] {traceback.format_exc()}")
+                            response = {
+                                "type": "update_user_id_response",
+                                "success": False,
+                                "message": "Server error"
+                            }
+                        send_packet(conn, response)
 
-                # ---------------- ACCEPT FRIEND ----------------
-                elif pkt_type == "accept_friend":
-                    sender_id = pkt.get("sender_id")
-                    result = accept_friend_request(user_id, sender_id)
-                    
-                    conn.send(packet.encode({
-                        "type": "accept_friend_response",
-                        "request_id": request_id,
-                        "status": "success" if result["success"] else "error",
-                        "message": result["message"]
-                    }))
-
-                # ---------------- SEND MESSAGE ----------------
-                elif pkt_type == "send_message":
-                    conversation_id = pkt.get("conversation_id")
-                    text = pkt.get("text")
-
-                    if not user_id:
-                        conn.send(packet.encode({
-                            "type": "send_message_response",
-                            "request_id": request_id,
-                            "status": "error",
-                            "message": "Unauthorized"
-                        }))
-                        continue
-
-                    if not conversation_id or not text:
-                        conn.send(packet.encode({
-                            "type": "send_message_response",
-                            "request_id": request_id,
-                            "status": "error",
-                            "message": "Invalid data"
-                        }))
-                        continue
-
-                    try:
-                        message = create_message_service(conversation_id, user_id, text)
-                    except Exception as e:
-                        conn.send(packet.encode({
-                            "type": "send_message_response",
-                            "request_id": request_id,
-                            "status": "error",
-                            "message": str(e)
-                        }))
-                        continue
-
-                    # ✅ ส่ง response กลับไปหาคนที่กด send ก่อน
-                    conn.send(packet.encode({
-                        "type": "send_message_response",
-                        "request_id": request_id,
-                        "status": "success",
-                        "message": message
-                    }))
-
-                    # ✅ แล้วค่อย broadcast ไปสมาชิกคนอื่น
-                    members = get_conversation_members_service(conversation_id)
-
-                    for member_id in members:
-                        member_id = str(member_id)
-
-                        if member_id in online_users:
+                    # ---------------- CREATE CONVERSATION ----------------
+                    elif pkt_type == "create_conversation":
+                        if user_id:
                             try:
-                                online_users[member_id].send(
-                                    packet.encode({
+                                response = handle_create_conversation(pkt, user_id)
+                            except Exception:
+                                print(f"[EXC create_conversation] {traceback.format_exc()}")
+                                response = {"status": "error", "message": "Server error"}
+                            send_packet(conn, response)
+                        else:
+                            send_packet(conn, {
+                                "status": "error",
+                                "message": "Unauthorized"
+                            })
+
+                    # ---------------- SEARCH USER ----------------
+                    elif pkt_type == "search_user":
+                        target_id = pkt.get("target_id")
+                        try:
+                            found_user = find_user_by_custom_id(target_id)
+                        except Exception:
+                            found_user = None
+
+                        if found_user:
+                            send_packet(conn, {
+                                "type": "search_user_response",
+                                "request_id": request_id,
+                                "status": "success",
+                                "data": found_user
+                            })
+                        else:
+                            send_packet(conn, {
+                                "type": "search_user_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "User not found"
+                            })
+
+                    # ---------------- SEND FRIEND REQUEST ----------------
+                    elif pkt_type == "send_friend_request":
+                        target_custom_id = pkt.get("target_id")  # รับเป็น Custom ID แทน UUID
+
+                        if user_id and target_custom_id:
+                            try:
+                                result = send_friend_request(user_id, target_custom_id)
+                                status_ok = result.get("success", False)
+                                message = result.get("message", "")
+                            except Exception as e:
+                                status_ok = False
+                                message = str(e)
+
+                            send_packet(conn, {
+                                "type": "send_friend_request_response",
+                                "request_id": request_id,
+                                "status": "success" if status_ok else "error",
+                                "message": message
+                            })
+                        else:
+                            send_packet(conn, {
+                                "type": "error",
+                                "message": "Invalid data"
+                            })
+
+                    # ---------------- GET PENDING REQUESTS ----------------
+                    elif pkt_type == "get_pending_requests":
+                        try:
+                            reqs = get_pending_requests(user_id)
+                            send_packet(conn, {
+                                "type": "get_pending_requests_response",
+                                "request_id": request_id,
+                                "status": "success",
+                                "data": reqs
+                            })
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "get_pending_requests_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(e)
+                            })
+
+                    # ---------------- ACCEPT FRIEND ----------------
+                    elif pkt_type == "accept_friend":
+                        sender_id = pkt.get("sender_id")
+                        try:
+                            result = accept_friend_request(user_id, sender_id)
+                            send_packet(conn, {
+                                "type": "accept_friend_response",
+                                "request_id": request_id,
+                                "status": "success" if result.get("success", False) else "error",
+                                "message": result.get("message", "")
+                            })
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "accept_friend_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(e)
+                            })
+
+                    # ---------------- SEND MESSAGE ----------------
+                    elif pkt_type == "send_message":
+                        conversation_id = pkt.get("conversation_id")
+                        text = pkt.get("text")
+
+                        if not user_id:
+                            send_packet(conn, {
+                                "type": "send_message_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Unauthorized"
+                            })
+                            continue
+
+                        if not conversation_id or not text:
+                            send_packet(conn, {
+                                "type": "send_message_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Invalid data"
+                            })
+                            continue
+
+                        try:
+                            message = create_message_service(conversation_id, user_id, text)
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "send_message_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(e)
+                            })
+                            continue
+
+                        # ส่ง response กลับไปหาคนที่กด send ก่อน
+                        send_packet(conn, {
+                            "type": "send_message_response",
+                            "request_id": request_id,
+                            "status": "success",
+                            "message": message
+                        })
+
+                        # แล้ว broadcast ไปสมาชิกคนอื่น
+                        try:
+                            members = get_conversation_members_service(conversation_id)
+                        except Exception:
+                            members = []
+
+                        for member_id in members:
+                            member_id = str(member_id)
+                            if member_id in online_users:
+                                try:
+                                    send_packet(online_users[member_id], {
                                         "type": "receive_message",
                                         "conversation_id": conversation_id,
                                         "message": message
                                     })
-                                )
-                            except:
-                                pass
-                # ---------------- GET MY CONVERSATIONS ----------------
-                elif pkt_type == "get_my_conversations":
-                    if not user_id:
-                        conn.send(packet.encode({
-                            "type": "get_my_conversations_response",
-                            "request_id": request_id,
-                            "status": "error",
-                            "message": "Unauthorized"
-                        }))
-                        continue
+                                except Exception:
+                                    # ignore send errors to specific clients
+                                    pass
 
-                    try:
-                        from services.conversation_service import get_user_conversations
-                        conversations = get_user_conversations(user_id)
+                    # ---------------- GET MY CONVERSATIONS ----------------
+                    elif pkt_type == "get_my_conversations":
+                        if not user_id:
+                            send_packet(conn, {
+                                "type": "get_my_conversations_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Unauthorized"
+                            })
+                            continue
 
-                        conn.send(packet.encode({
-                            "type": "get_my_conversations_response",
-                            "request_id": request_id,
-                            "status": "success",
-                            "data": conversations
-                        }))
-                    except Exception as e:
-                        conn.send(packet.encode({
-                            "type": "get_my_conversations_response",
-                            "request_id": request_id,
-                            "status": "error",
-                            "message": str(e)
-                        }))
+                        try:
+                            from services.conversation_service import get_user_conversations
+                            conversations = get_user_conversations(user_id)
 
-                # ---------------- GET MESSAGES ----------------
-                elif pkt_type == "get_messages":
-                    conversation_id = pkt.get("conversation_id")
+                            send_packet(conn, {
+                                "type": "get_my_conversations_response",
+                                "request_id": request_id,
+                                "status": "success",
+                                "data": conversations
+                            })
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "get_my_conversations_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(e)
+                            })
 
-                    if not user_id:
-                        conn.send(packet.encode({
-                            "type": "get_messages_response",
-                            "request_id": request_id,
-                            "status": "error",
-                            "message": "Unauthorized"
-                        }))
-                        continue
+                    # ---------------- GET MESSAGES ----------------
+                    elif pkt_type == "get_messages":
+                        conversation_id = pkt.get("conversation_id")
 
-                    try:
-                        from services.message_service import get_messages_by_conversation
-                        messages = get_messages_by_conversation(conversation_id)
+                        if not user_id:
+                            send_packet(conn, {
+                                "type": "get_messages_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Unauthorized"
+                            })
+                            continue
 
-                        conn.send(packet.encode({
-                            "type": "get_messages_response",
-                            "request_id": request_id,
-                            "status": "success",
-                            "conversation_id": conversation_id,
-                            "messages": messages
-                        }))
-                    except Exception as e:
-                        conn.send(packet.encode({
-                            "type": "get_messages_response",
-                            "request_id": request_id,
-                            "status": "error",
-                            "message": str(e)
-                        }))
-                elif pkt_type == "open_direct":
-                    friend_id = pkt.get("friend_id")
-                    response = handle_start_direct_chat(user_id, friend_id)
-                    response["request_id"] = request_id
-                    conn.send(packet.encode(response))
+                        try:
+                            from services.message_service import get_messages_by_conversation
+                            messages = get_messages_by_conversation(conversation_id)
 
-                elif pkt_type == "get_friends":
-                    response = handle_get_friends(user_id)
-                    response["request_id"] = request_id
-                    conn.send(packet.encode(response))
+                            send_packet(conn, {
+                                "type": "get_messages_response",
+                                "request_id": request_id,
+                                "status": "success",
+                                "conversation_id": conversation_id,
+                                "messages": messages
+                            })
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "get_messages_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(e)
+                            })
 
-                elif pkt_type == "start_direct_chat":
-                    response = handle_start_direct_chat(user_id, pkt["friend_id"])
-                    response["request_id"] = request_id
-                    conn.send(packet.encode(response))
+                    # ---------------- OPEN DIRECT / START DIRECT CHAT ----------------
+                    elif pkt_type == "open_direct" or pkt_type == "start_direct_chat":
+                        friend_id = pkt.get("friend_id")
+                        try:
+                            response = handle_start_direct_chat(user_id, friend_id)
+                            response["request_id"] = request_id
+                            send_packet(conn, response)
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "start_direct_chat_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(e)
+                            })
 
+                    # ---------------- GET FRIENDS ----------------
+                    elif pkt_type == "get_friends":
+                        try:
+                            response = handle_get_friends(user_id)
+                            response["request_id"] = request_id
+                            send_packet(conn, response)
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "friends_list",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(e)
+                            })
 
-                else:
-                    conn.send(packet.encode({
-                        "type": "error",
-                        "message": "Unknown packet type"
-                    }))
-                
+                    else:
+                        send_packet(conn, {
+                            "type": "error",
+                            "message": "Unknown packet type",
+                            "request_id": request_id
+                        })
+
             except ConnectionResetError:
                 print(f"[CONN RESET] {addr}")
                 break
@@ -362,10 +428,10 @@ def handle_client(conn, addr):
                 print(f"[UNHANDLED IN LOOP] {addr}: {traceback.format_exc()}")
                 # พยายามส่ง error response ถ้าเป็นไปได้
                 try:
-                    conn.send(packet.encode({
+                    send_packet(conn, {
                         "type": "error",
                         "message": "Internal server error"
-                    }))
+                    })
                 except Exception:
                     pass
                 break

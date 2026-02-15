@@ -77,25 +77,27 @@ ipcMain.handle('login-request', async (event, data) => {
 
 
 // ✅ เพิ่ม IPC Listener สำหรับ Register
-ipcMain.on('register-request', (event, data) => {
-  console.log('Ui Request Register:', data.username);
-  sendRegister(data.username, data.password);
+ipcMain.handle('register-request', async (event, data) => {
+  console.log('UI Request Register:', data.username);
+
+  try {
+    const response = await sendRegister(data.username, data.password);
+    return response;
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
 });
 
-ipcMain.on("update-user-id", async (event, data) => {
+
+ipcMain.handle("update-user-id", async (event, data) => {
   try {
-    // ส่ง packet แบบ request/response
-    const response = await send({
+    return await send({
       type: "update_user_id",
       user_id: data.user_id,
       new_id: data.new_id
     });
-
-    // ส่งกลับไปยัง renderer (preload listener จะรับ)
-    event.reply("update-user-id-response", response);
   } catch (err) {
-    console.error("update-user-id error:", err);
-    event.reply("update-user-id-response", { success: false, message: err.message });
+    return { success: false, message: err.message };
   }
 });
 
@@ -180,3 +182,23 @@ ipcMain.handle('get-messages', async (event, payload) => {
     return { status: 'error', message: err.message };
   }
 });
+
+ipcMain.handle('get-friends', async () => {
+  try {
+    return await send({ type: "get_friends" });
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
+ipcMain.handle('start-direct-chat', async (event, friendId) => {
+  try {
+    return await send({
+      type: "start_direct_chat",
+      friend_id: friendId
+    });
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
