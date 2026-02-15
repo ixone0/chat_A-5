@@ -3,8 +3,18 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 // 1. นำเข้า tcpClient ที่เพิ่งสร้าง
 const tcpClient = require('./tcpClient');
-const { initTcpClient, sendLogin, sendRegister, send, searchUser, sendFriendRequest, getPendingRequests, acceptFriend } = tcpClient;
-
+const {
+  initTcpClient,
+  sendLogin,
+  sendRegister,
+  send,
+  searchUser,
+  sendFriendRequest,
+  getPendingRequests,
+  acceptFriend,
+  getMyConversations,
+  getMessages
+} = tcpClient;
 
 
 let mainWindow;
@@ -150,3 +160,23 @@ ipcMain.handle("send-message", async (event, data) => {
   }
 });
 
+// หน้าเรียกเพื่อดึงรายการ conversation ของผู้ใช้
+ipcMain.handle('get-my-conversations', async () => {
+  try {
+    return await getMyConversations();
+  } catch (err) {
+    console.error("get-my-conversations error:", err);
+    return { status: 'error', message: err.message };
+  }
+});
+
+
+// ดึงข้อความในห้อง (history)
+ipcMain.handle('get-messages', async (event, payload) => {
+  try {
+    return await getMessages(payload.conversation_id);
+  } catch (err) {
+    console.error("get-messages error:", err);
+    return { status: 'error', message: err.message };
+  }
+});

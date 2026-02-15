@@ -11,24 +11,63 @@ import Profile from "./Profile";
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState({}); // key = conversation_id
-
+  const [messages, setMessages] = useState({});
   const [currentView, setCurrentView] = useState("chat");
   const [searchedUser, setSearchedUser] = useState(null);
   const [showRequests, setShowRequests] = useState(false);
 
-  // ===============================
-  // โหลด conversation list ตอนเปิดหน้า
-  // ===============================
+  // ===================================================
+  // ✅ โหลด conversation list ตอนเปิดหน้า
+  // ===================================================
   useEffect(() => {
-    if (!window.electronAPI) return;
+    if (!window.electronAPI?.getMyConversations) return;
 
-    window.electronAPI.getMyConversations();
+    const loadConversations = async () => {
+      try {
+        const res = await window.electronAPI.getMyConversations();
 
-    const unsub = window.electronAPI.onMyConversations((res) => {
-      if (res?.status === "success") {
-        setConversations(res.data); // [{id,title,type,last_message}]
+        if (res?.status === "success") {
+          setConversations(res.data || []);
+        } else {
+          console.error("Failed to load conversations:", res);
+        }
+      } catch (err) {
+        console.error("Error loading conversations:", err);
       }
+    };
+
+    loadConversations();
+  }, []);
+
+  // ===================================================
+  // ✅ รับ realtime message
+  // ===================================================
+  useEffect(() => {
+    if (!window.electronAPI?.onReceiveMessage) return;
+
+    const unsub = window.electronAPI.onReceiveMessage((msg) => {
+      const convId = msg.conversation_id;
+
+      // เพิ่มข้อความเข้า state
+      setMessages((prev) => ({
+        ...prev,
+        [convId]: [...(prev[convId] || []), msg],
+      }));
+
+      // อัปเดต sidebar ให้เลื่อนขึ้นบนสุด
+      setConversations((prev) => {
+        const updated = prev.map((c) =>
+          c.id === convId
+            ? { ...c, last_message: msg.content, last_message_at: msg.created_at }
+            : c
+        );
+
+        return updated.sort(
+          (a, b) =>
+            new Date(b.last_message_at || 0) -
+            new Date(a.last_message_at || 0)
+        );
+      });
     });
 
     return () => {
@@ -36,120 +75,103 @@ const Chat = () => {
     };
   }, []);
 
-  // ===============================
-  // เลือกห้อง
-  // ===============================
-  const handleSelectConversation = (conv) => {
+  // ===================================================
+  // ✅ เลือกห้อง
+  // ===================================================
+  const handleSelectConversation = async (conv) => {
     setSelectedConversation(conv);
     setCurrentView("chat");
 
-    window.electronAPI.getMessages({
-      conversation_id: conv.id,
-    });
-  };
+    if (!window.electronAPI?.getMessages) return;
 
-  // ===============================
-  // รับ message history จาก backend
-  // ===============================
-  useEffect(() => {
-    if (!window.electronAPI) return;
+    try {
+      const res = await window.electronAPI.getMessages({
+        conversation_id: conv.id,
+      });
 
-    const unsub = window.electronAPI.onMessagesLoaded((res) => {
       if (res?.status === "success") {
-        const { conversation_id, messages: msgList } = res;
-
         setMessages((prev) => ({
           ...prev,
-          [conversation_id]: msgList,
+          [conv.id]: res.messages || [],
         }));
       }
-    });
+    } catch (err) {
+      console.error("Error loading messages:", err);
+    }
+  };
 
-    return () => {
-      if (unsub) unsub();
-    };
-  }, []);
-
-  // ===============================
-  // ส่งข้อความ
-  // ===============================
+  // ===================================================
+  // ✅ ส่งข้อความ
+  // ===================================================
   const handleSendMessage = (text) => {
     if (!selectedConversation || !text.trim()) return;
 
+    const convId = selectedConversation.id;
+
     const tempMessage = {
       id: Date.now(),
-      sender: "me",
+      sender_id: "me",
       content: text,
       created_at: new Date().toISOString(),
     };
 
-    const convId = selectedConversation.id;
-
+    // optimistic update
     setMessages((prev) => ({
       ...prev,
       [convId]: [...(prev[convId] || []), tempMessage],
     }));
 
-    window.electronAPI.sendMessage({
-      conversation_id: convId,
-      text: text
-    });
+    // อัปเดต sidebar
+    setConversations((prev) =>
+      prev
+        .map((c) =>
+          c.id === convId
+            ? { ...c, last_message: text, last_message_at: new Date().toISOString() }
+            : c
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.last_message_at || 0) -
+            new Date(a.last_message_at || 0)
+        )
+    );
 
+    if (window.electronAPI?.sendMessage) {
+      window.electronAPI.sendMessage({
+        conversation_id: convId,
+        text: text,
+      });
+    }
   };
 
-  // ===============================
-  // รับ message realtime
-  // ===============================
-  useEffect(() => {
-    if (!window.electronAPI) return;
-
-    const unsub = window.electronAPI.onReceiveMessage((msg) => {
-      const convId = msg.conversation_id;
-
-      setMessages((prev) => ({
-        ...prev,
-        [convId]: [...(prev[convId] || []), msg],
-      }));
-    });
-
-    return () => {
-      if (unsub) unsub();
-    };
-  }, []);
-
-  // ===============================
-  // Search User (Add Friend)
-  // ===============================
-  const handleSearchUser = (searchId) => {
+  // ===================================================
+  // Search User
+  // ===================================================
+  const handleSearchUser = async (searchId) => {
     if (!searchId.trim()) {
       alert("กรอก ID ก่อนครับ");
       return;
     }
 
-    window.electronAPI.searchUser(searchId);
+    if (!window.electronAPI?.searchUser) return;
 
-  };
+    try {
+      const res = await window.electronAPI.searchUser(searchId);
 
-  useEffect(() => {
-    if (!window.electronAPI) return;
-
-    const unsub = window.electronAPI.onSearchUserResponse((res) => {
       if (res?.status === "success") {
         setSearchedUser(res.data);
         setCurrentView("add_preview");
       } else {
         alert(res?.message || "User not found");
       }
-    });
+    } catch (err) {
+      console.error("Search error:", err);
+    }
+  };
 
-    return () => {
-      if (unsub) unsub();
-    };
-  }, []);
-
-  // ===============================
+  // ===================================================
   // Render
-  // ===============================
+  // ===================================================
   const renderRightPanel = () => {
     switch (currentView) {
       case "add_form":
@@ -184,7 +206,10 @@ const Chat = () => {
   return (
     <div className="chat-container">
       <div className="sidebar-strip">
-        <div className="profile-circle" onClick={() => setCurrentView("profile")}>
+        <div
+          className="profile-circle"
+          onClick={() => setCurrentView("profile")}
+        >
           User
         </div>
 

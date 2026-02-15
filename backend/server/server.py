@@ -13,7 +13,7 @@ from services.message_service import (
     create_message_service,
     get_conversation_members_service
 )
-
+from repository.friend_repo import get_or_create_direct_conversation
 import packet
 
 import traceback
@@ -270,18 +270,83 @@ def handle_client(conn, addr):
                                 )
                             except:
                                 pass
+                # ---------------- GET MY CONVERSATIONS ----------------
+                elif pkt_type == "get_my_conversations":
+                    if not user_id:
+                        conn.send(packet.encode({
+                            "type": "get_my_conversations_response",
+                            "request_id": request_id,
+                            "status": "error",
+                            "message": "Unauthorized"
+                        }))
+                        continue
 
+                    try:
+                        from services.conversation_service import get_user_conversations
+                        conversations = get_user_conversations(user_id)
+
+                        conn.send(packet.encode({
+                            "type": "get_my_conversations_response",
+                            "request_id": request_id,
+                            "status": "success",
+                            "data": conversations
+                        }))
+                    except Exception as e:
+                        conn.send(packet.encode({
+                            "type": "get_my_conversations_response",
+                            "request_id": request_id,
+                            "status": "error",
+                            "message": str(e)
+                        }))
+
+                # ---------------- GET MESSAGES ----------------
+                elif pkt_type == "get_messages":
+                    conversation_id = pkt.get("conversation_id")
+
+                    if not user_id:
+                        conn.send(packet.encode({
+                            "type": "get_messages_response",
+                            "request_id": request_id,
+                            "status": "error",
+                            "message": "Unauthorized"
+                        }))
+                        continue
+
+                    try:
+                        from services.message_service import get_messages_by_conversation
+                        messages = get_messages_by_conversation(conversation_id)
+
+                        conn.send(packet.encode({
+                            "type": "get_messages_response",
+                            "request_id": request_id,
+                            "status": "success",
+                            "conversation_id": conversation_id,
+                            "messages": messages
+                        }))
+                    except Exception as e:
+                        conn.send(packet.encode({
+                            "type": "get_messages_response",
+                            "request_id": request_id,
+                            "status": "error",
+                            "message": str(e)
+                        }))
+                elif pkt_type == "open_direct":
+                    friend_id = pkt.get("friend_id")
+                    conv_id = get_or_create_direct_conversation(user_id, friend_id)
+
+                    conn.send(packet.encode({
+                        "type": "open_direct_response",
+                        "request_id": request_id,
+                        "status": "success",
+                        "conversation_id": conv_id
+                    }))
 
                 else:
                     conn.send(packet.encode({
                         "type": "error",
                         "message": "Unknown packet type"
                     }))
-                    
-    
-
                 
-
             except ConnectionResetError:
                 print(f"[CONN RESET] {addr}")
                 break

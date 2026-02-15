@@ -132,6 +132,16 @@ function acceptFriend(senderId) {
   });
 }
 
+// --- เพิ่มที่ส่วนล่างของไฟล์ tcpClient.js ---
+function getMyConversations() {
+  console.log("Sending get_my_conversations packet");
+  return send({ type: 'get_my_conversations' });
+}
+
+
+function getMessages(conversation_id) {
+  return send({ type: 'get_messages', conversation_id });
+}
 
 module.exports = {
   initTcpClient,
@@ -139,7 +149,10 @@ module.exports = {
   sendRegister,
   send,
   searchUser,
-  sendFriendRequest, 
+  sendFriendRequest,
   getPendingRequests,
-  acceptFriend
+  acceptFriend,
+  getMyConversations,
+  getMessages
 };
+

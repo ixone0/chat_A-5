@@ -9,54 +9,53 @@ const Login = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
-  // Reset Input
   useEffect(() => {
     setUsername('');
     setPassword('');
   }, []);
 
-  // Listener รับค่าจาก Electron
-  useEffect(() => {
-    if (!window.electronAPI) return;
-    const unsubscribe = window.electronAPI.onLoginResponse((response) => {
-       if(!response) return;
-       setLoading(false);
-       if (response.success || response.status === 'success') {
-          // Save Data
-          localStorage.setItem('username', response.username || username);
-          localStorage.setItem('user_id', response.user_id);
-          if (response.custom_id) localStorage.setItem('custom_id', response.custom_id);
-          
-          navigate('/chat');
-       } else {
-          setErrorMsg(response.message || 'Incorrect username or password');
-       }
-    });
-    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
-  }, [navigate, username]); // dependencies
-
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (loading) return;
-    setLoading(true);
-    localStorage.clear();
-    setErrorMsg('');
 
-    if(!username || !password) {
-        setLoading(false);
-        setErrorMsg("Please fill in all fields");
-        return;
+    setLoading(true);
+    setErrorMsg('');
+    localStorage.clear();
+
+    if (!username || !password) {
+      setLoading(false);
+      setErrorMsg("Please fill in all fields");
+      return;
     }
 
     const payload = { username, password };
-    if (window.electronAPI) {
-      window.electronAPI.login(payload);
-    } else {
-      // สำหรับ Test ใน Browser ธรรมดา
-      setTimeout(() => {
-        setLoading(false);
-        setErrorMsg("Electron API not found (Browser Mode)");
-      }, 1000);
+
+    try {
+      if (!window.electronAPI) {
+        throw new Error("Electron API not found");
+      }
+
+      // ✅ รอผลลัพธ์จาก ipcMain.handle
+      const response = await window.electronAPI.login(payload);
+
+      setLoading(false);
+
+      if (response?.status === "success") {
+        // Save Data
+        localStorage.setItem('username', response.username || username);
+        localStorage.setItem('user_id', response.user_id);
+        if (response.custom_id) {
+          localStorage.setItem('custom_id', response.custom_id);
+        }
+
+        navigate('/chat'); // ✅ ไปหน้า Chat ทันที
+      } else {
+        setErrorMsg(response?.message || 'Incorrect username or password');
+      }
+
+    } catch (err) {
+      setLoading(false);
+      setErrorMsg(err.message || "Login failed");
     }
   };
 
@@ -64,7 +63,6 @@ const Login = () => {
     <div className="login-container">
       <div className="login-box">
         
-        {/* Header ส่วนหัว */}
         <div className="login-header">
           <h2>Login</h2>
           <p>Please sign in to continue</p>
@@ -91,7 +89,6 @@ const Login = () => {
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
             />
-            {/* Error Message */}
             {errorMsg && (
               <div className="error-text">
                 ⚠ {errorMsg}
