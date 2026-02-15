@@ -37,7 +37,6 @@ const ChatWindow = ({
           });
         }
 
-
         const sender =
           String(m.sender_id) === String(currentUserId) ? "me" : "other";
 
@@ -62,30 +61,13 @@ const ChatWindow = ({
     const text = inputText.trim();
     if (!text) return;
 
-    // 👉 เอาเวลาปัจจุบัน
-    const now = new Date();
-
-    // 👉 แปลงเป็นเวลาไทย +07:00
-    const thaiOffset = 7 * 60; // นาที
-    const localOffset = now.getTimezoneOffset(); // offset เครื่อง (นาที)
-
-    const thaiTime = new Date(
-      now.getTime() + (thaiOffset + localOffset) * 60000
-    );
-
-    // 👉 สร้าง ISO string พร้อม +07:00
-    const thaiTimeISO =
-      thaiTime.toISOString().replace("Z", "+07:00");
-
     onSendMessage({
       text,
-      created_at: thaiTimeISO,
+      created_at: new Date().toISOString(), // ✅ ส่ง UTC ตรง ๆ
     });
 
     setInputText("");
   };
-
-
 
   if (!selected) {
     return (
