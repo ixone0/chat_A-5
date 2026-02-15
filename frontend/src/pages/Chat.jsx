@@ -16,6 +16,7 @@ const Chat = () => {
   const [currentView, setCurrentView] = useState("chat");
   const [searchedUser, setSearchedUser] = useState(null);
   const [showRequests, setShowRequests] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // ----------------------------------------
@@ -36,7 +37,7 @@ const Chat = () => {
       setConversations([]);
     }
   };
-
+  
   // ----------------------------------------
   // helper: load friend list from backend
   // ----------------------------------------
@@ -62,11 +63,23 @@ const Chat = () => {
   // initial load: conversations + friends
   // ----------------------------------------
   useEffect(() => {
+    // ✅ ดึง user จาก localStorage
+    const userId = localStorage.getItem("user_id");
+    const username = localStorage.getItem("username");
+
+    if (userId) {
+      setCurrentUser({
+        id: userId,
+        username: username,
+      });
+    }
+
     setLoading(true);
     Promise.all([loadConversations(), loadFriends()])
       .catch((e) => console.error(e))
       .finally(() => setLoading(false));
   }, []);
+
 
   // ==========================================
   // realtime receive message (existing)
@@ -87,13 +100,17 @@ const Chat = () => {
       setConversations((prev) => {
         const updated = prev.map((c) =>
           c.id === convId
-            ? { ...c, last_message: msg.content, last_message_at: msg.created_at }
-            : c
+            ? {
+                ...c,
+                last_message: msg.content,
+                last_message_at: msg.created_at,
+              }
+            : c,
         );
 
         return updated.sort(
           (a, b) =>
-            new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0)
+            new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0),
         );
       });
     });
@@ -106,7 +123,76 @@ const Chat = () => {
   // ==========================================
   // handle selecting an existing conversation
   // ==========================================
+  // ===================================================
+  // เลือกห้อง (ปรับให้รองรับ friend-placeholder)
+  // ===================================================
   const handleSelectConversation = async (conv) => {
+    if (!conv) return;
+
+    // หากเป็น placeholder ของเพื่อน (สร้าง id ชั่วคราว เช่น 'friend-<uuid>')
+    const isFriendPlaceholder =
+      conv.isFriendOnly ||
+      (typeof conv.id === "string" && conv.id.startsWith("friend-"));
+
+    if (isFriendPlaceholder) {
+      // ดึง friend object (เราเก็บไว้ใน conv.friend ตามโค้ดก่อนหน้า)
+      const friend = conv.friend ?? conv.other_user ?? null;
+      // ถ้าไม่มี friend object ให้ลองดึง id จากชื่อ placeholder
+      const friendId = friend?.id ?? String(conv.id).replace(/^friend-/, "");
+
+      // เรียก startDirectChat เพื่อสร้างหรือดึง conversation จริง
+      try {
+        const res = await window.electronAPI.startDirectChat(friendId);
+        if (res?.status === "success") {
+          const convId = res.conversation_id ?? res.conversation?.id ?? null;
+          // รีเฟรช conversation list แล้วเปิดห้องที่ได้
+          await loadConversations();
+
+          if (convId) {
+            // หา conversation ตัวจริงจาก state (รีเฟรชแล้ว)
+            const fresh =
+              (await window.electronAPI.getMyConversations())?.data ?? [];
+            const realConv =
+              fresh.find((c) => c.id === convId) ||
+              conversations.find((c) => c.id === convId);
+
+            if (realConv) {
+              // เปิด conversation จริง
+              return handleSelectConversation(realConv);
+            } else {
+              // fallback: สร้าง object แบบชั่วคราวแล้วเปิด (จะเรียก getMessages แต่ conv.id เป็น UUID)
+              const fallback = {
+                id: convId,
+                type: "direct",
+                other_user: {
+                  id: friendId,
+                  display_name:
+                    friend?.display_name ?? friend?.custom_id ?? "Friend",
+                  custom_id: friend?.custom_id ?? null,
+                },
+                last_message: null,
+              };
+              setConversations((prev) => [fallback, ...prev]);
+              return handleSelectConversation(fallback);
+            }
+          } else {
+            // ถ้า server ไม่ได้คืน id — รีเฟรชเฉย ๆ
+            await loadConversations();
+            return;
+          }
+        } else {
+          console.error("startDirectChat failed:", res);
+          alert(res?.message || "ไม่สามารถเริ่มแชทได้");
+          return;
+        }
+      } catch (err) {
+        console.error("startDirectChat error:", err);
+        alert("เกิดข้อผิดพลาดขณะเริ่มแชท");
+        return;
+      }
+    }
+
+    // ถ้าเป็น conversation จริง → ดึงข้อความปกติ
     setSelectedConversation(conv);
     setCurrentView("chat");
 
@@ -122,6 +208,8 @@ const Chat = () => {
           ...prev,
           [conv.id]: res.messages || [],
         }));
+      } else {
+        console.error("getMessages failed:", res);
       }
     } catch (err) {
       console.error("Error loading messages:", err);
@@ -129,52 +217,70 @@ const Chat = () => {
   };
 
   // ==========================================
-// ส่งข้อความ
-// ==========================================
-const handleSendMessage = (text) => {
-  if (!selectedConversation || !text.trim()) return;
+  // ส่งข้อความ
+  // ==========================================
+  const handleSendMessage = (payload) => {
+    if (!selectedConversation) return;
+
+    // รองรับทั้ง string และ object
+    const text =
+      typeof payload === "string" ? payload : payload?.text;
+
+    if (!text || !text.trim()) return;
+
+    if (!currentUser || !currentUser.id) {
+      console.error("currentUser not ready");
+      return;
+    }
 
     const convId = selectedConversation.id;
 
-  const tempMessage = {
-    id: Date.now(),
-    sender_id: "me",
-    content: text,
-    created_at: new Date().toISOString(),
-  };
+    const createdAt =
+      typeof payload === "object" && payload.created_at
+        ? payload.created_at
+        : new Date().toISOString();
 
-  // optimistic update
-  setMessages((prev) => ({
-    ...prev,
-    [convId]: [...(prev[convId] || []), tempMessage],
-  }));
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      sender_id: currentUser.id,
+      content: text,
+      created_at: createdAt,
+    };
 
-  // update sidebar last message
-  setConversations((prev) =>
-    prev
-      .map((c) =>
-        c.id === convId
-          ? {
-              ...c,
-              last_message: text,
-              last_message_at: new Date().toISOString(),
-            }
-          : c
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.last_message_at || 0) -
-          new Date(a.last_message_at || 0)
-      )
+    // optimistic update
+    setMessages((prev) => ({
+      ...prev,
+      [convId]: [...(prev[convId] || []), tempMessage],
+    }));
+
+    // update sidebar
+    setConversations((prev) =>
+      prev
+        .map((c) =>
+          c.id === convId
+            ? {
+                ...c,
+                last_message: text,
+                last_message_at: createdAt,
+              }
+            : c
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.last_message_at || 0) -
+            new Date(a.last_message_at || 0)
+        )
     );
 
     if (window.electronAPI?.sendMessage) {
       window.electronAPI.sendMessage({
         conversation_id: convId,
         text: text,
+        created_at: createdAt,
       });
     }
   };
+
 
 
   // ==========================================
@@ -189,53 +295,51 @@ const handleSendMessage = (text) => {
 
     try {
       // call electron -> server to create or get direct conversation
-      const res = await window.electronAPI.startDirectChat(friend.id || friend.user_id || friend.uuid || friend.friend_id);
+      const res = await window.electronAPI.startDirectChat(
+        friend.id || friend.user_id || friend.uuid || friend.friend_id,
+      );
 
       if (res?.status === "success") {
-        // expected response contains conversation_id OR conversation object
-        const convId = res.conversation_id ?? res.conversation?.id ?? null;
+        const convId = res.conversation_id;
 
-        // refresh the conversations list to get full metadata
-        await loadConversations();
+        // สร้าง object conversation ตรง ๆ แล้วเปิดเลย
+        const newConv = {
+          id: convId,
+          type: "direct",
+          title: null,
+          other_user: {
+            id: friend.id,
+            display_name: friend.display_name,
+            custom_id: friend.custom_id,
+          },
+          last_message: null,
+        };
 
-        if (convId) {
-          // find the new/existing conversation and open it
-          const conv = (await (async () => {
-            // after loadConversations the state is updated; read from current state
-            // but setConversations is async; so fetch fresh via getMyConversations again for guaranteed up-to-date
-            try {
-              const resp = await window.electronAPI.getMyConversations();
-              if (resp?.status === "success" && Array.isArray(resp.data)) {
-                return resp.data.find((c) => c.id === convId) || null;
-              }
-            } catch (e) { /* ignore */ }
-            return null;
-          })()) || conversations.find((c) => c.id === convId);
+        setConversations((prev) => {
+          // ถ้ามีอยู่แล้วไม่ต้องเพิ่ม
+          if (prev.find((c) => c.id === convId)) return prev;
+          return [newConv, ...prev];
+        });
 
-          if (conv) {
-            handleSelectConversation(conv);
-          } else {
-            // As fallback, create a minimal conversation object and select it
-            const fallback = {
-              id: convId,
-              type: "direct",
-              title: null,
-              other_user: {
-                id: friend.id,
-                display_name: friend.display_name,
-                custom_id: friend.custom_id
-              },
-              last_message: null
-            };
-            // add to state and select
-            setConversations(prev => [fallback, ...prev]);
-            handleSelectConversation(fallback);
-          }
-        } else {
-          // if server didn't return conv id, just refresh UI
-          await loadConversations();
+        // 🔥 เปิดห้องทันที
+        setSelectedConversation(newConv);
+        setCurrentView("chat");
+
+        // โหลดข้อความ
+        const msgRes = await window.electronAPI.getMessages({
+          conversation_id: convId,
+        });
+
+        if (msgRes?.status === "success") {
+          setMessages((prev) => ({
+            ...prev,
+            [convId]: msgRes.messages || [],
+          }));
         }
-      } else {
+
+        return;
+      }
+      else {
         console.error("startDirectChat failed:", res);
         alert(res?.message || "Cannot start chat");
       }
@@ -267,7 +371,10 @@ const handleSendMessage = (text) => {
     // fallback: if item.other_user exists, try to find conversation that matches
     if (item.other_user && item.other_user.id) {
       const conv = conversations.find(
-        (c) => c.type === "direct" && c.other_user && c.other_user.id === item.other_user.id
+        (c) =>
+          c.type === "direct" &&
+          c.other_user &&
+          c.other_user.id === item.other_user.id,
       );
       if (conv) return handleSelectConversation(conv);
       // else start direct chat
@@ -290,7 +397,10 @@ const handleSendMessage = (text) => {
     const friendPlaceholders = friends.map((f) => {
       // try to find existing direct conversation with this friend
       const conv = conversations.find(
-        (c) => c.type === "direct" && c.other_user && String(c.other_user.id) === String(f.id)
+        (c) =>
+          c.type === "direct" &&
+          c.other_user &&
+          String(c.other_user.id) === String(f.id),
       );
 
       if (conv) return conv;
@@ -304,11 +414,11 @@ const handleSendMessage = (text) => {
           id: f.id,
           display_name: f.display_name,
           custom_id: f.custom_id,
-          last_seen: f.last_seen
+          last_seen: f.last_seen,
         },
         last_message: null,
         isFriendOnly: true,
-        friend: f
+        friend: f,
       };
     });
 
@@ -317,10 +427,16 @@ const handleSendMessage = (text) => {
 
     // default: show conversations first, then friends without conversations
     const convIds = new Set(conversations.map((c) => c.id));
-    const onlyFriends = friendPlaceholders.filter((p) => {
-      // filter out those placeholders that actually correspond to conversation objects (already returned)
-      return !(p.id && p.id.startsWith("friend-") === false && convIds.has(p.id));
-    }).filter(p => p.isFriendOnly);
+    const onlyFriends = friendPlaceholders
+      .filter((p) => {
+        // filter out those placeholders that actually correspond to conversation objects (already returned)
+        return !(
+          p.id &&
+          p.id.startsWith("friend-") === false &&
+          convIds.has(p.id)
+        );
+      })
+      .filter((p) => p.isFriendOnly);
 
     return [...conversations, ...onlyFriends];
   })();
@@ -380,6 +496,7 @@ const handleSendMessage = (text) => {
                 ? messages[selectedConversation.id] || []
                 : []
             }
+            currentUserId={currentUser?.id}
             onSendMessage={handleSendMessage}
           />
         );

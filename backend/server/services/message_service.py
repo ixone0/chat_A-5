@@ -4,16 +4,11 @@ from repository.conversation_repo import get_members_by_conversation
 
 def create_message_service(conversation_id, sender_id, content):
     try:
-        message_id = insert_message(conversation_id, sender_id, content)
+        message = insert_message(conversation_id, sender_id, content)
 
         return {
             "status": "success",
-            "message": {
-                "id": message_id,
-                "conversation_id": conversation_id,
-                "sender_id": sender_id,
-                "content": content
-            }
+            "message": message 
         }
     except Exception as e:
         return {
