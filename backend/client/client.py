@@ -1,9 +1,11 @@
-#client.py
+# client.py
 import socket
 import os
 import packet
 from dotenv import load_dotenv
 from connection import create_connection
+import threading
+import json
 
 load_dotenv()
 
@@ -11,81 +13,75 @@ client = create_connection()
 if not client:
     exit()
 
+
+def listen_server():
+    while True:
+        try:
+            data = client.recv(4096)
+            if not data:
+                print("Disconnected from server")
+                break
+
+            print("\n[SERVER RAW]:", data)
+            pkt = packet.decode(data)
+            print("[SERVER PKT]:", json.dumps(pkt, indent=2))
+
+        except Exception as e:
+            print("Listen error:", e)
+            break
+
+
+# เริ่ม thread ฟัง server
+threading.Thread(target=listen_server, daemon=True).start()
+
+
 def login():
     print("\n--- LOGIN ---")
     username = input("Username: ")
     password = input("Password: ")
-    
+
     client.send(packet.encode({
         "type": "login",
         "username": username,
         "password": password
     }))
-    
-    # รอรับผล Login
-    response = packet.decode(client.recv(4096))
-    if response.get("status") == "ok":
-        print(f"Login Successful! Your ID: {response.get('user_id')}")
-        return response.get("user_id")
-    else:
-        print(f"Login Failed: {response.get('message')}")
-        return None
 
-def register():
-    print("\n--- REGISTER ---")
-    username = input("Username: ")
-    password = input("Password: ")
-    display_name = input("Display Name (e.g. John Doe): ")
-    
+
+def update_user_id():
+    print("\n--- UPDATE CUSTOM ID ---")
+    user_id = input("User UUID: ")
+    new_id = input("New ID: ")
+
     client.send(packet.encode({
-        "type": "register",
-        "username": username,
-        "password": password,
-        "display_name": display_name
+        "type": "update_user_id",
+        "user_id": user_id,
+        "new_id": new_id
     }))
-    
-    response = packet.decode(client.recv(4096))
-    print(f"Server: {response.get('message')}")
 
-def create_conversation_menu(my_id):
-    print("\n--- Create Group ---")
-    title = input("Group Name: ")
+
+def search_user():
+    print("\n--- SEARCH USER ---")
+    target = input("Custom ID: ")
+
     client.send(packet.encode({
-        "type": "create_conversation",
-        "title": title,
-        "chat_type": "group"
+        "type": "search_user",
+        "target_id": target
     }))
-    response = packet.decode(client.recv(4096))
-    print(f"Server: {response}")
 
-# --- MAIN LOOP ---
-current_user_id = None
 
 while True:
-    if not current_user_id:
-        print("\n=== WELCOME ===")
-        print("1. Login")
-        print("2. Register")
-        print("3. Exit")
-        choice = input("Select: ")
-        
-        if choice == "1":
-            current_user_id = login()
-        elif choice == "2":
-            register()
-        elif choice == "3":
-            client.close()
-            break
-    else:
-        # เมนูหลัง Login สำเร็จ
-        print(f"\n=== LOGGED IN ({current_user_id}) ===")
-        print("1. Create Conversation")
-        print("2. Send Message (Coming Soon)")
-        print("3. Logout")
-        choice = input("Select: ")
-        
-        if choice == "1":
-            create_conversation_menu(current_user_id)
-        elif choice == "3":
-            current_user_id = None
-            print("Logged out.")
+    print("\n1. Login")
+    print("2. Update Custom ID")
+    print("3. Search User")
+    print("4. Exit")
+
+    choice = input("Choose: ")
+
+    if choice == "1":
+        login()
+    elif choice == "2":
+        update_user_id()
+    elif choice == "3":
+        search_user()
+    elif choice == "4":
+        break

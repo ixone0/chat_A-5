@@ -44,10 +44,12 @@ def create_conversation_db(title, owner_id, chat_type="group"):
 
 def get_members_by_conversation(conversation_id):
     conn = get_db_connection()
-    cursor = conn.cursor()
-    query = "SELECT user_id FROM conversation_members WHERE conversation_id = %s"
-    cursor.execute(query, (conversation_id,))
-    # แปลงเป็น string ทันที
-    members = [str(row[0]) for row in cursor.fetchall()]
-    conn.close()
-    return members
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT user_id FROM conversation_members WHERE conversation_id = %s",
+                (conversation_id,)
+            )
+            return [str(row[0]) for row in cursor.fetchall()]
+    finally:
+        conn.close()

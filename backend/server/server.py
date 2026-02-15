@@ -9,6 +9,10 @@ from services.auth_service import login_user, register_user
 from services.conversation_service import handle_create_conversation
 from services.user_service import change_custom_id
 from db import find_user_by_custom_id, send_friend_request, get_pending_requests, accept_friend_request
+from services.message_service import (
+    create_message_service,
+    get_conversation_members_service
+)
 
 import packet
 
@@ -68,7 +72,10 @@ def handle_client(conn, addr):
                     except Exception as e:
                         print(f"[EXC register_user] {traceback.format_exc()}")
                         response = {"status": "error", "message": "Server error during register"}
+
                     response["type"] = "register_response"
+                    response["request_id"] = request_id   # ✅ เพิ่มบรรทัดนี้
+
                     conn.send(packet.encode(response))
 
                 # ---------------- LOGIN ----------------
@@ -76,14 +83,13 @@ def handle_client(conn, addr):
                     try:
                         user = login_user(pkt)
                     except Exception as e:
-                        # จับ error จาก DB / bcrypt ฯลฯ แล้วตอบกลับ client แทนปิด connection เงียบๆ
                         print(f"[EXC login_user] {traceback.format_exc()}")
                         conn.send(packet.encode({
                             "type": "login_response",
+                            "request_id": request_id,   # ✅ เพิ่ม
                             "status": "error",
                             "message": "Server error during login"
                         }))
-                        # ไม่ break — รอคำสั่งต่อไปหรือ client ปิด
                         continue
 
                     if user:
@@ -92,6 +98,7 @@ def handle_client(conn, addr):
 
                         conn.send(packet.encode({
                             "type": "login_response",
+                            "request_id": request_id,   # ✅ เพิ่ม
                             "status": "success",
                             "user_id": user_id,
                             "username": user["username"],
@@ -101,6 +108,7 @@ def handle_client(conn, addr):
                     else:
                         conn.send(packet.encode({
                             "type": "login_response",
+                            "request_id": request_id,   # ✅ เพิ่ม
                             "status": "error",
                             "message": "Login failed"
                         }))
@@ -205,13 +213,72 @@ def handle_client(conn, addr):
 
                 # ---------------- SEND MESSAGE ----------------
                 elif pkt_type == "send_message":
-                    pass
+                    conversation_id = pkt.get("conversation_id")
+                    text = pkt.get("text")
+
+                    if not user_id:
+                        conn.send(packet.encode({
+                            "type": "send_message_response",
+                            "request_id": request_id,
+                            "status": "error",
+                            "message": "Unauthorized"
+                        }))
+                        continue
+
+                    if not conversation_id or not text:
+                        conn.send(packet.encode({
+                            "type": "send_message_response",
+                            "request_id": request_id,
+                            "status": "error",
+                            "message": "Invalid data"
+                        }))
+                        continue
+
+                    try:
+                        message = create_message_service(conversation_id, user_id, text)
+                    except Exception as e:
+                        conn.send(packet.encode({
+                            "type": "send_message_response",
+                            "request_id": request_id,
+                            "status": "error",
+                            "message": str(e)
+                        }))
+                        continue
+
+                    # ✅ ส่ง response กลับไปหาคนที่กด send ก่อน
+                    conn.send(packet.encode({
+                        "type": "send_message_response",
+                        "request_id": request_id,
+                        "status": "success",
+                        "message": message
+                    }))
+
+                    # ✅ แล้วค่อย broadcast ไปสมาชิกคนอื่น
+                    members = get_conversation_members_service(conversation_id)
+
+                    for member_id in members:
+                        member_id = str(member_id)
+
+                        if member_id in online_users:
+                            try:
+                                online_users[member_id].send(
+                                    packet.encode({
+                                        "type": "receive_message",
+                                        "conversation_id": conversation_id,
+                                        "message": message
+                                    })
+                                )
+                            except:
+                                pass
+
 
                 else:
                     conn.send(packet.encode({
                         "type": "error",
                         "message": "Unknown packet type"
                     }))
+                    
+    
 
                 
 

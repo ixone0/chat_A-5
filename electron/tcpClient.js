@@ -39,7 +39,12 @@ function initTcpClient(mainWindow) {
         win.webContents.send('login-response', parsed);
       } else if (parsed.type === 'register_response') {
         win.webContents.send('register-response', parsed);
-      } else {
+      } else if (parsed.type === 'receive_message') {
+        win.webContents.send('receive-message', parsed);
+      } else if (parsed.type === 'search_user_response') {
+        win.webContents.send('search-user-response', parsed);
+      }
+      else {
         // ส่ง generic server-message
         win.webContents.send('server-message', parsed);
       }
@@ -84,18 +89,13 @@ function send(packet) {
 
 // ฟังก์ชันส่งข้อมูล Login
 function sendLogin(username, password) {
-    if (!client) return;
-
-    // จัด Format ให้ตรงกับที่ Python Server ต้องการ
-    const packet = JSON.stringify({
-        type: 'login',
-        username: username,
-        password: password
-    });
-
-    client.write(packet);
-    console.log('📤 Sent Login Packet:', packet);
+  return send({
+    type: 'login',
+    username,
+    password
+  });
 }
+
 
 function sendRegister(username, password) {
   return send({

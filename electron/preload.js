@@ -2,7 +2,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  login: (data) => ipcRenderer.send('login-request', data),
+  login: (data) => ipcRenderer.invoke('login-request', data),
+
   onLoginResponse: (cb) => {
     const l = (e, ...args) => cb(...args);
     ipcRenderer.on('login-response', l);
@@ -10,16 +11,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   register: (data) => ipcRenderer.send('register-request', data),
+
   onRegisterResponse: (cb) => {
     const l = (e, ...args) => cb(...args);
     ipcRenderer.on('register-response', l);
     return () => ipcRenderer.removeListener('register-response', l);
   },
 
-  // ฟังก์ชันส่งออเดอร์ update
   updateUserId: (data) => ipcRenderer.send("update-user-id", data),
 
-  // listener สำหรับผลลัพธ์
   onUpdateUserIdResponse: (cb) => {
     const l = (e, ...args) => cb(...args);
     ipcRenderer.on('update-user-id-response', l);
@@ -27,7 +27,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   searchUser: (customId) => ipcRenderer.invoke('search-user', customId),
-  sendFriendRequest: (targetCustomId) => ipcRenderer.invoke('send-friend-request', targetCustomId),
-  getPendingRequests: () => ipcRenderer.invoke('get-pending-requests'),
-  acceptFriend: (senderId) => ipcRenderer.invoke('accept-friend', senderId)
+
+  sendFriendRequest: (targetCustomId) =>
+    ipcRenderer.invoke('send-friend-request', targetCustomId),
+
+  getPendingRequests: () =>
+    ipcRenderer.invoke('get-pending-requests'),
+
+  acceptFriend: (senderId) =>
+    ipcRenderer.invoke('accept-friend', senderId),
+
+  sendMessage: (data) =>
+    ipcRenderer.invoke("send-message", data),
+
+  onReceiveMessage: (callback) =>
+    ipcRenderer.on("receive-message", (_, msg) => callback(msg)),
+
+  onSearchUserResponse: (cb) => {
+    const l = (e, ...args) => cb(...args);
+    ipcRenderer.on("search-user-response", l);
+    return () => ipcRenderer.removeListener("search-user-response", l);
+  },
+
 });

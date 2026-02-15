@@ -54,12 +54,17 @@ app.on('activate', () => {
 // 3. ส่วนรับคำสั่งจาก React (ของจริง)
 // ==========================================
 
-ipcMain.on('login-request', (event, data) => {
-  console.log('Ui Request Login:', data.username);
-  
-  // เรียกใช้ฟังก์ชันส่งข้อมูลใน tcpClient.js
-  sendLogin(data.username, data.password);
+ipcMain.handle('login-request', async (event, data) => {
+  console.log('UI Request Login:', data.username);
+
+  try {
+    const response = await sendLogin(data.username, data.password);
+    return response;
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
 });
+
 
 // ✅ เพิ่ม IPC Listener สำหรับ Register
 ipcMain.on('register-request', (event, data) => {
@@ -127,3 +132,21 @@ ipcMain.handle('accept-friend', async (event, senderId) => {
     return { status: 'error', message: error.message };
   }
 });
+
+ipcMain.handle("send-message", async (event, data) => {
+  try {
+    const response = await send({
+      type: "send_message",
+      conversation_id: data.conversation_id,
+      text: data.text
+    });
+
+    return response;
+  } catch (err) {
+    return {
+      status: "error",
+      message: err.message
+    };
+  }
+});
+
