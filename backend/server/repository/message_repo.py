@@ -1,4 +1,4 @@
-#message_repo.py
+# repository/message_repo.py
 from datetime import datetime, timezone
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -48,6 +48,11 @@ def insert_message(conversation_id, sender_id, content):
             message = cursor.fetchone()
             conn.commit()
 
+            # convert created_at (datetime) -> ISO8601 string with timezone
+            if message and message.get("created_at"):
+                # message["created_at"] is tz-aware; isoformat will include offset
+                message["created_at"] = message["created_at"].isoformat()
+
             return message
 
     except Exception as e:
@@ -55,7 +60,6 @@ def insert_message(conversation_id, sender_id, content):
         raise e
     finally:
         conn.close()
-
 
 
 def get_messages_by_conversation(conversation_id, limit=50):
@@ -73,7 +77,19 @@ def get_messages_by_conversation(conversation_id, limit=50):
             """
 
             cursor.execute(query, (conversation_id, limit))
-            return cursor.fetchall()
+            rows = cursor.fetchall()
+
+            # convert created_at to ISO strings with timezone if present
+            for r in rows:
+                if r.get("created_at"):
+                    # r["created_at"] may be a datetime with tzinfo
+                    try:
+                        r["created_at"] = r["created_at"].isoformat()
+                    except Exception:
+                        # if it's already a string, leave it
+                        pass
+
+            return rows
 
     finally:
         conn.close()
