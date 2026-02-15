@@ -1,82 +1,132 @@
+/* Overlay: พื้นหลังมัวๆ (Blur) ดู Modern */
 .request-modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease-out;
 }
 
+/* ตัวกล่อง Modal */
 .request-modal {
-    background: #2f3136; /* สีเทาเข้มแบบ Discord */
-    width: 400px;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    background: #1e1f22; /* สี Discord Dark Theme */
+    width: 420px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
     overflow: hidden;
-    color: white;
-    font-family: sans-serif;
+    color: #dbdee1;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transform: scale(0.95);
+    animation: popIn 0.2s ease-out forwards;
 }
 
+/* --- Header Section --- */
 .modal-header {
-    background: #202225;
-    padding: 15px 20px;
+    background: #2b2d31;
+    padding: 16px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #40444b;
+    border-bottom: 1px solid #1f2023;
 }
 
-.modal-header h3 {
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-title h3 {
     margin: 0;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
+    color: #f2f3f5;
 }
 
+.bell-icon {
+    width: 20px;
+    height: 20px;
+    color: #b5bac1;
+}
+
+.req-count {
+    background: #f23f42;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+/* ปุ่มปิด (X) */
 .close-btn {
-    background: none;
+    background: transparent;
     border: none;
-    color: #b9bbbe;
+    color: #b5bac1;
     cursor: pointer;
-    font-size: 16px;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    transition: all 0.2s;
 }
 
-.close-btn:hover { color: white; }
+.close-btn svg {
+    width: 20px;
+    height: 20px;
+}
 
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* --- List Section --- */
 .request-list {
-    padding: 10px;
-    max-height: 400px;
+    padding: 12px;
+    max-height: 450px;
     overflow-y: auto;
+    background: #313338;
 }
 
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    color: #b9bbbe;
-}
+/* Scrollbar แต่งให้เข้าธีม */
+.request-list::-webkit-scrollbar { width: 8px; }
+.request-list::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
+.request-list::-webkit-scrollbar-track { background: #2b2d31; }
 
+/* --- Request Item Card --- */
 .request-item {
     display: flex;
     align-items: center;
-    padding: 10px;
-    border-radius: 4px;
-    transition: background 0.2s;
+    padding: 12px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    background: #2b2d31;
+    transition: background 0.2s, transform 0.1s;
 }
 
 .request-item:hover {
-    background: #36393f;
+    background: #404249;
+    transform: translateY(-1px);
 }
 
 .req-avatar {
-    width: 40px;
-    height: 40px;
-    background: #5865f2; /* สีม่วง Discord */
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, #5865f2, #4752c4);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    margin-right: 12px;
+    font-weight: 700;
+    font-size: 18px;
+    margin-right: 14px;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .req-info {
@@ -87,41 +137,102 @@
 
 .req-name {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 15px;
+    color: #f2f3f5;
 }
 
 .req-id {
     font-size: 12px;
-    color: #b9bbbe;
+    color: #949ba4;
 }
 
+/* --- Action Buttons (วงกลม) --- */
 .req-actions {
     display: flex;
-    gap: 8px;
+    gap: 10px;
 }
 
-.btn-accept {
-    background: #3ba55c; /* สีเขียว */
-    color: white;
+.btn-icon-accept, .btn-icon-reject {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     border: none;
-    padding: 6px 12px;
-    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.btn-accept:hover { background: #2d7d46; }
+/* ปุ่ม Accept (เขียว) */
+.btn-icon-accept {
+    background: rgba(35, 165, 89, 0.15);
+    color: #23a559;
+}
 
-.btn-reject {
-    background: #ed4245; /* สีแดง */
+.btn-icon-accept:hover {
+    background: #23a559;
     color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
+    transform: scale(1.1);
 }
 
-.btn-reject:hover { background: #c03537; }
+.btn-icon-accept svg { width: 18px; height: 18px; }
+
+/* ปุ่ม Reject (แดง) */
+.btn-icon-reject {
+    background: rgba(242, 63, 66, 0.15);
+    color: #f23f42;
+}
+
+.btn-icon-reject:hover {
+    background: #f23f42;
+    color: white;
+    transform: scale(1.1);
+}
+
+.btn-icon-reject svg { width: 16px; height: 16px; }
+
+/* --- Empty & Loading States --- */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #949ba4;
+}
+
+.empty-icon-svg {
+    margin-bottom: 15px;
+    color: #4e5058;
+}
+
+.empty-icon-svg svg { width: 48px; height: 48px; }
+
+.loading-state {
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+}
+
+.spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top: 3px solid #5865f2;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* --- Animations --- */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes popIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

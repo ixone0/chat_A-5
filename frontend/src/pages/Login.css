@@ -1,110 +1,179 @@
 /* src/pages/Login.css */
 
-.error-text {
-  color: red;
-  margin-top: 10px;
-  font-size: 14px;
+/* Global Reset & Font */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', 'Inter', sans-serif;
 }
 
+/* 1. พื้นหลังหลัก: เปลี่ยนเป็นสีครีม #EAE0CF */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #f0f2f5; /* สีพื้นหลังแบบสบายตา */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #EAE0CF; /* สีครีมเป็นพื้นหลังหลัก */
+  /* เพิ่มลวดลายนิดหน่อยเพื่อให้ดูไม่เรียบเกินไป (Optional) */
+  background-image: radial-gradient(#d6cbb7 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
+/* 2. กล่อง Login: เปลี่ยนเป็นสีเข้ม #213448 เพื่อให้ตัดกับพื้นหลังครีม */
 .login-box {
-  background: white;
-  padding: 2.5rem; /* เพิ่ม padding อีกนิดให้ดูโปร่ง */
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: #213448; /* สี Deep Slate */
+  color: #EAE0CF;      /* ตัวหนังสือสีครีม */
+  
+  padding: 40px 35px;
+  border-radius: 20px;
+  /* เพิ่มเงาให้ดูลอยเด่นออกมาจากพื้นครีม */
+  box-shadow: 0 20px 40px rgba(33, 52, 72, 0.25); 
+  
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   text-align: center;
+  
+  opacity: 0;
+  animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-.login-box h2 {
-  margin-bottom: 1.5rem;
-  color: #333;
+/* หัวข้อ */
+.login-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #EAE0CF;
+  margin-bottom: 5px;
+  letter-spacing: 0.5px;
 }
 
+.login-header p {
+  font-size: 14px;
+  color: #94B4C1; /* สีฟ้าอ่อน */
+  margin-bottom: 30px;
+}
+
+/* ฟอร์ม */
 .input-group {
-  margin-bottom: 1.2rem;
+  margin-bottom: 18px;
   text-align: left;
 }
 
 .input-group label {
+  font-size: 13px;
+  color: #94B4C1;
+  font-weight: 500;
+  margin-bottom: 6px;
   display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #555;
 }
 
 .input-group input {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 1rem;
-  box-sizing: border-box; /* สำคัญ: ป้องกัน input ล้นกล่อง */
-  transition: border-color 0.3s;
+  padding: 12px 15px;
+  /* ปรับสีพื้นหลัง Input ให้เข้มกว่ากล่องนิดนึง */
+  background: rgba(0, 0, 0, 0.25); 
+  border: 1px solid #547792;      
+  border-radius: 10px;            
+  font-size: 15px;
+  color: #EAE0CF;                 
+  outline: none;
+  transition: all 0.3s ease;
 }
 
 .input-group input:focus {
-  outline: none;
-  border-color: #0084ff;
+  border-color: #94B4C1;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 3px rgba(84, 119, 146, 0.3);
 }
 
-/* --- ส่วนที่เพิ่มใหม่สำหรับปุ่มคู่ --- */
+.input-group input::placeholder {
+  color: rgba(148, 180, 193, 0.4);
+}
 
-.button-group {
+/* Error Text */
+.error-text {
+  color: #ff8a8a; /* ปรับสีแดงให้อ่อนลงนิดนึงให้อ่านง่ายบนพื้นเข้ม */
+  font-size: 12px;
+  margin-top: 5px;
   display: flex;
-  gap: 15px; /* ระยะห่างระหว่างปุ่ม */
-  margin-top: 2rem;
+  align-items: center;
+  gap: 5px;
 }
 
-/* ปุ่ม Login (สีฟ้าหลัก) */
+/* ปุ่มกด */
+.button-group {
+  margin-top: 30px;
+}
+
 .login-btn {
-  flex: 1; /* ขยายเต็มพื้นที่ครึ่งนึง */
-  padding: 0.75rem;
-  background-color: #0084ff; 
-  color: white;
+  width: 100%;
+  padding: 12px;
+  background: #547792; /* สี Steel Blue */
+  color: #EAE0CF;      
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: bold;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s, transform 0.1s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .login-btn:hover {
-  background-color: #006bcf;
+  background: #688ba6; /* สว่างขึ้นตอน Hover */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 .login-btn:active {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
-/* ปุ่ม Register (สีเทารอง) */
-.register-link-btn {
-  flex: 1; /* ขยายเต็มพื้นที่อีกครึ่งนึง */
-  padding: 0.75rem;
-  background-color: #6c757d; /* สีเทาเข้ม */
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: bold;
+.login-btn:disabled {
+  background: #3e5263;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Link สมัครสมาชิก */
+.register-section {
+  margin-top: 20px;
+  font-size: 13px;
+  color: #94B4C1;
+}
+
+.register-link-text {
+  color: #EAE0CF;
+  font-weight: 600;
+  margin-left: 5px;
   cursor: pointer;
-  transition: background 0.3s, transform 0.1s;
+  text-decoration: none;
+  position: relative;
 }
 
-.register-link-btn:hover {
-  background-color: #5a6268;
+.register-link-text::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1px;
+  bottom: -2px;
+  left: 0;
+  background-color: #EAE0CF;
+  transition: width 0.3s;
 }
 
-.register-link-btn:active {
-  transform: scale(0.98);
+.register-link-text:hover::after {
+  width: 100%;
+}
+
+/* Animation */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

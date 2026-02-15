@@ -1,117 +1,200 @@
 /* src/pages/Register.css */
 
-/* จัดหน้าจอให้อยู่ตรงกลางและใส่สีพื้นหลัง */
+/* Global Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', 'Inter', sans-serif;
+}
+
+/* พื้นหลังหลัก: สีครีม #EAE0CF (เหมือน Login) */
 .register-container {
   display: flex;
-  justify-content: center; /* ✅ แก้จาก _ เป็น - ครับ */
-  align-items: center;     /* อันนี้จัดกึ่งกลางแนวตั้ง */
+  justify-content: center;
+  align-items: center;
   height: 100vh;
-  width: 100vw;
-  background-color: #E8E0D1; 
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0; /* เพิ่มอันนี้เพื่อกันขอบขาวๆ รอบจอ */
+  background-color: #EAE0CF;
+  background-image: radial-gradient(#d6cbb7 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
-/* กล่องสีฟ้าตรงกลาง */
+/* กล่อง Register: สีเข้ม #213448 (เหมือน Login) */
 .register-box {
-  background-color: #56758F; 
-  padding: 40px 50px;
-  width: 400px;
-  /* box-shadow: 0 10px 25px rgba(0,0,0,0.2); ถ้าอยากให้กล่องดูลอยๆ ให้เปิดบรรทัดนี้ */
-}
-
-/* หัวข้อ Register */
-.register-title {
+  background: #213448;
+  color: #EAE0CF;
+  
+  padding: 40px 35px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(33, 52, 72, 0.25);
+  
+  width: 100%;
+  max-width: 380px;
   text-align: center;
-  color: white;
-  margin-bottom: 30px;
-  font-weight: normal;
-  font-size: 28px;
+  
+  opacity: 0;
+  animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* กลุ่มช่องกรอกข้อมูล */
+/* หัวข้อ */
+.register-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #EAE0CF;
+  margin-bottom: 5px;
+}
+
+.register-header p {
+  font-size: 14px;
+  color: #94B4C1; /* สีฟ้าอ่อน */
+  margin-bottom: 25px;
+}
+
+/* ฟอร์ม */
 .input-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+  text-align: left;
 }
 
 .input-group label {
+  font-size: 13px;
+  color: #94B4C1;
+  font-weight: 500;
+  margin-bottom: 6px;
   display: block;
-  color: white;
-  margin-bottom: 5px;
-  font-size: 18px;
 }
 
-/* input ปกติ */
 .input-group input {
   width: 100%;
-  padding: 10px;
-  background-color: #8FAAB9; 
-  border: none;
-  color: white; 
-  font-size: 16px;
-  box-sizing: border-box; 
-  outline: none; /* เอาขอบน้ำเงินเวลาคลิกออก */
+  padding: 12px 15px;
+  background: rgba(0, 0, 0, 0.25); 
+  border: 1px solid #547792;      
+  border-radius: 10px;            
+  font-size: 15px;
+  color: #EAE0CF;                 
+  outline: none;
+  transition: all 0.3s ease;
 }
 
-/* input ที่อยู่ใน wrapper (พวกพาสเวิร์ด) */
-.password-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
+.input-group input:focus {
+  border-color: #94B4C1;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 3px rgba(84, 119, 146, 0.3);
 }
 
-.password-wrapper input {
-    width: 100%;
-    padding: 10px;
-    background-color: #8FAAB9;
-    border: none;
-    color: white;
-    font-size: 16px;
-    box-sizing: border-box;
-    outline: none;
-}
-
-/* ไอคอนลูกตา */
-.eye-icon {
-  position: absolute;
-  right: 10px;
-  cursor: pointer;
-  font-size: 18px;
-  color: #333; /* หรือจะเปลี่ยนเป็น white ให้กลืนไปกับธีมก็ได้ครับ */
-}
-
-/* ปุ่มกดด้านล่าง */
+/* ปุ่มกด */
 .button-group {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  margin-top: 40px;
+  margin-top: 30px;
 }
 
-.btn-register, .btn-login {
-  flex: 1;
-  padding: 10px;
-  background-color: #8FAAB9; 
-  color: white;
+.btn-register {
+  width: 100%;
+  padding: 12px;
+  background: #547792; /* สี Steel Blue */
+  color: #EAE0CF;      
   border: none;
+  border-radius: 10px;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  text-transform: uppercase;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.btn-register:hover, .btn-login:hover {
-  background-color: #7a94a3; 
+.btn-register:hover {
+  background: #688ba6;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
+.btn-register:active {
+  transform: translateY(0);
+}
+
+/* Link กลับหน้า Login */
+.login-link-section {
+  margin-top: 20px;
+  font-size: 13px;
+  color: #94B4C1;
+}
+
+.login-link-text {
+  color: #EAE0CF;
+  font-weight: 600;
+  margin-left: 5px;
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+}
+
+.login-link-text::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1px;
+  bottom: -2px;
+  left: 0;
+  background-color: #EAE0CF;
+  transition: width 0.3s;
+}
+
+.login-link-text:hover::after {
+  width: 100%;
+}
+
+/* Error/Success Messages */
 .error-text {
-  color: #ff4d4f;
-  margin-top: 10px;
-  font-size: 14px;
+  color: #ff8a8a;
+  font-size: 12px;
+  margin-top: 5px;
+  text-align: left;
 }
 
 .success-text {
-  color: #52c41a;
-  margin-top: 10px;
+  color: #8aff8a;
   font-size: 14px;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+/* Animation */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* ปรับ Input เฉพาะตัวที่มีไอคอน ให้เว้นขวาเยอะหน่อย */
+.password-input-wrapper input {
+  padding-right: 45px; /* เว้นที่ให้ไอคอน */
+}
+
+/* ตัวปุ่มไอคอนรูปตา */
+.toggle-password-icon {
+  position: absolute;
+  right: 12px; /* ห่างจากขวา */
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94B4C1; /* สีฟ้าอ่อน (เข้าธีม) */
+  transition: color 0.3s;
+  padding: 0;
+}
+
+.toggle-password-icon:hover {
+  color: #EAE0CF; /* สีครีมตอนเอาเมาส์ชี้ */
+}
+
+.toggle-password-icon svg {
+  width: 20px;
+  height: 20px;
 }
