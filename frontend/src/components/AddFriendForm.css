@@ -1,158 +1,235 @@
-/* src/components/AddFriendForm.css */
+/* โครงสร้างหลัก */
+.add-user-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f5f0; /* ปรับครีมให้นุ่มนวลขึ้น */
+  height: 100%;
+  position: relative;
+}
+
+.add-user-header {
+  padding: 15px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.close-icon-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  color: #547792;
+  cursor: pointer;
+  padding: 5px 10px;
+  transition: all 0.2s;
+}
+
+.close-icon-btn:hover {
+  color: #213448;
+  transform: scale(1.1);
+}
+
+.add-user-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 80px; /* ดันขึ้นมาหน่อยให้สมดุลสายตา */
+}
+
+/* Avatar ทรง Squircle */
+.form-avatar-circle {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #213448, #547792);
+  border-radius: 35px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.5rem;
+  color: white;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 20px rgba(33, 52, 72, 0.15);
+}
+
+h2 {
+  color: #213448;
+  margin: 0 0 5px 0;
+  font-size: 1.8rem;
+}
+
+.subtitle {
+  color: #547792;
+  font-size: 0.95rem;
+  margin-bottom: 35px;
+}
+
+/* ช่องกรอก (จุดที่มีปัญหา) */
+.add-user-form {
+  width: 100%;
+  max-width: 340px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #213448;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.modern-input {
+  width: 100%;
+  box-sizing: border-box; /* สำคัญ: กัน input ทะลุขอบ */
+  padding: 14px 18px;
+  border: 2px solid rgba(84, 119, 146, 0.2);
+  border-radius: 12px;
+  background-color: white;
+  font-size: 1rem;
+  color: #213448;
+  transition: all 0.2s;
+}
+
+.modern-input:focus {
+  outline: none;
+  border-color: #547792;
+  box-shadow: 0 0 0 4px rgba(84, 119, 146, 0.1);
+}
+
+.modern-input::placeholder {
+  color: #94B4C1;
+}
+
+/* ปุ่มกด */
+.save-user-btn {
+  width: 100%;
+  padding: 14px;
+  background-color: #213448;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(33, 52, 72, 0.15);
+}
+
+.save-user-btn:hover:not(:disabled) {
+  background-color: #1a2a3a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(33, 52, 72, 0.25);
+}
+
+.save-user-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ข้อความแจ้งเตือน */
+.error-msg {
+  color: #da373c;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  text-align: center;
+}
 
 .add-user-view {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #EAE0CF; /* สีครีมพื้นหลังหลัก */
+  background-color: #f8f5f0;
   height: 100%;
-  padding: 20px;
 }
 
-/* Header ส่วนปุ่มปิด */
 .add-user-header {
+  padding: 15px;
   display: flex;
   justify-content: flex-end;
-  height: 30px;
 }
 
-.window-controls span {
-  margin-left: 15px;
-  color: #547792;
-  cursor: pointer;
-  font-size: 1.2rem;
-  font-weight: bold;
-  transition: all 0.2s;
-}
-
-.window-controls span:hover {
-  color: #213448;
-  transform: scale(1.2);
-}
-
-/* Form Container */
-.add-user-form {
+.add-user-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-bottom: 50px;
+  padding-bottom: 60px;
+  text-align: center;
 }
 
-/* Avatar Circle */
+/* --- ส่วนของพรีวิวการ์ด (FinishAdd) --- */
+.user-preview-card {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 320px;
+    margin-bottom: 25px;
+    border: 2px solid rgba(84, 119, 146, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.user-preview-name {
+    color: #213448;
+    margin: 0 0 5px 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.user-preview-id {
+    color: #547792;
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.go-back-link {
+    margin-top: 15px;
+    background: transparent;
+    color: #547792;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.go-back-link:hover {
+    color: #213448;
+}
+
+/* ปุ่มและ Avatar ใช้สไตล์เดิมจาก AddFriendForm */
 .form-avatar-circle {
-  width: 120px;
-  height: 120px;
-  background-color: #213448;
-  border: 4px solid #94B4C1;
-  border-radius: 40%; /* ทรง Squircle แบบ Discord */
-  margin-bottom: 30px;
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #213448, #547792);
+  border-radius: 35px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 3rem;
-  color: #EAE0CF;
-  box-shadow: 0 8px 20px rgba(33, 52, 72, 0.2);
-  transition: all 0.3s ease;
-}
-
-.add-user-form:hover .form-avatar-circle {
-  transform: rotate(5deg) scale(1.05);
-}
-
-/* Text Header */
-.add-user-form h2 {
-  color: #213448;
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-
-.add-user-form p.subtitle {
-  color: #547792;
-  margin-bottom: 30px;
-  font-size: 0.9rem;
-}
-
-/* Group Input */
-.form-group {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 350px;
+  font-size: 2.5rem;
+  color: white;
   margin-bottom: 20px;
 }
 
-.form-group label {
-  font-size: 0.85rem;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #213448;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* ปรับ Input จากขีดเส้นใต้ เป็นแบบกล่องโมเดิร์น */
-.modern-input {
-  width: 100%;
-  height: 50px;
-  padding: 0 20px;
-  border: 2px solid rgba(84, 119, 146, 0.3);
-  border-radius: 12px;
-  background-color: white;
-  font-size: 1.1rem;
-  color: #213448;
-  outline: none;
-  transition: all 0.2s;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.modern-input:focus {
-  border-color: #547792;
-  box-shadow: 0 0 0 4px rgba(84, 119, 146, 0.15);
-}
-
-.modern-input::placeholder {
-  color: #94B4C1;
-  opacity: 0.6;
-}
-
-/* ปุ่ม Save/Search */
 .save-user-btn {
   width: 100%;
-  max-width: 350px;
+  max-width: 340px;
   padding: 14px;
   background-color: #213448;
-  color: #EAE0CF;
+  color: white;
   border: none;
   border-radius: 12px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(33, 52, 72, 0.2);
-}
-
-.save-user-btn:hover {
-  background-color: #547792;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(84, 119, 146, 0.3);
-}
-
-.save-user-btn:disabled {
-  background-color: #94B4C1;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Error Message */
-.error-msg {
-  color: #f23f42;
-  background: rgba(242, 63, 66, 0.1);
-  padding: 8px 15px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  margin-top: 10px;
-  font-weight: 600;
-  border-left: 4px solid #f23f42;
 }
