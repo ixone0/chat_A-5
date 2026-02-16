@@ -75,3 +75,88 @@
   /* เพิ่มสี Text หลักให้เป็นสีเข้ม เพื่อให้อ่านง่ายบนพื้นครีม */
   color: #213448; 
 }
+
+/* แถบ Sidebar แคบๆ ด้านซ้ายสุด */
+.sidebar-strip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 0;
+    gap: 15px;
+    background-color: #1e1f22; /* สีพื้นหลัง Discord */
+    width: 72px;
+}
+
+/* ดีไซน์ปุ่มไอคอน SVG */
+.sidebar-icon-btn {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #b5bac1; /* สีเทาอ่อน */
+    background-color: #313338;
+    border-radius: 50%; /* เริ่มต้นเป็นวงกลม */
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.sidebar-icon-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* เอฟเฟกต์ตอน Hover: เปลี่ยนเป็นสี่เหลี่ยมมนและเปลี่ยนสี */
+.sidebar-icon-btn:hover {
+    background-color: #5865f2; /* สีน้ำเงิน Discord */
+    color: white;
+    border-radius: 16px; /* เปลี่ยนจากวงกลมเป็นมนๆ */
+}
+
+/* หมุนเฟืองตั้งค่าตอน Hover */
+.settings-gear:hover svg {
+    transform: rotate(45deg);
+}
+
+.settings-gear {
+    margin-top: auto; /* ดันปุ่มตั้งค่าไปล่างสุดของแถบ */
+    margin-bottom: 20px;
+}
+
+/* จุดแจ้งเตือนสีแดง (Notification Dot) */
+.noti-dot {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 12px;
+    height: 12px;
+    background-color: #f23f42; /* สีแดง */
+    border: 3px solid #1e1f22; /* ตัดขอบให้ดูคมขึ้น */
+    border-radius: 50%;
+}
+
+.sidebar-icon-btn:hover .noti-dot {
+    border-color: #5865f2; /* เปลี่ยนขอบตามสีปุ่มตอน hover */
+}
+
+/* วงกลมโปรไฟล์ */
+.profile-circle {
+    width: 48px;
+    height: 48px;
+    background-color: #313338;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.profile-circle:hover {
+    border-radius: 16px;
+    background-color: #5865f2;
+}

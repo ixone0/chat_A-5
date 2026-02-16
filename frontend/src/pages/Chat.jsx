@@ -15,15 +15,12 @@ const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
-  
   const [currentView, setCurrentView] = useState("chat");
   const [searchedUser, setSearchedUser] = useState(null);
   const [showRequests, setShowRequests] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [hasNewRequest, setHasNewRequest] = useState(false);
 
-  // ----------------------------------------
-  // 1. Data Loading (รายชื่อเพื่อนและห้องแชท)
-  // ----------------------------------------
   const refreshData = async () => {
     if (!window.electronAPI) return;
     try {
@@ -43,25 +40,23 @@ const Chat = () => {
     refreshData();
   }, []);
 
-  // ----------------------------------------
-  // 2. Real-time Message (อัปเดตแค่ในหน้าแชท)
-  // ----------------------------------------
   useEffect(() => {
     if (!window.electronAPI?.onReceiveMessage) return;
-    const unsub = window.electronAPI.onReceiveMessage((msg) => {
-      const convId = msg.conversation_id;
-      setMessages(prev => ({ ...prev, [convId]: [...(prev[convId] || []), msg] }));
+    const unsub = window.electronAPI.onReceiveMessage((data) => {
+      const convId = data.conversation_id;
+      const incomingMsg = data.message;
+      if (convId && incomingMsg) {
+        setMessages((prev) => ({
+          ...prev,
+          [convId]: [...(prev[convId] || []), incomingMsg],
+        }));
+      }
     });
     return () => { if (unsub) unsub(); };
   }, []);
 
-  // ----------------------------------------
-  // 3. Navigation & Interaction
-  // ----------------------------------------
   const handleSelectConversation = async (conv) => {
     if (!conv) return;
-
-    // ถ้าเลือกจากรายชื่อเพื่อนที่ยังไม่มีห้องแชท
     if (conv.isFriendOnly) {
       const friend = conv.friend;
       try {
@@ -78,13 +73,13 @@ const Chat = () => {
       } catch (err) { console.error(err); }
       return;
     }
-
     setSelectedConversation(conv);
     setCurrentView("chat");
-
     try {
       const res = await window.electronAPI.getMessages({ conversation_id: conv.id });
-      if (res?.status === "success") setMessages(prev => ({ ...prev, [conv.id]: res.messages || [] }));
+      if (res?.status === "success") {
+        setMessages(prev => ({ ...prev, [conv.id]: res.messages || [] }));
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -92,19 +87,26 @@ const Chat = () => {
     if (!selectedConversation || !currentUser) return;
     const text = typeof payload === "string" ? payload : payload?.text;
     if (!text?.trim()) return;
-
     const convId = selectedConversation.id;
     const createdAt = new Date().toISOString();
-
+    const myMsg = { 
+      id: `temp-${Date.now()}`, 
+      sender_id: currentUser.id, 
+      content: text, 
+      created_at: createdAt 
+    };
     setMessages(prev => ({
       ...prev,
-      [convId]: [...(prev[convId] || []), { id: `temp-${Date.now()}`, sender_id: currentUser.id, content: text, created_at: createdAt }]
+      [convId]: [...(prev[convId] || []), myMsg]
     }));
-
     window.electronAPI.sendMessage({ conversation_id: convId, text, created_at: createdAt });
   };
 
-  // ✅ Fix: แมพข้อมูลตาม server.py (ใช้ custom_id สำหรับการแอดเพื่อน)
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/";
+  };
+
   const handleSearchUser = async (searchId) => {
     if (!searchId.trim()) return;
     try {
@@ -113,29 +115,22 @@ const Chat = () => {
         setSearchedUser({
             user_id: res.data.user_id,
             name: res.data.display_name,
-            custom_id: res.data.custom_id // ⚠️ Backend ต้องการตัวนี้
+            custom_id: res.data.custom_id
         });
         setCurrentView("add_preview");
       } else { alert(res?.message || "User not found"); }
     } catch (err) { console.error(err); }
   };
 
-  // ----------------------------------------
-  // 4. Sidebar Logic (แสดงแค่รายชื่อเพียวๆ)
-  // ----------------------------------------
   const sidebarItems = (() => {
     const items = [];
     const seen = new Set();
-
-    // เพิ่มห้องที่มีอยู่แล้ว
     conversations.forEach(c => {
       if (c.type === 'direct' && c.other_user?.id) {
         seen.add(String(c.other_user.id));
         items.push(c);
       } else if (c.type === 'group') items.push(c);
     });
-
-    // เพิ่มเพื่อนที่ยังไม่เคยคุย
     friends.forEach(f => {
       if (!seen.has(String(f.id))) {
         items.push({
@@ -147,13 +142,9 @@ const Chat = () => {
         });
       }
     });
-
-    return items; // สะอาดตา ไม่มีการเรียงใหม่ให้งง
+    return items;
   })();
 
-  // ----------------------------------------
-  // 5. Right Panel Routing
-  // ----------------------------------------
   const renderRightPanel = () => {
     switch (currentView) {
       case "add_form": return <AddFriendForm onSearch={handleSearchUser} onCancel={() => setCurrentView("chat")} />;
@@ -173,9 +164,35 @@ const Chat = () => {
   return (
     <div className="chat-container">
       <div className="sidebar-strip">
-        <div className="profile-circle" onClick={() => setCurrentView("profile")}>User</div>
-        <div className="icon-circle" onClick={() => setShowRequests(true)} style={{ marginTop: "10px", fontSize: "20px", cursor: "pointer" }}>🔔</div>
-        <div className="settings-circle" style={{ marginTop: "auto", cursor: "pointer" }} onClick={() => setShowSettings(true)}>⚙️</div>
+        {/* Profile Avatar */}
+        <div className="profile-circle" onClick={() => setCurrentView("profile")}>
+           {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
+        </div>
+        
+        {/* ✅ ปุ่มกระดิ่ง SVG พร้อมจุดแจ้งเตือน */}
+        <div 
+          className="sidebar-icon-btn" 
+          onClick={() => { setShowRequests(true); setHasNewRequest(false); }}
+          title="Notifications"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          {hasNewRequest && <div className="noti-dot" />}
+        </div>
+
+        {/* ✅ ปุ่มฟันเฟือง SVG */}
+        <div 
+          className="sidebar-icon-btn settings-gear" 
+          onClick={() => setShowSettings(true)}
+          title="Settings"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </div>
       </div>
 
       <UserList
@@ -188,7 +205,14 @@ const Chat = () => {
       <div className="chat-area">{renderRightPanel()}</div>
 
       {showRequests && <FriendRequestList onClose={() => setShowRequests(false)} />}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      
+      {showSettings && (
+        <SettingsModal 
+          onClose={() => setShowSettings(false)} 
+          onLogout={handleLogout}
+          currentUser={currentUser}
+        />
+      )}
     </div>
   );
 };
