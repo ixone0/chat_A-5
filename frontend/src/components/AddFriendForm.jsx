@@ -1,4 +1,3 @@
-// AddFriendForm.jsx
 import React, { useState } from 'react';
 import './AddFriendForm.css';
 import FinishAdd from './FinishAdd';
@@ -9,7 +8,7 @@ const AddFriendForm = ({ onSave }) => {
   const [error, setError] = useState('');
   const [foundUser, setFoundUser] = useState(null);
 
-  const handleSearchAndAdd = async (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchId.trim()) return;
 
@@ -17,17 +16,13 @@ const AddFriendForm = ({ onSave }) => {
     setIsLoading(true);
 
     try {
-        // ✅ เรียกใช้ผ่าน electronAPI ที่เราเพิ่งแก้ใน preload.js
-        console.log("Searching for:", searchId);
         const result = await window.electronAPI.searchUser(searchId);
         
-        console.log("Search result:", result);
-
         if (result && result.status === 'success') {
-            // เจอเพื่อน! ส่งข้อมูลกลับไปบันทึก
+            // ✅ Map ข้อมูลให้ตรงกับที่ FinishAdd จะเอาไปใช้
             setFoundUser({
                 name: result.data.display_name,
-                customId: result.data.custom_id,
+                custom_id: result.data.custom_id, // ใช้ snake_case ให้เหมือนกัน
                 user_id: result.data.user_id
             });
             setError('');
@@ -36,29 +31,9 @@ const AddFriendForm = ({ onSave }) => {
             setFoundUser(null);
         }
     } catch (err) {
-        console.error("Error searching user:", err);
         setError('Connection failed');
     } finally {
         setIsLoading(false);
-    }
-  };
-
-  const confirmAddFriend = async () => {
-    if (!foundUser) return;
-
-    try {
-        const result = await window.electronAPI.sendFriendRequest(foundUser.customId);
-
-        if (result && result.status === 'success') {
-            if (typeof onSave === 'function') onSave(); 
-            setFoundUser(null);
-            setSearchId('');
-        } else {
-            alert(`Failed: ${result.message}`);
-        }
-    } catch (err) {
-        console.error("Error:", err);
-        alert("Error sending request");
     }
   };
 
@@ -67,32 +42,37 @@ const AddFriendForm = ({ onSave }) => {
     setSearchId('');
   };
 
+  // ✅ ถ้าเจอ user ให้เปลี่ยนหน้าไปแสดง FinishAdd
   if (foundUser) {
       return (
-          <FinishAdd 
-              user={foundUser} 
-              onConfirm={confirmAddFriend} 
+          <FinishAdd
+              user={foundUser}
               onCancel={cancelAdd} 
+              onSuccess={() => {
+                // เมื่อแอดสำเร็จ ให้เรียก onSave (ใน Chat.jsx) เพื่อรีโหลดรายชื่อเพื่อน
+                if (typeof onSave === 'function') onSave();
+                cancelAdd();
+              }}
           />
       );
   }
+
   return (
     <div className="add-user-view">
       <div className="add-user-header">
         <div className="window-controls">
-          <span>_</span><span>□</span><span onClick={() => onSave(null)}>X</span>
+          {/* ส่ง null ไปที่ onSave เพื่อปิดหน้าต่าง */}
+          <span onClick={() => onSave(null)}>✕</span>
         </div>
       </div>
       
-      <form className="add-user-form" onSubmit={handleSearchAndAdd}>
+      <form className="add-user-form" onSubmit={handleSearch}>
         <div className="form-avatar-circle">?</div>
-        
-        {/* ลบช่อง Name ออก เพราะเราจะค้นหาจาก ID อย่างเดียว */}
-        
+       
         <div className="form-group">
           <label>Friend's Custom ID :</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="underline-input"
             value={searchId}
             onChange={(e) => setSearchId(e.target.value)}
@@ -104,7 +84,7 @@ const AddFriendForm = ({ onSave }) => {
         {error && <p style={{color: 'red', fontSize: '12px'}}>{error}</p>}
 
         <button type="submit" className="save-user-btn" disabled={isLoading}>
-            {isLoading ? 'SEARCHING...' : 'SEARCH & ADD'}
+            {isLoading ? 'SEARCHING...' : 'SEARCH USER'}
         </button>
       </form>
     </div>

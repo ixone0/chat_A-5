@@ -14,10 +14,10 @@ const ChatWindow = ({
   const selected = conversation || selectedUser;
   const rawMsgs = Array.isArray(messages) ? messages : [];
 
-  // ✅ format messages อย่างปลอดภัย + เวลาไทย
+  // ✅ 1. Logic Format Messages (คงเดิม ห้ามแก้)
   const formattedMessages = useMemo(() => {
     return rawMsgs
-      .filter((m) => m && (m.content || m.text)) // 🔥 กัน message เปล่า
+      .filter((m) => m && (m.content || m.text)) // กัน message เปล่า
       .map((m, index) => {
         const id =
           m.id ||
@@ -29,7 +29,6 @@ const ChatWindow = ({
 
         if (createdRaw) {
           const dateObj = new Date(createdRaw);
-
           time = dateObj.toLocaleTimeString("th-TH", {
             timeZone: "Asia/Bangkok",
             hour: "2-digit",
@@ -49,13 +48,14 @@ const ChatWindow = ({
       });
   }, [rawMsgs, currentUserId]);
 
-  // ✅ auto scroll
+  // ✅ 2. Auto Scroll (คงเดิม)
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [formattedMessages.length]);
 
+  // ✅ 3. Handle Send (คงเดิม)
   const handleSend = (e) => {
     e.preventDefault();
     const text = inputText.trim();
@@ -63,60 +63,94 @@ const ChatWindow = ({
 
     onSendMessage({
       text,
-      created_at: new Date().toISOString(), // ✅ ส่ง UTC ตรง ๆ
+      created_at: new Date().toISOString(), // ส่ง UTC ตรงๆ
     });
 
     setInputText("");
   };
 
+  // --- Render : No Selection ---
   if (!selected) {
     return (
-      <div className="chat-header">
-        <span style={{ fontWeight: "bold", color: "#555" }}>
-          Select a user to chat
-        </span>
+      <div className="chat-window-root" style={{ justifyContent: 'center', alignItems: 'center', color: '#94B4C1' }}>
+        <p>Select a user to chat</p>
       </div>
     );
   }
 
-  const headerName =
-    conversation?.other_user?.display_name || selectedUser?.name || "Unknown";
+  // ✅ 4. แก้ชื่อ Header (เพิ่ม Fallback กัน Unknown)
+  const otherUser = conversation?.other_user || selectedUser;
+  const headerName = 
+    otherUser?.display_name || 
+    otherUser?.username || 
+    otherUser?.custom_id || 
+    "Unknown";
+
+  const headerAvatarChar = headerName.charAt(0).toUpperCase();
 
   return (
     <div className="chat-window-root">
+      
+      {/* --- Header --- */}
       <div className="chat-header">
-        <span style={{ fontWeight: "bold" }}>Chatting with: {headerName}</span>
+        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+            <span style={{color: '#94B4C1', fontSize: '20px', fontWeight: 'bold'}}>@</span>
+            <h3>{headerName}</h3>
+        </div>
       </div>
 
+      {/* --- Messages Area --- */}
       <div className="messages-display" ref={scrollRef}>
         {formattedMessages.length === 0 && (
-          <div className="no-messages-hint">No messages yet — say hi 👋</div>
+          <div style={{textAlign: 'center', color: '#94B4C1', marginTop: '20px', opacity: 0.7}}>
+            No messages yet — say hi 👋
+          </div>
         )}
 
-        {formattedMessages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`chat-row ${
-              msg.sender === "me" ? "row-me" : "row-other"
-            }`}
-          >
-            <div className="chat-bubble">
-              <p className="msg-text">{msg.text}</p>
-              <span className="msg-time">{msg.time}</span>
+        {formattedMessages.map((msg) => {
+          const isMe = msg.sender === "me";
+          return (
+            <div
+              key={msg.id}
+              className={`chat-row ${isMe ? "row-me" : "row-other"}`}
+            >
+              {/* Show Avatar if Other */}
+              {!isMe && (
+                <div className="chat-avatar-container">
+                  <div className="chat-avatar-img">
+                    {headerAvatarChar}
+                  </div>
+                </div>
+              )}
+
+              <div className="chat-bubble">
+                <p className="msg-text">{msg.text}</p>
+                <span className="msg-time">{msg.time}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
+      {/* --- Input Area (Modern Style) --- */}
       <form className="chat-input-area" onSubmit={handleSend}>
-        <input
-          type="text"
-          placeholder="Type a message..."
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-        />
-        <button type="submit">Send</button>
+        <div className="input-wrapper">
+            <input
+              type="text"
+              placeholder={`Message @${headerName}`}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+            />
+            
+            {/* ปุ่ม Send ไอคอนจรวด (ใช้ button type=submit เพื่อให้กด Enter ส่งได้เหมือนเดิม) */}
+            <button type="submit" className="icon-send-btn" disabled={!inputText.trim()}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                </svg>
+            </button>
+        </div>
       </form>
+
     </div>
   );
 };

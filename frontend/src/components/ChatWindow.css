@@ -1,34 +1,72 @@
-/* ===== ROOT CONTAINER สำคัญมาก ===== */
+/* src/components/ChatWindow.css */
+
+/* ===== ROOT CONTAINER ===== */
 .chat-window-root {
   display: flex;
   flex-direction: column;
-  height: 100%;      /* ต้องมี */
-  min-height: 0;     /* 🔥 สำคัญสำหรับ scroll ใน flex */
+  height: 100%;
+  min-height: 0;
+  background-color: #EAE0CF; /* พื้นหลังสีครีม */
 }
 
 /* ===== Header ===== */
 .chat-header {
-  height: 60px;
+  height: 70px;
   flex-shrink: 0;
-  background-color: #fff;
+  background-color: #213448; /* สีหลักเข้ม */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-  border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  padding: 0 24px;
+  border-bottom: 1px solid #547792;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  color: #EAE0CF;
+  font-family: 'Segoe UI', 'Inter', sans-serif;
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* ปุ่มควบคุมหน้าต่าง */
+.window-controls span {
+  color: #94B4C1;
+  cursor: pointer;
+  margin-left: 15px;
+  transition: color 0.2s;
+}
+.window-controls span:hover {
+  color: #EAE0CF;
 }
 
 /* ===== Messages Area ===== */
 .messages-display {
   flex: 1;
-  min-height: 0;        /* 🔥 ตัวนี้ทำให้ scroll ใช้งานได้ */
-  padding: 20px;
+  min-height: 0;
+  padding: 24px;
   overflow-y: auto;
-  background-color: #f9f9f9;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  
+  /* Scrollbar Styling */
+  scrollbar-width: thin;
+  scrollbar-color: #547792 transparent;
+}
+
+/* Webkit Scrollbar */
+.messages-display::-webkit-scrollbar {
+  width: 8px;
+}
+.messages-display::-webkit-scrollbar-track {
+  background: transparent;
+}
+.messages-display::-webkit-scrollbar-thumb {
+  background-color: #547792;
+  border-radius: 4px;
 }
 
 /* ===== Message Rows ===== */
@@ -36,51 +74,60 @@
   display: flex;
   align-items: flex-end;
   width: 100%;
+  animation: fadeIn 0.3s ease;
 }
 
 .row-other { justify-content: flex-start; }
 .row-me    { justify-content: flex-end; }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ===== Avatars ===== */
-.chat-avatar-container { margin: 0 8px; }
+.chat-avatar-container { margin: 0 10px; }
 
 .chat-avatar-img {
-  width: 35px;
-  height: 35px;
-  background-color: #ccc;
+  width: 40px;
+  height: 40px;
+  background-color: #94B4C1;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 10px;
-  color: #555;
-  font-weight: bold;
+  font-size: 14px;
+  color: #213448;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .me-avatar {
-  background-color: #0056b3;
-  color: white;
+  background-color: #547792;
+  color: #EAE0CF;
 }
 
 /* ===== Bubbles ===== */
 .chat-bubble {
-  max-width: 60%;
-  padding: 10px 14px;
+  max-width: 65%;
+  padding: 12px 18px;
   position: relative;
-  font-size: 0.95rem;
-  line-height: 1.4;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  font-size: 1rem;
+  line-height: 1.5;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+/* เพื่อนพูด (ซ้าย) */
 .row-other .chat-bubble {
-  background-color: #e4e6eb;
-  color: #050505;
+  background-color: #213448; /* พื้นหลังเข้ม */
+  color: #EAE0CF; /* ตัวหนังสือครีม */
   border-radius: 18px 18px 18px 4px;
 }
 
+/* เราพูด (ขวา) */
 .row-me .chat-bubble {
-  background-color: #0084ff;
-  color: white;
+  background: linear-gradient(135deg, #547792 0%, #4a6a8a 100%); /* ไล่สี */
+  color: #fff;
   border-radius: 18px 18px 4px 18px;
 }
 
@@ -90,37 +137,82 @@
 }
 
 .msg-time {
-  font-size: 0.65rem;
-  margin-top: 4px;
+  font-size: 0.7rem;
+  margin-top: 6px;
   display: block;
-  opacity: 0.7;
+  opacity: 0.6;
   text-align: right;
+  font-weight: 500;
 }
 
-/* ===== Input Area ===== */
+/* ===== Input Area (Modern Style) ===== */
 .chat-input-area {
   height: 80px;
   flex-shrink: 0;
-  background-color: #fff;
-  padding: 0 20px;
-  border-top: 1px solid #e0e0e0;
+  background-color: #213448; /* พื้นหลังเข้ม */
+  padding: 0 24px;
+  border-top: 1px solid #547792;
   display: flex;
   align-items: center;
 }
 
-.chat-input-area input {
+/* Wrapper สำหรับจัด Input และปุ่ม Icon */
+.input-wrapper {
+  position: relative;
   width: 100%;
-  height: 45px;
-  padding: 0 20px;
-  border: 1px solid #ddd;
-  border-radius: 25px;
-  background-color: #f0f2f5;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper input {
+  width: 100%;
+  height: 48px;
+  /* เว้นขวาไว้ 50px เผื่อปุ่มไอคอน */
+  padding: 0 50px 0 24px;
+  border: 2px solid #547792;
+  border-radius: 24px;
+  background-color: #1a2a3a; /* สีพื้นหลังช่องพิมพ์ */
+  color: #EAE0CF;
   font-size: 1rem;
-  transition: border 0.2s;
+  transition: all 0.2s;
   outline: none;
 }
 
-.chat-input-area input:focus {
-  border-color: #0084ff;
-  background-color: #fff;
+.input-wrapper input::placeholder {
+  color: #94B4C1;
+  opacity: 0.6;
+}
+
+.input-wrapper input:focus {
+  border-color: #94B4C1;
+  background-color: #213448;
+  box-shadow: 0 0 0 4px rgba(84, 119, 146, 0.2);
+}
+
+/* ปุ่มไอคอน Send (จรวดกระดาษ) */
+.icon-send-btn {
+  position: absolute;
+  right: 12px; /* ลอยอยู่ขวาสุดของ input */
+  background: transparent;
+  border: none;
+  color: #547792;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.icon-send-btn:hover {
+  background-color: rgba(84, 119, 146, 0.2);
+  color: #94B4C1;
+}
+
+/* ถ้าไม่มีข้อความ ให้ปุ่มจางลง */
+.icon-send-btn:disabled {
+  color: rgba(84, 119, 146, 0.4);
+  cursor: default;
+  background-color: transparent;
 }

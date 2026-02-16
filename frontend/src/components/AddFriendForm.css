@@ -1,83 +1,158 @@
-/* AddFriendForm.css */
+/* src/components/AddFriendForm.css */
+
 .add-user-view {
- flex: 1;
- display: flex;
- flex-direction: column;
- background-color: #fff;
- height: 100%;
-}
-.add-user-header {
- height: 40px;
- display: flex;
- justify-content: flex-end;
- padding: 10px;
-}
-.add-user-form {
- flex: 1;
- display: flex;
- flex-direction: column;
- align-items: center;
- justify-content: center;
- padding-bottom: 100px;
-}
-.form-avatar-circle {
- width: 100px;
- height: 100px;
- background-color: #d9d9d9;
- border-radius: 50%;
- margin-bottom: 30px;
-}
-.form-group {
- display: flex;
- align-items: center;
- margin-bottom: 25px;
- width: 60%;
- max-width: 400px;
-}
-.form-group label {
- font-size: 1.2rem;
- font-weight: 500;
- margin-right: 15px;
- color: #333;
- white-space: nowrap;
-}
-/* Input แบบขีดเส้นใต้ */
-.underline-input {
- flex: 1;
- border: none;
- border-bottom: 2px solid #333;
- padding: 5px 10px;
- font-size: 1.2rem;
- outline: none;
- background: transparent;
-}
-.underline-input:focus {
- border-bottom-color: #5865f2;
-}
-.save-user-btn {
- margin-top: 20px;
- padding: 10px 30px;
- background-color: #5865f2;
- color: white;
- border: none;
- border-radius: 4px;
- font-size: 1rem;
- cursor: pointer;
- transition: background 0.2s;
-}
-.save-user-btn:hover {
- background-color: #4752c4;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #EAE0CF; /* สีครีมพื้นหลังหลัก */
+  height: 100%;
+  padding: 20px;
 }
 
-/* จัดปุ่ม _ □ X ให้มีระยะห่างและสวยงาม */
-.window-controls span {
- margin-left: 15px;
- color: #999;
- cursor: pointer;
- font-size: 1.2rem;
- font-weight: bold;
- transition: color 0.2s;
+/* Header ส่วนปุ่มปิด */
+.add-user-header {
+  display: flex;
+  justify-content: flex-end;
+  height: 30px;
 }
+
+.window-controls span {
+  margin-left: 15px;
+  color: #547792;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
 .window-controls span:hover {
- color: #333; /* เปลี่ยนสีให้เข้มขึ้นตอนเอาเมาส์ชี้ */
+  color: #213448;
+  transform: scale(1.2);
+}
+
+/* Form Container */
+.add-user-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 50px;
+}
+
+/* Avatar Circle */
+.form-avatar-circle {
+  width: 120px;
+  height: 120px;
+  background-color: #213448;
+  border: 4px solid #94B4C1;
+  border-radius: 40%; /* ทรง Squircle แบบ Discord */
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 3rem;
+  color: #EAE0CF;
+  box-shadow: 0 8px 20px rgba(33, 52, 72, 0.2);
+  transition: all 0.3s ease;
+}
+
+.add-user-form:hover .form-avatar-circle {
+  transform: rotate(5deg) scale(1.05);
+}
+
+/* Text Header */
+.add-user-form h2 {
+  color: #213448;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.add-user-form p.subtitle {
+  color: #547792;
+  margin-bottom: 30px;
+  font-size: 0.9rem;
+}
+
+/* Group Input */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 350px;
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #213448;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ปรับ Input จากขีดเส้นใต้ เป็นแบบกล่องโมเดิร์น */
+.modern-input {
+  width: 100%;
+  height: 50px;
+  padding: 0 20px;
+  border: 2px solid rgba(84, 119, 146, 0.3);
+  border-radius: 12px;
+  background-color: white;
+  font-size: 1.1rem;
+  color: #213448;
+  outline: none;
+  transition: all 0.2s;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.modern-input:focus {
+  border-color: #547792;
+  box-shadow: 0 0 0 4px rgba(84, 119, 146, 0.15);
+}
+
+.modern-input::placeholder {
+  color: #94B4C1;
+  opacity: 0.6;
+}
+
+/* ปุ่ม Save/Search */
+.save-user-btn {
+  width: 100%;
+  max-width: 350px;
+  padding: 14px;
+  background-color: #213448;
+  color: #EAE0CF;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(33, 52, 72, 0.2);
+}
+
+.save-user-btn:hover {
+  background-color: #547792;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(84, 119, 146, 0.3);
+}
+
+.save-user-btn:disabled {
+  background-color: #94B4C1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Error Message */
+.error-msg {
+  color: #f23f42;
+  background: rgba(242, 63, 66, 0.1);
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-top: 10px;
+  font-weight: 600;
+  border-left: 4px solid #f23f42;
 }

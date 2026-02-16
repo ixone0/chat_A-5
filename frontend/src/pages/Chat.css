@@ -1,54 +1,77 @@
-/* Chat.css */
+/* src/pages/Chat.css */
+
 /* Global Reset */
 * {
- box-sizing: border-box;
- margin: 0;
- padding: 0;
- font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', 'Inter', sans-serif;
 }
+
 .chat-container {
- display: flex;
- height: 100vh;
- width: 100vw;
- overflow: hidden;
- background-color: #f0f2f5;
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #EAE0CF; /* ใช้สีครีมเป็นพื้นหลังรวม */
 }
-/* Sidebar Strip (ซ้ายสุด) */
+
+/* --- Sidebar Strip (ซ้ายสุด) --- */
 .sidebar-strip {
- width: 70px;
- background-color: #202225;
- display: flex;
- flex-direction: column;
- justify-content: space-between;
- align-items: center;
- padding: 20px 0;
- box-shadow: 2px 0 5px rgba(0,0,0,0.2);
- z-index: 10;
+  width: 72px; /* ขยายกว้างขึ้นนิดนึงให้ดูไม่อึดอัด */
+  background-color: #213448; /* Main Dark Color */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0; /* เพิ่ม Space บนล่าง */
+  box-shadow: 4px 0 15px rgba(33, 52, 72, 0.2); /* เงาฟุ้งๆ ให้ดูลอยเหนือ Chat Area */
+  z-index: 50;
+  gap: 16px; /* ระยะห่างระหว่างปุ่ม */
 }
-.profile-circle, .settings-circle {
- width: 45px;
- height: 45px;
- background-color: #36393f;
- color: #fff;
- border-radius: 50%;
- display: flex;
- justify-content: center;
- align-items: center;
- font-size: 14px;
- cursor: pointer;
- transition: all 0.2s ease;
- border: 2px solid transparent;
+
+/* วงกลมไอคอน (User, Bell, Settings) */
+.profile-circle, .settings-circle, .icon-circle {
+  width: 48px;
+  height: 48px;
+  background-color: #547792; /* Steel Blue: สีปุ่มตัดกับพื้นหลังเข้ม */
+  color: #EAE0CF; /* ไอคอนสีครีม */
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Effect เด้งดึ๋ง */
+  border: 2px solid transparent;
+  position: relative;
 }
-.profile-circle:hover, .settings-circle:hover {
- background-color: #5865f2;
- border-radius: 30%;
- color: white;
+
+/* Hover Effect สไตล์ Discord (เปลี่ยนจากกลมเป็นเหลี่ยมมน) */
+.profile-circle:hover, .settings-circle:hover, .icon-circle:hover {
+  background-color: #94B4C1; /* Soft Blue: สว่างขึ้นตอน Hover */
+  color: #213448; /* ตัวหนังสือเปลี่ยนเป็นสีเข้ม */
+  border-radius: 16px; /* Squircle shape */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(84, 119, 146, 0.4);
 }
-/* Chat Area Container */
+
+/* Active Indicator (แถบขาวข้างๆ เวลาเลือก - ถ้าอยากทำเพิ่มในอนาคต) */
+.profile-circle:active, .settings-circle:active {
+  transform: scale(0.95);
+}
+
+/* --- Chat Area Container (พื้นที่ขวา) --- */
 .chat-area {
- flex: 1;
- background-color: #ffffff;
- display: flex;
- flex-direction: column;
- position: relative;
+  flex: 1;
+  background-color: #EAE0CF; /* สีครีม: แก้ปัญหา "มืดไป" */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  
+  /* ลบ background-image ลายจุดออกตามที่ขอ */
+  background-image: none; 
+  
+  /* เพิ่มสี Text หลักให้เป็นสีเข้ม เพื่อให้อ่านง่ายบนพื้นครีม */
+  color: #213448; 
 }

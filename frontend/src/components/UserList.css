@@ -1,74 +1,141 @@
-/* UserList.css */
+/* src/components/UserList.css */
+
+/* กล่องรวม Sidebar รายชื่อเพื่อน */
 .user-list-panel {
- width: 260px;
- background-color: #2f3136;
- display: flex;
- flex-direction: column;
- border-right: 1px solid #202225;
+  width: 280px; /* ขยายกว้างขึ้นนิดนึงให้ดูไม่อึดอัด */
+  background-color: #213448; /* Main Dark Color */
+  display: flex;
+  flex-direction: column;
+  /* เส้นขอบขวา ใช้สี Steel Blue จางๆ */
+  border-right: 1px solid rgba(84, 119, 146, 0.3);
 }
+
+/* ส่วนหัวที่มีปุ่ม Add */
 .add-user-section {
- padding: 20px;
- border-bottom: 1px solid #202225;
- background-color: #2f3136;
+  padding: 20px;
+  /* พื้นหลังเข้มขึ้นนิดนึงเพื่อแยกส่วน */
+  background-color: #1d2d40; 
+  border-bottom: 1px solid rgba(84, 119, 146, 0.2);
 }
+
+/* ปุ่ม Add User */
 .add-ip-btn {
- width: 100%;
- padding: 10px;
- background-color: #5865f2;
- color: white;
- border: none;
- border-radius: 4px;
- cursor: pointer;
- font-weight: 600;
- font-size: 0.9rem;
- transition: background 0.2s;
+  width: 100%;
+  padding: 12px;
+  background-color: #547792; /* Steel Blue */
+  color: #EAE0CF; /* Cream Text */
+  border: none;
+  border-radius: 8px; /* ปรับมนขึ้น (Modern) */
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+
 .add-ip-btn:hover {
- background-color: #4752c4;
+  background-color: #6a8ba3; /* สว่างขึ้นตอน Hover */
+  transform: translateY(-1px); /* ลอยขึ้นนิดนึง */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
+
+/* พื้นที่ List รายชื่อ (Scrollable) */
 .user-list {
- flex: 1;
- overflow-y: auto;
- padding: 10px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px; /* เพิ่ม padding รอบๆ */
+  
+  /* Scrollbar สวยๆ */
+  scrollbar-width: thin;
+  scrollbar-color: #3e5263 transparent;
 }
-/* User Item Rows */
+
+.user-list::-webkit-scrollbar {
+  width: 6px;
+}
+.user-list::-webkit-scrollbar-thumb {
+  background-color: #3e5263;
+  border-radius: 3px;
+}
+.user-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* --- User Item Rows (การ์ดเพื่อนแต่ละคน) --- */
 .user-item {
- display: flex;
- align-items: center;
- padding: 10px;
- margin-bottom: 5px;
- cursor: pointer;
- border-radius: 4px;
- transition: background 0.2s;
- color: #b9bbbe;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 4px; /* ระยะห่างระหว่างคน */
+  cursor: pointer;
+  border-radius: 8px; /* มนแบบ Discord */
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  color: #94B4C1; /* สีตัวหนังสือปกติ (Soft Blue) */
+  border: 1px solid transparent;
 }
+
+/* Hover Effect */
 .user-item:hover {
- background-color: #393c43;
- color: #fff;
+  background-color: rgba(84, 119, 146, 0.15); /* พื้นหลังสีฟ้าจางๆ */
+  color: #EAE0CF; /* ตัวหนังสือสว่างขึ้น */
 }
+
+/* Active State (คนที่ถูกเลือก) */
 .user-item.active {
- background-color: #40444b;
- color: #fff;
- border-left: 3px solid #5865f2;
+  background-color: rgba(84, 119, 146, 0.3); /* พื้นหลังเข้มขึ้น */
+  color: #EAE0CF; /* ตัวหนังสือสีครีม */
+  border-left: 4px solid #547792; /* แถบสีด้านซ้าย */
+  /* หรือถ้าชอบแบบไม่มีขอบซ้าย แต่เป็นกรอบเรืองแสงแทน ให้ใช้บรรทัดล่างนี้แทนบรรทัดบน */
+  /* border: 1px solid rgba(84, 119, 146, 0.5); border-left: 1px solid rgba(84, 119, 146, 0.5); */
 }
+
+/* รูปโปรไฟล์เล็ก */
 .user-avatar-small {
- width: 35px;
- height: 35px;
- background-color: #5865f2;
- border-radius: 50%;
- margin-right: 12px;
- flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  background-color: #547792; /* Steel Blue */
+  color: #EAE0CF;
+  border-radius: 50%;
+  margin-right: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: border-radius 0.2s;
 }
+
+/* ลูกเล่น: พอ Hover ที่บรรทัดเพื่อน ให้รูปเปลี่ยนจากกลมเป็นเหลี่ยมมน (สไตล์ Discord) */
+.user-item:hover .user-avatar-small {
+  border-radius: 30%;
+}
+
 .user-info {
- display: flex;
- flex-direction: column;
- overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  justify-content: center;
 }
+
 .user-name {
- font-weight: 500;
- font-size: 0.95rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* ข้อความสถานะ หรือ ID ด้านล่างชื่อ */
 .user-ip {
- font-size: 0.75rem;
- color: #72767d;
+  font-size: 0.75rem;
+  color: rgba(148, 180, 193, 0.6); /* Soft Blue แบบจางๆ */
+  margin-top: 2px;
+}
+
+/* ปรับสีข้อความรองตอน Hover/Active */
+.user-item:hover .user-ip,
+.user-item.active .user-ip {
+  color: rgba(234, 224, 207, 0.7); /* Cream แบบจางๆ */
 }
