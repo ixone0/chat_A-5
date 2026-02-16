@@ -36,14 +36,25 @@ function initTcpClient(mainWindow) {
         const parsed = JSON.parse(rawPacket);
         console.log('📩 Parsed packet:', parsed);
 
-        // ถ้ามี request_id แล้วมี pending → resolve promise
-        if (parsed.request_id && pending.has(parsed.request_id)) {
-          const { resolve, timeout } = pending.get(parsed.request_id);
-          clearTimeout(timeout);
-          pending.delete(parsed.request_id);
-          resolve(parsed);
-          continue;
-        }
+        // 1️⃣ ปกติ: ถ้ามี request_id
+      if (parsed.request_id && pending.has(parsed.request_id)) {
+        const { resolve, timeout } = pending.get(parsed.request_id);
+        clearTimeout(timeout);
+        pending.delete(parsed.request_id);
+        resolve(parsed);
+        continue;
+      }
+
+      // 2️⃣ 🔥 กรณี backend ไม่ส่ง request_id กลับมา
+      // ถ้ามี pending แค่ 1 ตัว → ถือว่าเป็นตัวนี้
+      if (!parsed.request_id && pending.size === 1) {
+        const [request_id, { resolve, timeout }] = pending.entries().next().value;
+        clearTimeout(timeout);
+        pending.delete(request_id);
+        resolve(parsed);
+        continue;
+      }
+
 
         // Push event ไป renderer
         if (parsed.type === 'login_response') {
