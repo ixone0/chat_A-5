@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./Chat.css";
 
 import UserList from "../components/UserList";
@@ -7,7 +7,7 @@ import ChatWindow from "../components/ChatWindow";
 import FinishAdd from "../components/FinishAdd";
 import FriendRequestList from "../components/FriendRequestList";
 import Profile from "./Profile";
-import SettingsModal from '../components/SettingsModal';
+import SettingsModal from "../components/SettingsModal";
 
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
@@ -20,18 +20,26 @@ const Chat = () => {
   const [showRequests, setShowRequests] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hasNewRequest, setHasNewRequest] = useState(false);
+  const selectedConvRef = useRef(selectedConversation);
 
   const refreshData = async () => {
     if (!window.electronAPI) return;
     try {
       const [convRes, friendRes] = await Promise.all([
         window.electronAPI.getMyConversations(),
-        window.electronAPI.getFriends()
+        window.electronAPI.getFriends(),
       ]);
       if (convRes?.status === "success") setConversations(convRes.data || []);
-      if (friendRes?.status === "success") setFriends(friendRes.friends || friendRes.data || []);
-    } catch (err) { console.error("Refresh Error:", err); }
+      if (friendRes?.status === "success")
+        setFriends(friendRes.friends || friendRes.data || []);
+    } catch (err) {
+      console.error("Refresh Error:", err);
+    }
   };
+
+  useEffect(() => {
+    selectedConvRef.current = selectedConversation;
+  }, [selectedConversation]);
 
   useEffect(() => {
     const userId = localStorage.getItem("user_id");
@@ -42,64 +50,178 @@ const Chat = () => {
 
   useEffect(() => {
     if (!window.electronAPI?.onReceiveMessage) return;
-    const unsub = window.electronAPI.onReceiveMessage((data) => {
-      const convId = data.conversation_id;
-      const incomingMsg = data.message;
-      if (convId && incomingMsg) {
-        setMessages((prev) => ({
-          ...prev,
-          [convId]: [...(prev[convId] || []), incomingMsg],
-        }));
+
+    const unsub = window.electronAPI.onReceiveMessage(async (msg) => {
+      // Normalize conversation id to string
+      const convId = String(
+        msg.conversation_id ?? msg.conversationId ?? msg.conversation ?? "",
+      );
+      if (!convId) return; // safety
+
+      // 1) อัปเดต messages state (กัน duplicate ตาม id)
+      setMessages((prev) => {
+        const key = String(convId);
+        const existing = Array.isArray(prev[key]) ? prev[key] : [];
+
+        const incomingId =
+          msg.id ?? `${msg.sender_id ?? "x"}-${msg.created_at ?? ""}`;
+        if (existing.some((m) => String(m.id) === String(incomingId))) {
+          return prev; // duplicate -> no change
+        }
+
+        const newMsg = { ...msg, id: incomingId };
+        return { ...prev, [key]: [...existing, newMsg] };
+      });
+
+      // 2) อัปเดต sidebar last_message / reorder
+      setConversations((prev) => {
+        const updated = prev.map((c) => {
+          if (String(c.id) === convId) {
+            return {
+              ...c,
+              last_message: msg.content ?? msg.text ?? c.last_message ?? "",
+              last_message_at: msg.created_at ?? new Date().toISOString(),
+            };
+          }
+          return c;
+        });
+
+        updated.sort(
+          (a, b) =>
+            new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0),
+        );
+        return updated;
+      });
+
+      // 3) ถ้าเป็นห้องที่เปิดอยู่ -> รีเฟรช history จาก server (เอาเวลาจริงจาก server)
+      if (String(selectedConvRef.current?.id) === convId) {
+        try {
+          const res = await window.electronAPI.getMessages({
+            conversation_id: convId,
+          });
+          if (res?.status === "success") {
+            setMessages((prev) => ({ ...prev, [convId]: res.messages || [] }));
+          }
+        } catch (err) {
+          console.error(
+            "Failed to refresh messages for open conversation:",
+            err,
+          );
+        }
+      } else {
+        // 4) ถ้าไม่ใช่ห้องที่เปิดอยู่ -> แจ้ง notification + กำหนด badge/flag
+        try {
+          // desktop notification (Electron supports Notification)
+          if (window.Notification) {
+            if (Notification.permission === "granted") {
+              new Notification("New message", {
+                body: `${msg.username ?? msg.sender_id ?? "Someone"}: ${msg.content ?? msg.text ?? ""}`,
+              });
+            } else if (Notification.permission !== "denied") {
+              Notification.requestPermission().then((p) => {
+                if (p === "granted") {
+                  new Notification("New message", {
+                    body: `${msg.username ?? msg.sender_id ?? "Someone"}: ${msg.content ?? msg.text ?? ""}`,
+                  });
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("Notification failed:", e);
+        }
+
+        // ใช้ flag เพื่อแสดงจุดแจ้งเตือนใน UI (คุณอาจเพิ่ม unread map แยกต่างหาก)
+        setHasNewRequest(true);
       }
     });
-    return () => { if (unsub) unsub(); };
+
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   const handleSelectConversation = async (conv) => {
     if (!conv) return;
+
+    // ถ้าเลือกจากรายชื่อเพื่อนที่ยังไม่มีห้องแชท
     if (conv.isFriendOnly) {
       const friend = conv.friend;
       try {
         const res = await window.electronAPI.startDirectChat(friend.id);
         if (res?.status === "success") {
           await refreshData();
-          const freshData = (await window.electronAPI.getMyConversations())?.data ?? [];
-          let realConv = freshData.find(c => c.id === res.conversation_id);
+          const freshData =
+            (await window.electronAPI.getMyConversations())?.data ?? [];
+          let realConv = freshData.find((c) => c.id === res.conversation_id);
           if (realConv) {
             if (!realConv.other_user) realConv.other_user = friend;
             return handleSelectConversation(realConv);
           }
         }
-      } catch (err) { console.error(err); }
+      } catch (err) {
+        console.error(err);
+      }
       return;
     }
+
     setSelectedConversation(conv);
     setCurrentView("chat");
-    try {
-      const res = await window.electronAPI.getMessages({ conversation_id: conv.id });
-      if (res?.status === "success") {
-        setMessages(prev => ({ ...prev, [conv.id]: res.messages || [] }));
-      }
-    } catch (err) { console.error(err); }
-  };
 
+    try {
+      const res = await window.electronAPI.getMessages({
+        conversation_id: conv.id,
+      });
+      if (res?.status === "success") {
+        // normalize key to string
+        setMessages((prev) => ({
+          ...prev,
+          [String(conv.id)]: res.messages || [],
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const handleSendMessage = (payload) => {
     if (!selectedConversation || !currentUser) return;
     const text = typeof payload === "string" ? payload : payload?.text;
     if (!text?.trim()) return;
-    const convId = selectedConversation.id;
+
+    const convId = String(selectedConversation.id);
     const createdAt = new Date().toISOString();
-    const myMsg = { 
-      id: `temp-${Date.now()}`, 
-      sender_id: currentUser.id, 
-      content: text, 
-      created_at: createdAt 
-    };
-    setMessages(prev => ({
-      ...prev,
-      [convId]: [...(prev[convId] || []), myMsg]
-    }));
-    window.electronAPI.sendMessage({ conversation_id: convId, text, created_at: createdAt });
+
+    // optimistic update — use string key
+    setMessages((prev) => {
+      const existing = Array.isArray(prev[convId]) ? prev[convId] : [];
+      const temp = {
+        id: `temp-${Date.now()}`,
+        sender_id: currentUser.id,
+        content: text,
+        created_at: createdAt,
+      };
+      return { ...prev, [convId]: [...existing, temp] };
+    });
+
+    // update sidebar last_message and time
+    setConversations((prev) => {
+      const updated = prev.map((c) =>
+        c.id === selectedConversation.id
+          ? { ...c, last_message: text, last_message_at: createdAt }
+          : c,
+      );
+      return updated.sort(
+        (a, b) =>
+          new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0),
+      );
+    });
+
+    // send to backend (created_at optional — server should set authoritative time)
+    window.electronAPI.sendMessage({
+      conversation_id: convId,
+      text,
+      created_at: createdAt,
+    });
   };
 
   const handleLogout = () => {
@@ -113,32 +235,36 @@ const Chat = () => {
       const res = await window.electronAPI.searchUser(searchId);
       if (res?.status === "success" && res.data) {
         setSearchedUser({
-            user_id: res.data.user_id,
-            name: res.data.display_name,
-            custom_id: res.data.custom_id
+          user_id: res.data.user_id,
+          name: res.data.display_name,
+          custom_id: res.data.custom_id,
         });
         setCurrentView("add_preview");
-      } else { alert(res?.message || "User not found"); }
-    } catch (err) { console.error(err); }
+      } else {
+        alert(res?.message || "User not found");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const sidebarItems = (() => {
     const items = [];
     const seen = new Set();
-    conversations.forEach(c => {
-      if (c.type === 'direct' && c.other_user?.id) {
+    conversations.forEach((c) => {
+      if (c.type === "direct" && c.other_user?.id) {
         seen.add(String(c.other_user.id));
         items.push(c);
-      } else if (c.type === 'group') items.push(c);
+      } else if (c.type === "group") items.push(c);
     });
-    friends.forEach(f => {
+    friends.forEach((f) => {
       if (!seen.has(String(f.id))) {
         items.push({
-          id: `friend-${f.id}`, 
-          type: "direct", 
+          id: `friend-${f.id}`,
+          type: "direct",
           other_user: { ...f, display_name: f.display_name || f.username },
-          isFriendOnly: true, 
-          friend: f
+          isFriendOnly: true,
+          friend: f,
         });
       }
     });
@@ -147,17 +273,40 @@ const Chat = () => {
 
   const renderRightPanel = () => {
     switch (currentView) {
-      case "add_form": return <AddFriendForm onSearch={handleSearchUser} onCancel={() => setCurrentView("chat")} />;
-      case "add_preview": return <FinishAdd user={searchedUser} onCancel={() => setCurrentView("add_form")} onSuccess={() => { refreshData(); setCurrentView("chat"); }} />;
-      case "profile": return <Profile />;
-      default: return (
-        <ChatWindow 
-          conversation={selectedConversation} 
-          messages={selectedConversation ? messages[selectedConversation.id] || [] : []} 
-          currentUserId={currentUser?.id} 
-          onSendMessage={handleSendMessage} 
-        />
-      );
+      case "add_form":
+        return (
+          <AddFriendForm
+            onSearch={handleSearchUser}
+            onCancel={() => setCurrentView("chat")}
+          />
+        );
+      case "add_preview":
+        return (
+          <FinishAdd
+            user={searchedUser}
+            onCancel={() => setCurrentView("add_form")}
+            onSuccess={() => {
+              refreshData();
+              setCurrentView("chat");
+            }}
+          />
+        );
+      case "profile":
+        return <Profile />;
+      default:
+        return (
+          // แทนบรรทัดเดิมที่ส่ง messages ไปให้ ChatWindow
+          <ChatWindow
+            conversation={selectedConversation}
+            messages={
+              selectedConversation
+                ? messages[String(selectedConversation.id)] || []
+                : []
+            }
+            currentUserId={currentUser?.id}
+            onSendMessage={handleSendMessage}
+          />
+        );
     }
   };
 
@@ -165,17 +314,30 @@ const Chat = () => {
     <div className="chat-container">
       <div className="sidebar-strip">
         {/* Profile Avatar */}
-        <div className="profile-circle" onClick={() => setCurrentView("profile")}>
-           {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
+        <div
+          className="profile-circle"
+          onClick={() => setCurrentView("profile")}
+        >
+          {currentUser?.username?.charAt(0).toUpperCase() || "U"}
         </div>
-        
+
         {/* ✅ ปุ่มกระดิ่ง SVG พร้อมจุดแจ้งเตือน */}
-        <div 
-          className="sidebar-icon-btn" 
-          onClick={() => { setShowRequests(true); setHasNewRequest(false); }}
+        <div
+          className="sidebar-icon-btn"
+          onClick={() => {
+            setShowRequests(true);
+            setHasNewRequest(false);
+          }}
           title="Notifications"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
@@ -183,12 +345,19 @@ const Chat = () => {
         </div>
 
         {/* ✅ ปุ่มฟันเฟือง SVG */}
-        <div 
-          className="sidebar-icon-btn settings-gear" 
+        <div
+          className="sidebar-icon-btn settings-gear"
           onClick={() => setShowSettings(true)}
           title="Settings"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
@@ -204,11 +373,13 @@ const Chat = () => {
 
       <div className="chat-area">{renderRightPanel()}</div>
 
-      {showRequests && <FriendRequestList onClose={() => setShowRequests(false)} />}
-      
+      {showRequests && (
+        <FriendRequestList onClose={() => setShowRequests(false)} />
+      )}
+
       {showSettings && (
-        <SettingsModal 
-          onClose={() => setShowSettings(false)} 
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
           onLogout={handleLogout}
           currentUser={currentUser}
         />
