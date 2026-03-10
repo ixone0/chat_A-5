@@ -61,31 +61,48 @@ const Register = () => {
     setErrorMsg('');
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    
-    // 1. Validate Password
+
     if (formData.password !== formData.confirmPassword) {
       setErrorMsg("Passwords do not match!");
       return;
     }
+
     if (!formData.username || !formData.password) {
-        setErrorMsg("Please fill in all fields");
-        return;
+      setErrorMsg("Please fill in all fields");
+      return;
     }
 
-    // 2. ส่งข้อมูลไปหา Electron (Backend)
-    if (window.electronAPI) {
-        window.electronAPI.register({
-            username: formData.username,
-            password: formData.password
-        });
-        // ไม่ต้องทำอะไรตรงนี้ รอ Listener ข้างบนทำงาน
-    } else {
-        // กรณีเทสหน้าเว็บเฉยๆ (ไม่มี Electron)
-        console.warn("Electron API not found. Mocking success.");
-        setSuccessMsg("Mock Register Success! Redirecting...");
-        setTimeout(() => { navigate('/'); }, 1500);
+    try {
+      const res = await window.electronAPI.register({
+        username: formData.username,
+        password: formData.password
+      });
+
+      console.log("Register result:", res);
+
+      const isSuccess =
+        res.success ||
+        res.status === "success" ||
+        res.status === "ok" ||
+        (!res.error && res.username);
+
+      if (isSuccess) {
+        setSuccessMsg("Registration Successful! Redirecting...");
+        setErrorMsg("");
+
+        setTimeout(() => {
+          navigate("/");
+        }, 1500);
+
+      } else {
+        setErrorMsg(res.message || res.error || "Registration failed");
+        setSuccessMsg("");
+      }
+
+    } catch (err) {
+      setErrorMsg(err.message);
     }
   };
 
