@@ -116,9 +116,6 @@ const Profile = () => {
         <b>Username:</b> {username || "-"}
       </p>
       <p>
-        <b>UUID:</b> {uuid || "-"}
-      </p>
-      <p>
         <b>ID (custom_id):</b> {customId || "-"}
       </p>
 
