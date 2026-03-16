@@ -8,6 +8,8 @@ import FinishAdd from "../components/FinishAdd";
 import FriendRequestList from "../components/FriendRequestList";
 import Profile from "./Profile";
 import SettingsModal from "../components/SettingsModal";
+import CallModal from "../components/CallModal";
+import CallingModal from "../components/CallingModal";
 
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
@@ -21,6 +23,9 @@ const Chat = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [hasNewRequest, setHasNewRequest] = useState(false);
   const selectedConvRef = useRef(selectedConversation);
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [calling, setCalling] = useState(null);
+  const [activeCall, setActiveCall] = useState(null);
 
   const refreshData = async () => {
     if (!window.electronAPI) return;
@@ -37,6 +42,67 @@ const Chat = () => {
     }
   };
 
+  useEffect(() => {
+    if (!window.electronAPI) return;
+
+    const handleIncoming = (data) => {
+      console.log("Incoming call:", data);
+      setIncomingCall(data);
+    };
+
+    const handleAnswered = (data) => {
+      console.log("Call answered:", data);
+      setCalling(null);
+      setActiveCall(data);
+    };
+
+    const handleEnded = () => {
+      setIncomingCall(null);
+      setCalling(null);
+      setActiveCall(null);
+    };
+
+    window.electronAPI.onIncomingCall(handleIncoming);
+    window.electronAPI.onCallAnswered(handleAnswered);
+    window.electronAPI.onCallEnded(handleEnded);
+
+  }, []);
+
+  const startCall = async (type) => {
+    if (!selectedConversation) return;
+
+    try {
+      const res = await window.electronAPI.startCall({
+        conversation_id: selectedConversation.id,
+        call_type: type
+      });
+
+      if (res.status === "success") {
+        setCalling({
+          call_id: res.call_id,
+          type
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const acceptCall = async () => {
+    if (!incomingCall) return;
+
+    await window.electronAPI.answerCall(incomingCall.call_id);
+
+    setActiveCall(incomingCall);
+    setIncomingCall(null);
+  };
+
+  const endCall = async (callId) => {
+    await window.electronAPI.endCall(callId);
+
+    setActiveCall(null);
+    setCalling(null);
+  };
   useEffect(() => {
     selectedConvRef.current = selectedConversation;
   }, [selectedConversation]);
@@ -305,6 +371,7 @@ const Chat = () => {
             }
             currentUserId={currentUser?.id}
             onSendMessage={handleSendMessage}
+            startCall={startCall}
           />
         );
     }
@@ -382,6 +449,24 @@ const Chat = () => {
           onClose={() => setShowSettings(false)}
           onLogout={handleLogout}
           currentUser={currentUser}
+        />
+      )}
+
+      {incomingCall && (
+        <CallModal
+          call={incomingCall}
+          onAccept={acceptCall}
+          onReject={() => {
+            window.electronAPI.endCall(incomingCall.call_id);
+            setIncomingCall(null);
+          }}
+        />
+      )}
+
+      {calling && (
+        <CallingModal
+          call={calling}
+          onCancel={() => endCall(calling.call_id)}
         />
       )}
     </div>

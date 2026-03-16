@@ -42,5 +42,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateUserId: (data) =>
     ipcRenderer.invoke("update-user-id", data),
 
+  startCall: (data) =>
+    ipcRenderer.invoke("start-call", data),
 
+  answerCall: (callId) =>
+    ipcRenderer.invoke("answer-call", callId),
+
+  endCall: (callId) =>
+    ipcRenderer.invoke("end-call", callId),
+  
+  onIncomingCall: (callback) => {
+    ipcRenderer.on("incoming-call", (_, data) => callback(data));
+  },
+
+  onCallAnswered: (callback) => {
+    ipcRenderer.on("call-answered", (_, data) => callback(data));
+  },
+
+  onCallEnded: (callback) => {
+    ipcRenderer.on("call-ended", (_, data) => callback(data));
+  },
 });

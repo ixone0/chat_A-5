@@ -13,7 +13,12 @@ from services.message_service import (
     create_message_service,
     get_conversation_members_service
 )
-
+from services.call_service import (
+    start_call_service,
+    join_call_service,
+    leave_call_service,
+    end_call_service
+)
 from services.friend_service import handle_get_friends, handle_start_direct_chat
 import packet
 
@@ -415,7 +420,54 @@ def handle_client(conn, addr):
                                 "status": "error",
                                 "message": str(e)
                             })
+                            
+                    elif pkt_type == "start_call":
+                        try:
+                            response = start_call_service(pkt, user_id)
+                            response["request_id"] = request_id
+                            send_packet(conn, response)
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "start_call_response",
+                                "status": "error",
+                                "message": str(e)
+                            })
+                            
+                    elif pkt_type == "join_call":
+                        try:
+                            response = join_call_service(pkt, user_id)
+                            response["request_id"] = request_id
+                            send_packet(conn, response)
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "join_call_response",
+                                "status": "error",
+                                "message": str(e)
+                            })
+                    
+                    elif pkt_type == "leave_call":
+                        try:
+                            response = leave_call_service(pkt, user_id)
+                            response["request_id"] = request_id
+                            send_packet(conn, response)
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "leave_call_response",
+                                "status": "error",
+                                "message": str(e)
+                            })
 
+                    elif pkt_type == "end_call":
+                        try:
+                            response = end_call_service(pkt, user_id)
+                            response["request_id"] = request_id
+                            send_packet(conn, response)
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "end_call_response",
+                                "status": "error",
+                                "message": str(e)
+                            })
                     else:
                         send_packet(conn, {
                             "type": "error",
