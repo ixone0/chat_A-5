@@ -26,8 +26,7 @@ import traceback
 import sys
 
 load_dotenv()
-
-online_users = {}
+from state.online_users import online_users
 
 HOST = "0.0.0.0"
 PORT = int(os.getenv("PORT", 8082))
