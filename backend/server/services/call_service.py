@@ -7,11 +7,16 @@ from repository.call_repo import (
 
 
 def start_call_service(pkt, user_id):
-    conversation_id = pkt.get("conversation_id")
-    call_type = pkt.get("call_type")
 
+    conversation_id = pkt.get("conversation_id")
+    call_type = pkt.get("call_type", "").strip().lower()
+    print("DEBUG CALL TYPE:", repr(pkt.get("call_type")))
     if call_type not in ["voice", "video"]:
-        return {"status": "error", "message": "Invalid call type"}
+        return {
+            "type": "start_call_response",
+            "status": "error",
+            "message": f"Invalid call type: {call_type}"
+        }
 
     call_id = create_call(conversation_id, user_id, call_type)
 
