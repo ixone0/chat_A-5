@@ -10,7 +10,7 @@ def start_call_service(pkt, user_id):
     conversation_id = pkt.get("conversation_id")
     call_type = pkt.get("call_type")
 
-    if call_type not in ["audio", "video"]:
+    if call_type not in ["voice", "video"]:
         return {"status": "error", "message": "Invalid call type"}
 
     call_id = create_call(conversation_id, user_id, call_type)

@@ -70,7 +70,7 @@ const Chat = () => {
 
   const startCall = async (type) => {
     if (!selectedConversation) return;
-
+    console.log("CALL TYPE =", type);
     try {
       const res = await window.electronAPI.startCall({
         conversation_id: selectedConversation.id,
