@@ -2,6 +2,26 @@
 import psycopg2
 import os
 import uuid
+from connection import get_connection
+
+def get_other_user(conversation_id, user_id):
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT user_id
+        FROM conversation_participants
+        WHERE conversation_id=%s AND user_id!=%s
+        LIMIT 1
+    """, (conversation_id, user_id))
+
+    row = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return row[0] if row else None
 
 def get_db_connection():
     return psycopg2.connect(
