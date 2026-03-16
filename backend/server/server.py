@@ -421,16 +421,34 @@ def handle_client(conn, addr):
                             })
                             
                     elif pkt_type == "start_call":
-                        try:
-                            response = start_call_service(pkt, user_id)
-                            response["request_id"] = request_id
-                            send_packet(conn, response)
-                        except Exception as e:
-                            send_packet(conn, {
-                                "type": "start_call_response",
-                                "status": "error",
-                                "message": str(e)
-                            })
+                        print("START CALL")
+
+                        call = start_call_service(pkt, user_id)
+
+                        call_id = call["call_id"]
+                        conversation_id = pkt["conversation_id"]
+
+                        print("CALL ID:", call_id)
+
+                        members = get_conversation_members_service(conversation_id)
+
+                        for m in members:
+                            target_id = str(m["user_id"])
+
+                            if target_id == user_id:
+                                continue
+
+                            if target_id in online_users:
+
+                                callee_conn = online_users[target_id]
+
+                                send_packet(callee_conn, {
+                                    "type": "incoming_call",
+                                    "call_id": call_id,
+                                    "conversation_id": conversation_id,
+                                    "from_user_id": user_id,
+                                    "call_type": pkt.get("call_type", "voice")
+                                })
                             
                     elif pkt_type == "join_call":
                         try:
