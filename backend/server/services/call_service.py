@@ -11,25 +11,34 @@ from utils.network import send_packet
 
 def send_packet_to_user(user_id, packet):
 
+    print("SEND TO USER:", user_id)
+    print("ONLINE USERS:", online_users)
+
     conn = online_users.get(user_id)
 
     if conn:
+        print("FOUND CONNECTION -> sending")
         send_packet(conn, packet)
+    else:
+        print("USER NOT ONLINE")
 
 
 def start_call_service(pkt, user_id):
 
+    print("START CALL")
+
     conversation_id = pkt.get("conversation_id")
     call_type = pkt.get("call_type")
 
-    if call_type not in ["voice", "video"]:
-        return {"status": "error", "message": "Invalid call type"}
-
     call_id = create_call(conversation_id, user_id, call_type)
+
+    print("CALL ID:", call_id)
 
     join_call(call_id, user_id)
 
     other_user_id = get_other_user(conversation_id, user_id)
+
+    print("OTHER USER:", other_user_id)
 
     send_packet_to_user(other_user_id, {
         "type": "incoming_call",
@@ -38,6 +47,8 @@ def start_call_service(pkt, user_id):
         "call_type": call_type,
         "from_user": user_id
     })
+
+    print("INCOMING CALL SENT")
 
     return {
         "type": "start_call_response",
