@@ -7,7 +7,7 @@ from repository.call_repo import (
 
 from repository.conversation_repo import get_other_user
 from state.online_users import online_users
-from server import send_packet
+from utils.network import send_packet
 
 def send_packet_to_user(user_id, packet):
 
