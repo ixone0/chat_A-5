@@ -216,3 +216,26 @@
   cursor: default;
   background-color: transparent;
 }
+
+/* ===== Call Buttons ===== */
+
+.call-buttons{
+  display:flex;
+  gap:10px;
+}
+
+.call-btn{
+  background:#547792;
+  border:none;
+  color:white;
+  font-size:18px;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+
+.call-btn:hover{
+  background:#94B4C1;
+  transform:scale(1.05);
+}

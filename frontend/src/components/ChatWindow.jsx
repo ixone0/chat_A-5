@@ -8,6 +8,7 @@ const ChatWindow = ({
   messages = [],
   onSendMessage = () => {},
   currentUserId = null,
+  startCall = () => {},
 }) => {
   const [inputText, setInputText] = useState("");
   const scrollRef = useRef(null);
@@ -94,10 +95,35 @@ const ChatWindow = ({
       
       {/* --- Header --- */}
       <div className="chat-header">
+
         <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-            <span style={{color: '#94B4C1', fontSize: '20px', fontWeight: 'bold'}}>@</span>
-            <h3>{headerName}</h3>
+          <span style={{color: '#94B4C1', fontSize: '20px', fontWeight: 'bold'}}>@</span>
+          <h3>{headerName}</h3>
         </div>
+
+        {/* ⭐ Call Buttons */}
+        {conversation && (
+          <div className="call-buttons">
+
+            <button
+              className="call-btn"
+              onClick={() => startCall("voice")}
+              title="Voice Call"
+            >
+              📞
+            </button>
+
+            <button
+              className="call-btn"
+              onClick={() => startCall("video")}
+              title="Video Call"
+            >
+              🎥
+            </button>
+
+          </div>
+        )}
+
       </div>
 
       {/* --- Messages Area --- */}

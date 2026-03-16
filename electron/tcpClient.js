@@ -65,6 +65,15 @@ function initTcpClient(mainWindow) {
         } 
         else if (parsed.type === 'receive_message') {
           win.webContents.send('receive-message', parsed);
+        }
+        else if (parsed.type === 'incoming_call') {
+          win.webContents.send('incoming-call', parsed);
+        }
+        else if (parsed.type === 'call_answered') {
+          win.webContents.send('call-answered', parsed);
+        }
+        else if (parsed.type === 'call_ended') {
+          win.webContents.send('call-ended', parsed);
         } 
         else if (parsed.type === 'search_user_response') {
           win.webContents.send('search-user-response', parsed);
@@ -161,6 +170,28 @@ function getMessages(conversation_id) {
   return send({ type: 'get_messages', conversation_id });
 }
 
+function startCall(conversation_id, call_type) {
+  return send({
+    type: "start_call",
+    conversation_id,
+    call_type // voice | video
+  });
+}
+
+function answerCall(call_id) {
+  return send({
+    type: "answer_call",
+    call_id
+  });
+}
+
+function endCall(call_id) {
+  return send({
+    type: "end_call",
+    call_id
+  });
+}
+
 module.exports = {
   initTcpClient,
   sendLogin,
@@ -171,5 +202,8 @@ module.exports = {
   getPendingRequests,
   acceptFriend,
   getMyConversations,
-  getMessages
+  getMessages,
+  startCall,
+  answerCall,
+  endCall
 };

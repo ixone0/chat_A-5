@@ -13,7 +13,10 @@ const {
   getPendingRequests,
   acceptFriend,
   getMyConversations,
-  getMessages
+  getMessages,
+  startCall,
+  answerCall,
+  endCall
 } = tcpClient;
 
 
@@ -202,3 +205,28 @@ ipcMain.handle('start-direct-chat', async (event, friendId) => {
   }
 });
 
+// ================= CALL =================
+
+ipcMain.handle("start-call", async (event, data) => {
+  try {
+    return await startCall(data.conversation_id, data.call_type);
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
+ipcMain.handle("answer-call", async (event, callId) => {
+  try {
+    return await answerCall(callId);
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
+ipcMain.handle("end-call", async (event, callId) => {
+  try {
+    return await endCall(callId);
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
