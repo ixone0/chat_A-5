@@ -11,9 +11,8 @@ def get_other_user(conversation_id, user_id):
 
     cur.execute("""
         SELECT user_id
-        FROM conversation_participants
-        WHERE conversation_id=%s AND user_id!=%s
-        LIMIT 1
+        FROM conversation_members
+        WHERE conversation_id = %s AND user_id != %s
     """, (conversation_id, user_id))
 
     row = cur.fetchone()
