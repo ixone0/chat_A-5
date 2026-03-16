@@ -98,7 +98,7 @@ def handle_client(conn, addr):
 
                     request_id = pkt.get("request_id")
                     pkt_type = pkt.get("type")
-
+                    print("HANDLING TYPE:", pkt_type)
                     # ---------------- REGISTER ----------------
                     if pkt_type == "register":
                         try:
