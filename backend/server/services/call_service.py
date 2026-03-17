@@ -85,17 +85,22 @@ def join_call_service(pkt, user_id):
 
     print("CALL ANSWERED -> notify:", other_user_id)
 
-    send_packet_to_user(other_user_id, {
+    packet = {
         "type": "call_answered",
         "call_id": call_id
-    })
+    }
+
+    # 🔥 ส่งให้ caller
+    send_packet_to_user(other_user_id, packet)
+
+    # 🔥 ส่งให้ตัวเอง (callee)
+    send_packet_to_user(user_id, packet)
 
     return {
         "type": "join_call_response",
         "status": "success",
         "call_id": call_id
     }
-
 
 def leave_call_service(pkt, user_id):
     call_id = pkt.get("call_id")
