@@ -69,6 +69,9 @@ function initTcpClient(mainWindow) {
         else if (parsed.type === 'incoming_call') {
           win.webContents.send('incoming-call', parsed);
         }
+        else if (parsed.type === 'start_call') {
+          win.webContents.send('start-call', parsed);
+        }
         else if (parsed.type === 'call_answered') {
           win.webContents.send('call-answered', parsed);
         }

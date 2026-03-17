@@ -61,7 +61,7 @@ const Chat = () => {
       setCalling(null);
       setActiveCall(null);
     };
-
+    
     window.electronAPI.onIncomingCall(handleIncoming);
     window.electronAPI.onCallAnswered(handleAnswered);
     window.electronAPI.onCallEnded(handleEnded);
@@ -76,7 +76,7 @@ const Chat = () => {
         conversation_id: selectedConversation.id,
         call_type: type
       });
-
+      
       if (res.status === "success") {
         setCalling({
           call_id: res.call_id,
