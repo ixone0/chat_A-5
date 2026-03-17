@@ -182,7 +182,7 @@ function startCall(conversation_id, call_type) {
 
 function answerCall(call_id) {
   return send({
-    type: "answer_call",
+    type: "join_call",
     call_id
   });
 }

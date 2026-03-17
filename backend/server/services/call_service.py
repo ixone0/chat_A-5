@@ -3,7 +3,8 @@ from repository.call_repo import (
     create_call,
     join_call,
     leave_call,
-    end_call
+    end_call,
+    get_call_by_id
 )
 
 from repository.conversation_repo import get_other_user
@@ -69,7 +70,19 @@ def start_call_service(pkt, user_id):
 def join_call_service(pkt, user_id):
     call_id = pkt.get("call_id")
 
+    # ✅ ดึง conversation_id จาก DB
+    conversation_id = get_call_by_id(call_id)
+
     join_call(call_id, user_id)
+
+    other_user_id = get_other_user(conversation_id, user_id)
+
+    print("CALL ANSWERED -> notify:", other_user_id)
+
+    send_packet_to_user(other_user_id, {
+        "type": "call_answered",
+        "call_id": call_id
+    })
 
     return {
         "type": "join_call_response",

@@ -77,7 +77,7 @@ const Chat = () => {
         call_type: type
       });
       
-      if (res.status === "success") {
+      if (res.status === "ok") {
         setCalling({
           call_id: res.call_id,
           type
