@@ -230,3 +230,11 @@ ipcMain.handle("end-call", async (event, callId) => {
     return { status: "error", message: err.message };
   }
 });
+
+ipcMain.on("tcp-send", async (_, data) => {
+  try {
+    await send(data); // ใช้ tcpClient.send()
+  } catch (err) {
+    console.error("TCP send error:", err);
+  }
+});

@@ -42,23 +42,158 @@ const Chat = () => {
     }
   };
 
+  const pcRef = useRef(null);
+  const startWebRTC = async (call_id) => {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    });
+
+    pcRef.current = pc;
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
+    stream.getTracks().forEach(track => {
+      pc.addTrack(track, stream);
+    });
+
+    pc.ontrack = (event) => {
+      const audio = new Audio();
+      audio.srcObject = event.streams[0];
+      audio.play();
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    window.electronAPI.send({
+      type: "webrtc_offer",
+      call_id,
+      offer
+    });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        window.electronAPI.send({
+          type: "ice_candidate",
+          call_id,
+          candidate: event.candidate
+        });
+      }
+    };
+
+    return pc;
+  };
+
+  const handleOfferLogic = async (offer, call_id) => {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    });
+
+    pcRef.current = pc;
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
+    stream.getTracks().forEach(track => {
+      pc.addTrack(track, stream);
+    });
+
+    pc.ontrack = (event) => {
+      const audio = new Audio();
+      audio.srcObject = event.streams[0];
+      audio.play();
+    };
+
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    window.electronAPI.send({
+      type: "webrtc_answer",
+      call_id,
+      answer
+    });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        window.electronAPI.send({
+          type: "ice_candidate",
+          call_id,
+          candidate: event.candidate
+        });
+      }
+    };
+
+    return pc;
+  };
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+
+    const handleOffer = async (data) => {
+      const pc = await handleOfferLogic(data.offer, data.call_id);
+
+      setActiveCall({
+        call_id: data.call_id
+      });
+    };
+
+    const handleAnswer = async (data) => {
+      if (!pcRef.current) return;
+
+      await pcRef.current.setRemoteDescription(
+        new RTCSessionDescription(data.answer)
+      );
+    };
+
+    const handleCandidate = async (data) => {
+      if (!pcRef.current) return;
+
+      await pcRef.current.addIceCandidate(data.candidate);
+    };
+
+    window.electronAPI.onWebRTCOffer(handleOffer);
+    window.electronAPI.onWebRTCAnswer(handleAnswer);
+    window.electronAPI.onICECandidate(handleCandidate);
+
+    return () => {
+      window.electronAPI.removeWebRTCOffer(handleOffer);
+      window.electronAPI.removeWebRTCAnswer(handleAnswer);
+      window.electronAPI.removeICECandidate(handleCandidate);
+    };
+  }, []);
+
   useEffect(() => {
     if (!window.electronAPI) return;
 
     const handleIncoming = (data) => {
       console.log("Incoming call:", data);
+
+      // 🔥 กันเคสตัวเองได้รับ event
+      if (calling && data.call_id === calling.call_id) {
+        console.log("IGNORE self incoming");
+        return;
+      }
+
       setIncomingCall(data);
     };
 
-    const handleAnswered = (data) => {
+    const handleAnswered = async (data) => {
       console.log("Call answered:", data);
 
-      setActiveCall(data);
+      setIncomingCall(null);
+      setCalling(null);
 
-      // ✅ delay นิดนึงให้ UI มันทัน render
-      setTimeout(() => {
-        setCalling(null);
-      }, 800);
+      const pc = await startWebRTC(data.call_id);
+
+      setActiveCall({
+        call_id: data.call_id,
+        pc
+      });
     };
 
     const handleEnded = () => {
@@ -105,8 +240,8 @@ const Chat = () => {
     if (!incomingCall) return;
 
     await window.electronAPI.answerCall(incomingCall.call_id);
-
-    setActiveCall(incomingCall);
+    console.log("WAITING FOR OFFER...");
+    // ❌ ไม่ต้อง setActiveCall ตรงนี้
     setIncomingCall(null);
   };
 
@@ -482,6 +617,20 @@ const Chat = () => {
           onCancel={() => endCall(calling.call_id)}
         />
       )}
+
+      {activeCall && (
+        <div className="call-modal">
+          <div className="call-box">
+            <h2>📞 In Call</h2>
+            <p>Call ID: {activeCall.call_id}</p>
+
+            <button onClick={() => endCall(activeCall.call_id)}>
+              End Call
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

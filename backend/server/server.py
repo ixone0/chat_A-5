@@ -513,6 +513,50 @@ def handle_client(conn, addr):
                                 "status": "error",
                                 "message": str(e)
                             })
+                    elif pkt_type == "webrtc_offer":
+                        call_id = pkt.get("call_id")
+                        offer = pkt.get("offer")
+
+                        print("RELAY OFFER", call_id)
+
+                        # 🔥 หาอีกฝั่ง
+                        members = get_conversation_members_service(call_id)
+
+                        for user in members:
+                            if user != user_id and user in online_users:
+                                send_packet(online_users[user], {
+                                    "type": "webrtc_offer",
+                                    "call_id": call_id,
+                                    "offer": offer
+                                })
+                    elif pkt_type == "webrtc_answer":
+                        call_id = pkt.get("call_id")
+                        answer = pkt.get("answer")
+
+                        print("RELAY ANSWER", call_id)
+
+                        members = get_conversation_members_service(call_id)
+
+                        for user in members:
+                            if user != user_id and user in online_users:
+                                send_packet(online_users[user], {
+                                    "type": "webrtc_answer",
+                                    "call_id": call_id,
+                                    "answer": answer
+                                })
+                    elif pkt_type == "ice_candidate":
+                        call_id = pkt.get("call_id")
+                        candidate = pkt.get("candidate")
+
+                        members = get_conversation_members_service(call_id)
+
+                        for user in members:
+                            if user != user_id and user in online_users:
+                                send_packet(online_users[user], {
+                                    "type": "ice_candidate",
+                                    "call_id": call_id,
+                                    "candidate": candidate
+                                })
                     else:
                         send_packet(conn, {
                             "type": "error",

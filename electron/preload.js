@@ -2,7 +2,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-
+  send: (data) => ipcRenderer.send("tcp-send", data),
   login: (data) => ipcRenderer.invoke('login-request', data),
 
   register: (data) => ipcRenderer.invoke('register-request', data),
@@ -61,5 +61,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   onCallEnded: (callback) => {
     ipcRenderer.on("call-ended", (_, data) => callback(data));
+  },
+  // 🔥 WebRTC signaling listeners
+  onWebRTCOffer: (callback) => {
+    ipcRenderer.on("webrtc-offer", (_, data) => callback(data));
+  },
+
+  onWebRTCAnswer: (callback) => {
+    ipcRenderer.on("webrtc-answer", (_, data) => callback(data));
+  },
+
+  onICECandidate: (callback) => {
+    ipcRenderer.on("ice-candidate", (_, data) => callback(data));
   },
 });

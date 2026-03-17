@@ -80,6 +80,15 @@ function initTcpClient(mainWindow) {
         else if (parsed.type === 'search_user_response') {
           win.webContents.send('search-user-response', parsed);
         }
+          else if (parsed.type === 'webrtc_offer') {
+          win.webContents.send('webrtc-offer', parsed);
+        }
+        else if (parsed.type === 'webrtc_answer') {
+          win.webContents.send('webrtc-answer', parsed);
+        }
+        else if (parsed.type === 'ice_candidate') {
+          win.webContents.send('ice-candidate', parsed);
+        }
         else {
           win.webContents.send('server-message', parsed);
         }
