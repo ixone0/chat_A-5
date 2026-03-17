@@ -422,24 +422,29 @@ def handle_client(conn, addr):
                             
                     elif pkt_type == "start_call":
                         print("START CALL")
+
                         call = start_call_service(pkt, user_id)
+
                         call_id = call["call_id"]
                         conversation_id = pkt["conversation_id"]
+
                         print("CALL ID:", call_id)
-                        # 🔹 notify caller (กำลังโทร)
-                        send_packet(conn, {
-                            "type": "calling",
-                            "call_id": call_id,
-                            "conversation_id": conversation_id,
-                            "call_type": pkt.get("call_type", "voice")
-                        })
+
                         members = get_conversation_members_service(conversation_id)
+
+                        response["request_id"] = request_id
+                        send_packet(conn, response)
+                        
                         for m in members:
                             target_id = str(m["user_id"])
+
                             if target_id == user_id:
                                 continue
+
                             if target_id in online_users:
+
                                 callee_conn = online_users[target_id]
+
                                 send_packet(callee_conn, {
                                     "type": "incoming_call",
                                     "call_id": call_id,
@@ -447,7 +452,7 @@ def handle_client(conn, addr):
                                     "from_user_id": user_id,
                                     "call_type": pkt.get("call_type", "voice")
                                 })
-                                                    
+                            
                     elif pkt_type == "join_call":
                         try:
                             response = join_call_service(pkt, user_id)
