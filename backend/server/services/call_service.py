@@ -51,20 +51,10 @@ def start_call_service(pkt, user_id):
 
         print("OTHER USER:", other_user_id)
 
-        send_packet_to_user(other_user_id, {
-            "type": "incoming_call",
+        return {
             "call_id": call_id,
             "conversation_id": conversation_id,
-            "call_type": call_type,
-            "from_user": str(user_id)
-        })
-
-        print("INCOMING CALL SENT")
-
-        return {
-            "type": "start_call_response",
-            "status": "success",
-            "call_id": call_id
+            "other_user_id": str(other_user_id)
         }
 
     except Exception as e:

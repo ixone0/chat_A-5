@@ -441,7 +441,7 @@ def handle_client(conn, addr):
                             members = get_conversation_members_service(conversation_id)
 
                             for m in members:
-                                target_id = str(m["user_id"])
+                                target_id = str(m)
                                 if target_id == user_id:
                                     continue
                                 callee_conn = online_users.get(target_id)
