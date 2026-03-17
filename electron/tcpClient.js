@@ -47,6 +47,7 @@ function initTcpClient(mainWindow) {
 
       // 2️⃣ 🔥 กรณี backend ไม่ส่ง request_id กลับมา
       // ถ้ามี pending แค่ 1 ตัว → ถือว่าเป็นตัวนี้
+      /*
       if (!parsed.request_id && pending.size === 1) {
         const [request_id, { resolve, timeout }] = pending.entries().next().value;
         clearTimeout(timeout);
@@ -54,6 +55,7 @@ function initTcpClient(mainWindow) {
         resolve(parsed);
         continue;
       }
+        */
 
 
         // Push event ไป renderer
@@ -68,9 +70,6 @@ function initTcpClient(mainWindow) {
         }
         else if (parsed.type === 'incoming_call') {
           win.webContents.send('incoming-call', parsed);
-        }
-        else if (parsed.type === 'start_call') {
-          win.webContents.send('start-call', parsed);
         }
         else if (parsed.type === 'call_answered') {
           win.webContents.send('call-answered', parsed);

@@ -12,6 +12,8 @@ from utils.network import send_packet
 
 def send_packet_to_user(user_id, packet):
 
+    user_id = str(user_id)   # ✅ FIX
+
     print("SEND TO USER:", user_id)
     print("ONLINE USERS:", online_users)
 
@@ -19,43 +21,60 @@ def send_packet_to_user(user_id, packet):
 
     if conn:
         print("FOUND CONNECTION -> sending")
-        send_packet(conn, packet)
+        try:
+            send_packet(conn, packet)
+        except Exception as e:
+            print("❌ SEND ERROR:", e)
+            try:
+                conn.close()
+            except:
+                pass
+            online_users.pop(user_id, None)
     else:
         print("USER NOT ONLINE")
 
-
 def start_call_service(pkt, user_id):
 
-    print("START CALL")
+    try:
+        print("START CALL")
 
-    conversation_id = pkt.get("conversation_id")
-    call_type = pkt.get("call_type")
+        conversation_id = pkt.get("conversation_id")
+        call_type = pkt.get("call_type")
 
-    call_id = create_call(conversation_id, user_id, call_type)
+        call_id = create_call(conversation_id, user_id, call_type)
 
-    print("CALL ID:", call_id)
+        print("CALL ID:", call_id)
 
-    join_call(call_id, user_id)
+        join_call(call_id, user_id)
 
-    other_user_id = get_other_user(conversation_id, user_id)
+        other_user_id = get_other_user(conversation_id, user_id)
 
-    print("OTHER USER:", other_user_id)
+        print("OTHER USER:", other_user_id)
 
-    send_packet_to_user(other_user_id, {
-        "type": "incoming_call",
-        "call_id": call_id,
-        "conversation_id": conversation_id,
-        "call_type": call_type,
-        "from_user": user_id
-    })
+        send_packet_to_user(other_user_id, {
+            "type": "incoming_call",
+            "call_id": call_id,
+            "conversation_id": conversation_id,
+            "call_type": call_type,
+            "from_user": str(user_id)
+        })
 
-    print("INCOMING CALL SENT")
+        print("INCOMING CALL SENT")
 
-    return {
-        "type": "start_call_response",
-        "status": "success",
-        "call_id": call_id
-    }
+        return {
+            "type": "start_call_response",
+            "status": "success",
+            "call_id": call_id
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "type": "error",
+            "message": "start_call_service failed",
+            "detail": str(e)
+        }
         
 def join_call_service(pkt, user_id):
     call_id = pkt.get("call_id")
