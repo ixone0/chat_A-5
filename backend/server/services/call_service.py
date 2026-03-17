@@ -17,7 +17,7 @@ def send_packet_to_user(user_id, packet):
 
     print("SEND TO USER:", user_id)
     print("ONLINE USERS:", online_users)
-
+    print(f"[SEND] -> {user_id} | {packet['type']}")
     conn = online_users.get(user_id)
 
     if conn:
@@ -35,7 +35,6 @@ def send_packet_to_user(user_id, packet):
         print("USER NOT ONLINE")
 
 def start_call_service(pkt, user_id):
-
     try:
         print("START CALL")
 
@@ -44,18 +43,25 @@ def start_call_service(pkt, user_id):
 
         call_id = create_call(conversation_id, user_id, call_type)
 
-        print("CALL ID:", call_id)
-
         join_call(call_id, user_id)
 
         other_user_id = get_other_user(conversation_id, user_id)
 
         print("OTHER USER:", other_user_id)
-
-        return {
+        
+        # 🔥 ยิง incoming_call ไปหาอีกฝ่ายเท่านั้น
+        send_packet_to_user(other_user_id, {
+            "type": "incoming_call",
             "call_id": call_id,
             "conversation_id": conversation_id,
-            "other_user_id": str(other_user_id)
+            "from_user": user_id,
+            "call_type": call_type
+        })
+
+        return {
+            "type": "start_call_response",
+            "status": "ok",
+            "call_id": call_id
         }
 
     except Exception as e:

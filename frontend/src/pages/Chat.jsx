@@ -52,8 +52,13 @@ const Chat = () => {
 
     const handleAnswered = (data) => {
       console.log("Call answered:", data);
-      setCalling(null);
+
       setActiveCall(data);
+
+      // ✅ delay นิดนึงให้ UI มันทัน render
+      setTimeout(() => {
+        setCalling(null);
+      }, 800);
     };
 
     const handleEnded = () => {
@@ -70,7 +75,13 @@ const Chat = () => {
 
   const startCall = async (type) => {
     if (!selectedConversation) return;
-    console.log("CALL TYPE =", type);
+
+    // ✅ set ทันที
+    setCalling({
+      call_id: "temp",   // temporary
+      type
+    });
+
     try {
       const res = await window.electronAPI.startCall({
         conversation_id: selectedConversation.id,
@@ -78,6 +89,7 @@ const Chat = () => {
       });
       
       if (res.status === "ok") {
+        // ✅ update call_id จริง
         setCalling({
           call_id: res.call_id,
           type
@@ -85,6 +97,7 @@ const Chat = () => {
       }
     } catch (err) {
       console.error(err);
+      setCalling(null); // ❌ error → reset
     }
   };
 
