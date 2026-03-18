@@ -45,7 +45,13 @@ const Chat = () => {
   const pcRef = useRef(null);
   const startWebRTC = async (call_id) => {
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+      iceServers: [
+        {
+          urls: "turn:openrelay.metered.ca:80",
+          username: "openrelayproject",
+          credential: "openrelayproject"
+        }
+     ]
     });
 
     pcRef.current = pc;
@@ -78,7 +84,11 @@ const Chat = () => {
         window.electronAPI.send({
           type: "ice_candidate",
           call_id,
-          candidate: event.candidate
+          candidate: {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          }
         });
       }
     };
@@ -120,10 +130,15 @@ const Chat = () => {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log("ICE:", event.candidate.candidate);
         window.electronAPI.send({
           type: "ice_candidate",
           call_id,
-          candidate: event.candidate
+          candidate: {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          }
         });
       }
     };
@@ -153,17 +168,19 @@ const Chat = () => {
     const handleCandidate = async (data) => {
       if (!pcRef.current) return;
 
-      await pcRef.current.addIceCandidate(data.candidate);
+      await pcRef.current.addIceCandidate(
+        new RTCIceCandidate(data.candidate)
+      );
     };
 
-    window.electronAPI.onWebRTCOffer(handleOffer);
-    window.electronAPI.onWebRTCAnswer(handleAnswer);
-    window.electronAPI.onICECandidate(handleCandidate);
+    const offOffer = window.electronAPI.onWebRTCOffer(handleOffer);
+    const offAnswer = window.electronAPI.onWebRTCAnswer(handleAnswer);
+    const offICE = window.electronAPI.onICECandidate(handleCandidate);
 
     return () => {
-      window.electronAPI.removeWebRTCOffer(handleOffer);
-      window.electronAPI.removeWebRTCAnswer(handleAnswer);
-      window.electronAPI.removeICECandidate(handleCandidate);
+      offOffer();
+      offAnswer();
+      offICE();
     };
   }, []);
 

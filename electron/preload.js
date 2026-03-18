@@ -62,16 +62,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onCallEnded: (callback) => {
     ipcRenderer.on("call-ended", (_, data) => callback(data));
   },
-  // 🔥 WebRTC signaling listeners
   onWebRTCOffer: (callback) => {
-    ipcRenderer.on("webrtc-offer", (_, data) => callback(data));
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("webrtc-offer", listener);
+    return () => ipcRenderer.removeListener("webrtc-offer", listener);
   },
 
   onWebRTCAnswer: (callback) => {
-    ipcRenderer.on("webrtc-answer", (_, data) => callback(data));
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("webrtc-answer", listener);
+    return () => ipcRenderer.removeListener("webrtc-answer", listener);
   },
 
   onICECandidate: (callback) => {
-    ipcRenderer.on("ice-candidate", (_, data) => callback(data));
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("ice-candidate", listener);
+    return () => ipcRenderer.removeListener("ice-candidate", listener);
   },
 });
