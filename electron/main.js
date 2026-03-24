@@ -1,5 +1,5 @@
 // electron/main.js
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 // 1. นำเข้า tcpClient ที่เพิ่งสร้าง
 const tcpClient = require('./tcpClient');
@@ -16,7 +16,8 @@ const {
   getMessages,
   startCall,
   answerCall,
-  endCall
+  endCall,
+  sendFile
 } = tcpClient;
 
 
@@ -162,6 +163,28 @@ ipcMain.handle("send-message", async (event, data) => {
       status: "error",
       message: err.message
     };
+  }
+});
+
+ipcMain.handle('send-file', async (event, conversationId) => {
+  // 1. เปิด file picker
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select file to send',
+    properties: ['openFile'],
+    // ไม่ filter → รับทุกประเภท
+  });
+ 
+  if (canceled || filePaths.length === 0) {
+    return { status: 'cancelled' };
+  }
+ 
+  try {
+    // 2. ส่งไฟล์ผ่าน TCP
+    const response = await sendFile(conversationId, filePaths[0]);
+    return response;
+  } catch (err) {
+    console.error('send-file error:', err);
+    return { status: 'error', message: err.message };
   }
 });
 

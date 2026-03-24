@@ -32,7 +32,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on("receive-message", listener);
     return () => ipcRenderer.removeListener("receive-message", listener);
   },
-
+  sendFile: (conversationId) =>
+    ipcRenderer.invoke('send-file', conversationId),
+  
   getFriends: () =>
     ipcRenderer.invoke("get-friends"),
 
