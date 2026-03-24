@@ -462,7 +462,7 @@ def handle_client(conn, addr):
  
                             # 3. บันทึก attachment metadata
                             attachment = insert_attachment(
-                                message_id=str(message.get("id") or message.get("message", {}).get("id", "")),,
+                                message_id=str(message.get("id") or message.get("message", {}).get("id", "")),
                                 file_name=file_name,
                                 s3_key=s3_result["s3_key"],
                                 file_url=s3_result["file_url"],
