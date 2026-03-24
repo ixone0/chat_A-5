@@ -80,7 +80,7 @@ function initTcpClient(mainWindow) {
         else if (parsed.type === 'search_user_response') {
           win.webContents.send('search-user-response', parsed);
         }
-          else if (parsed.type === 'webrtc_offer') {
+        else if (parsed.type === 'webrtc_offer') {
           win.webContents.send('webrtc-offer', parsed);
         }
         else if (parsed.type === 'webrtc_answer') {
