@@ -28,6 +28,7 @@ const Chat = () => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [calling, setCalling] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
+  const [callElapsedTime, setCallElapsedTime] = useState(0); // ✅ Call duration in seconds
   const isCallerRef = useRef(false);
   const pendingCandidatesRef = useRef([]);
   const currentCallConversationRef = useRef(null); // ✅ เก็บ conversation_id ของการโทรปัจจุบัน
@@ -451,6 +452,20 @@ const Chat = () => {
   useEffect(() => {
     selectedConvRef.current = selectedConversation;
   }, [selectedConversation]);
+
+  // ✅ Call Duration Timer
+  useEffect(() => {
+    if (!activeCall) {
+      setCallElapsedTime(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCallElapsedTime(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeCall]);
 
   useEffect(() => {
     const userId = localStorage.getItem("user_id");
@@ -877,6 +892,23 @@ const Chat = () => {
         <div className="call-modal">
           <div className="call-box" style={{ position: 'relative', width: '100%', height: '100%' }}>
             <h2>📞 In Call</h2>
+            
+            {/* ✅ Call Duration Display */}
+            <div style={{
+              position: 'absolute',
+              top: '60px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              color: '#fff',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              zIndex: 10
+            }}>
+              ⏱️ {String(Math.floor(callElapsedTime / 60)).padStart(2, '0')}:{String(callElapsedTime % 60).padStart(2, '0')}
+            </div>
             
             {/* ✅ Remote Video Container */}
             <div 
