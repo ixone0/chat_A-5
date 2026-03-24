@@ -48,9 +48,14 @@ const Chat = () => {
   };
 
   const pcRef = useRef(null);
+  const localVideoRef = useRef(null);      // ✅ Container for local video
+  const remoteVideoRef = useRef(null);     // ✅ Container for remote video
+  const callTypeRef = useRef(null);        // ✅ Track 'audio' or 'video' mode
   
-  const startWebRTC = async (call_id, conversation_id) => {
-    console.log("START WEBRTC CALLED", call_id);
+  const startWebRTC = async (call_id, conversation_id, call_type = 'audio') => {
+    console.log("START WEBRTC CALLED", { call_id, call_type });
+    callTypeRef.current = call_type;
+    
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -71,25 +76,42 @@ const Chat = () => {
 
     pc.ontrack = (event) => {
       console.log("ONTRACK FIRED", event.streams[0]);
-      const audio = document.createElement("audio");
-      audio.autoplay = true;
-      audio.playsInline = true;
-      audio.muted = false;
-      audio.srcObject = event.streams[0];
-      audio.volume = 1.0;
       
-      setTimeout(() => {
-        audio.play().then(() => {
-          console.log("✅ Audio playing successfully");
-        }).catch(err => {
-          console.error("❌ Audio play error:", err);
-          document.addEventListener('click', () => {
-            audio.play().catch(console.error);
-          }, { once: true });
-        });
-      }, 100);
-      
-      document.body.appendChild(audio);
+      if (call_type === 'video') {
+        // ✅ Video call: show video
+        const video = document.createElement("video");
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = false;
+        video.srcObject = event.streams[0];
+        video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
+        
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.innerHTML = '';
+          remoteVideoRef.current.appendChild(video);
+        }
+      } else {
+        // 🔊 Audio call: just play audio
+        const audio = document.createElement("audio");
+        audio.autoplay = true;
+        audio.playsInline = true;
+        audio.muted = false;
+        audio.srcObject = event.streams[0];
+        audio.volume = 1.0;
+        
+        setTimeout(() => {
+          audio.play().then(() => {
+            console.log("✅ Audio playing successfully");
+          }).catch(err => {
+            console.error("❌ Audio play error:", err);
+            document.addEventListener('click', () => {
+              audio.play().catch(console.error);
+            }, { once: true });
+          });
+        }, 100);
+        
+        document.body.appendChild(audio);
+      }
     };
 
     pc.onicecandidate = (event) => {
@@ -108,17 +130,34 @@ const Chat = () => {
       }
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaConstraints = call_type === 'video' 
+      ? { audio: true, video: { width: 640, height: 480 } }
+      : { audio: true };
+      
+    const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+    // ✅ Show local video if video call
+    if (call_type === 'video' && localVideoRef.current) {
+      const video = document.createElement("video");
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = true; // Mute self
+      video.srcObject = stream;
+      video.style.cssText = "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
+      localVideoRef.current.innerHTML = '';
+      localVideoRef.current.appendChild(video);
+    }
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    console.log("📤 SENDING OFFER TO BACKEND", { call_id, conversation_id });
+    console.log("📤 SENDING OFFER TO BACKEND", { call_id, conversation_id, call_type });
     window.electronAPI.sendRealtime({
       type: "webrtc_offer",
       call_id,
       conversation_id,
-      offer
+      offer,
+      call_type
     });
     console.log("OFFER SENT", call_id);
     return pc;
