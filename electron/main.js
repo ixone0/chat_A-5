@@ -79,6 +79,22 @@ ipcMain.handle('login-request', async (event, data) => {
   }
 });
 
+ipcMain.handle('create-group-chat', async (event, payload) => {
+  try {
+    console.log("Main: Creating Group Chat ->", payload.title);
+    // ใช้ฟังก์ชัน send ที่ดึงมาจาก tcpClient.js
+    const response = await send({
+      type: "create_group_chat",
+      title: payload.title,
+      members: payload.members // array ของ friend_id
+    });
+    return response;
+  } catch (err) {
+    console.error("Create Group Error:", err);
+    return { status: "error", message: err.message };
+  }
+});
+
 
 // ✅ เพิ่ม IPC Listener สำหรับ Register
 ipcMain.handle('register-request', async (event, data) => {

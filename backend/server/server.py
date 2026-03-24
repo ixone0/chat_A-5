@@ -101,6 +101,7 @@ def handle_client(conn, addr):
                     request_id = pkt.get("request_id")
                     pkt_type = pkt.get("type")
                     print("HANDLING TYPE:", pkt_type)
+                    
                     # ---------------- REGISTER ----------------
                     if pkt_type == "register":
                         try:
@@ -318,10 +319,10 @@ def handle_client(conn, addr):
                             members = []
 
                         for member_id in members:
-                            member_id = str(member_id)
-                            if member_id in online_users:
+                            member_id_str = str(member_id)
+                            if member_id_str in online_users:
                                 try:
-                                    send_packet(online_users[member_id], {
+                                    send_packet(online_users[member_id_str], {
                                         "type": "receive_message",
                                         "conversation_id": conversation_id,
                                         "message": message
@@ -614,6 +615,7 @@ def handle_client(conn, addr):
                                 "status": "error",
                                 "message": str(e)
                             })
+                            
                     elif pkt_type == "webrtc_offer":
                         call_id = pkt.get("call_id")
                         offer = pkt.get("offer")
@@ -630,6 +632,7 @@ def handle_client(conn, addr):
                                     "call_id": call_id,
                                     "offer": offer
                                 })
+                                
                     elif pkt_type == "webrtc_answer":
                         call_id = pkt.get("call_id")
                         answer = pkt.get("answer")
@@ -645,6 +648,7 @@ def handle_client(conn, addr):
                                     "call_id": call_id,
                                     "answer": answer
                                 })
+                                
                     elif pkt_type == "ice_candidate":
                         call_id = pkt.get("call_id")
                         candidate = pkt.get("candidate")
@@ -658,6 +662,56 @@ def handle_client(conn, addr):
                                     "call_id": call_id,
                                     "candidate": candidate
                                 })
+
+                    # ============ CREATE GROUP CHAT (NEW) ============
+                    elif pkt_type == "create_group_chat":
+                        if not user_id:
+                            send_packet(conn, {
+                                "type": "create_group_chat_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Unauthorized"
+                            })
+                            continue
+                            
+                        try:
+                            from services.conversation_service import handle_create_group_chat
+                            result = handle_create_group_chat(pkt, user_id)
+                            result["request_id"] = request_id
+                            
+                            # 1. ตอบกลับคนสร้างว่า "สร้างสำเร็จแล้ว"
+                            send_packet(conn, result)
+                            
+                            # 2. 🔥 แจ้งเตือนเพื่อนทุกคนที่ถูกดึงเข้ากลุ่ม (Real-time Broadcast)
+                            if result.get("status") == "success":
+                                conv_id = result.get("conversation_id")
+                                members = result.get("members", [])
+                                title = result.get("title", "")
+                                
+                                for member_id in members:
+                                    member_id_str = str(member_id)
+                                    # ข้ามคนสร้าง เพราะเพิ่งส่งตอบกลับไปด้านบน
+                                    if member_id_str != user_id and member_id_str in online_users:
+                                        try:
+                                            send_packet(online_users[member_id_str], {
+                                                "type": "new_group_notification",
+                                                "conversation_id": conv_id,
+                                                "title": title,
+                                                "message": f"You were added to a new group: {title}"
+                                            })
+                                        except Exception:
+                                            pass
+                        except Exception as e:
+                            import traceback
+                            print(f"[EXC create_group_chat] {traceback.format_exc()}")
+                            send_packet(conn, {
+                                "type": "create_group_chat_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(e)
+                            })
+
+                    # ---------------- UNKNOWN ----------------
                     else:
                         send_packet(conn, {
                             "type": "error",
@@ -692,7 +746,7 @@ def handle_client(conn, addr):
         conn.close()
         print(f"[CLOSED] connection with {addr}")
 
-
+# ----------------- MAIN SERVER LOOP -----------------
 while True:
     conn, addr = server.accept()
     thread = threading.Thread(target=handle_client, args=(conn, addr))

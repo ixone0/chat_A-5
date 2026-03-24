@@ -57,7 +57,6 @@ function initTcpClient(mainWindow) {
       }
         */
 
-
         // Push event ไป renderer
         if (parsed.type === 'login_response') {
           win.webContents.send('login-response', parsed);
@@ -88,6 +87,10 @@ function initTcpClient(mainWindow) {
         }
         else if (parsed.type === 'ice_candidate') {
           win.webContents.send('ice-candidate', parsed);
+        }
+        // ✅ เพิ่มส่วนนี้: แจ้งเตือนเมื่อโดนดึงเข้ากลุ่มใหม่
+        else if (parsed.type === 'new_group_notification') {
+          win.webContents.send('new-group-notification', parsed);
         }
         else {
           win.webContents.send('server-message', parsed);
