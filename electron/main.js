@@ -49,7 +49,8 @@ function createWindow() {
   // 2. เริ่มเชื่อมต่อ TCP ทันทีที่หน้าต่างเปิด
   initTcpClient(mainWindow);
 }
-
+app.commandLine.appendSwitch('disable-ipv6');
+app.commandLine.appendSwitch('enable-features', 'NetworkServiceInProcess');
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
@@ -284,9 +285,9 @@ ipcMain.handle("end-call", async (event, callId) => {
   }
 });
 
-ipcMain.on("tcp-send", async (_, data) => {
+ipcMain.on("tcp-send", (_, data) => {
   try {
-    await send(data); // ใช้ tcpClient.send()
+    tcpClient.sendRealtime(data); // ✅ ไม่ await
   } catch (err) {
     console.error("TCP send error:", err);
   }

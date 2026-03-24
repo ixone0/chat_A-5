@@ -258,6 +258,19 @@ function endCall(call_id) {
   });
 }
 
+function sendRealtime(data) {
+  if (!client) {
+    throw new Error('TCP client not connected');
+  }
+
+  try {
+    const msg = JSON.stringify(data) + "\n";
+    client.write(msg);
+  } catch (err) {
+    console.error("Realtime send error:", err);
+  }
+}
+
 module.exports = {
   initTcpClient,
   sendLogin,
@@ -272,5 +285,6 @@ module.exports = {
   startCall,
   answerCall,
   endCall,
-  sendFile
+  sendFile,
+  sendRealtime
 };
