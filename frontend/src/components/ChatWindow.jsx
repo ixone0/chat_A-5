@@ -135,7 +135,21 @@ const formattedMessages = useMemo(() => {
   }
 
   const isGroup = conversation?.type === "group";
-  const isOwner = conversation?.role === "owner";
+  // ✅ Fallback: ถ้า role undefined ให้เช็ค owner_id แทน
+  const isOwner = conversation?.role === "owner" || 
+                  String(conversation?.owner_id) === String(currentUserId);
+  
+  // 🔍 DEBUG: ตรวจสอบค่า
+  console.log("🔍 ChatWindow Debug:", {
+    conversation_id: conversation?.id,
+    conversation_type: conversation?.type,
+    conversation_role: conversation?.role,
+    conversation_owner_id: conversation?.owner_id,
+    currentUserId,
+    isGroup,
+    isOwner,
+    conversation
+  });
   
   let headerName = "Unknown";
   let headerPrefix = "@";

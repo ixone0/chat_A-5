@@ -79,9 +79,9 @@ def get_user_conversations_db(user_id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # ดึงข้อมูล cm.role มาด้วยเพื่อให้ Frontend เช็คสิทธิ์การแก้ไขได้
+            # ดึงข้อมูล cm.role และ c.owner_id มาด้วยเพื่อให้ Frontend เช็คสิทธิ์การแก้ไขได้
             cursor.execute("""
-                SELECT c.id, c.title, c.type, c.created_at, cm.role
+                SELECT c.id, c.title, c.type, c.created_at, cm.role, c.owner_id
                 FROM conversations c
                 JOIN conversation_members cm
                   ON cm.conversation_id = c.id
@@ -97,7 +97,8 @@ def get_user_conversations_db(user_id):
                     "title": row[1],
                     "type": row[2],
                     "created_at": row[3].isoformat() if row[3] else None,
-                    "role": row[4] # ส่ง role (owner/member) กลับไปให้ React
+                    "role": row[4], # ส่ง role (owner/member) กลับไปให้ React
+                    "owner_id": str(row[5]) if row[5] else None # ส่ง owner_id สำหรับ fallback
                 }
                 for row in rows
             ]

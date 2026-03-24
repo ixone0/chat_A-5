@@ -92,6 +92,10 @@ function initTcpClient(mainWindow) {
         else if (parsed.type === 'new_group_notification') {
           win.webContents.send('new-group-notification', parsed);
         }
+        // ✅ เพิ่มส่วนนี้: แจ้งเตือนเมื่อชื่อกลุ่มเปลี่ยน
+        else if (parsed.type === 'group_renamed_notification') {
+          win.webContents.send('group-renamed-notification', parsed);
+        }
         else {
           win.webContents.send('server-message', parsed);
         }
