@@ -620,7 +620,7 @@ def handle_client(conn, addr):
                         call_id = pkt.get("call_id")
                         offer = pkt.get("offer")
 
-                        print("RELAY OFFER", call_id)
+                        print("[RELAY OFFER] Received offer:", call_id)
 
                         # 🔥 หาอีกฝั่ง
                         conversation_id = pkt.get("conversation_id")
@@ -633,7 +633,6 @@ def handle_client(conn, addr):
                                     "call_id": call_id,
                                     "offer": offer
                                 })
-                                
                     elif pkt_type == "webrtc_answer":
                         call_id = pkt.get("call_id")
                         answer = pkt.get("answer")
