@@ -35,6 +35,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sendFile: (conversationId) =>
     ipcRenderer.invoke('send-file', conversationId),
   
+  onFileSent: (callback) => {
+  const listener = (_, data) => callback(data);
+  ipcRenderer.on('file-sent', listener);
+  return () => ipcRenderer.removeListener('file-sent', listener);
+},
 
   // ✅ เพิ่มตรงนี้: รับแจ้งเตือนเมื่อถูกดึงเข้ากลุ่มใหม่
   onReceiveGroupNotification: (callback) => {

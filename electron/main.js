@@ -208,6 +208,9 @@ ipcMain.handle('send-file', async (event, conversationId) => {
   try {
     // 2. ส่งไฟล์ผ่าน TCP
     const response = await sendFile(conversationId, filePaths[0]);
+     if (response?.status === 'ok' || response?.message) {
+      mainWindow.webContents.send('file-sent', response.message ?? response);
+    }
     return response;
   } catch (err) {
     console.error('send-file error:', err);

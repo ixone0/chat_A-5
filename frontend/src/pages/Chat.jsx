@@ -572,6 +572,17 @@ const Chat = () => {
             currentUserId={currentUser?.id}
             onSendMessage={handleSendMessage}
             startCall={startCall}
+            refreshMessages={async () => {
+              const res = await window.electronAPI.getMessages({
+                conversation_id: selectedConversation.id,
+              });
+              if (res?.status === "success") {
+                setMessages((prev) => ({
+                  ...prev,
+                  [String(selectedConversation.id)]: res.messages || [],
+                }));
+              }
+            }}
           />
         );
     }

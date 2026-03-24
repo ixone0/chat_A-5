@@ -9,6 +9,7 @@ const ChatWindow = ({
   onSendMessage = () => {},
   currentUserId = null,
   startCall = () => {},
+  refreshMessages = () => {},
 }) => {
   const [inputText, setInputText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -17,38 +18,61 @@ const ChatWindow = ({
 
   const selected = conversation || selectedUser;
 
-  // ✅ 1. Logic Format Messages (แก้เรื่องความซ้ำซ้อนและ Dependency แล้ว)
-  const formattedMessages = useMemo(() => {
-    const rawMsgs = Array.isArray(messages) ? messages : [];
-    return rawMsgs
-      .filter((m) => m && (m.content || m.text)) 
-      .map((m, index) => {
-        const id = m.id || `${m.sender_id || "temp"}-${m.created_at || Date.now()}-${index}`;
-        const content = m.content ?? m.text ?? "";
-        const createdRaw = m.created_at ?? m.time ?? null;
-        let time = "";
+const rawMsgs = Array.isArray(messages) ? messages : [];
+const S3_REGEX = /https?:\/\/.*\.s3\.amazonaws\.com\/.+/;
 
-        if (createdRaw) {
-          const dateObj = new Date(createdRaw);
-          time = dateObj.toLocaleTimeString("th-TH", {
-            timeZone: "Asia/Bangkok",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-        }
+const formattedMessages = useMemo(() => {
+  return rawMsgs
+    .filter((m) => m && (m.content || m.text))
+    .map((m, index) => {
+      const content = m.content ?? m.text ?? "";
+      
+      // ✅ ตรวจว่า content เป็น S3 URL ไหม
+      const isS3Url = S3_REGEX.test(content);
+      const inferredMsgType = isS3Url ? "file" : (m.msg_type ?? "text");
 
-        const sender = String(m.sender_id) === String(currentUserId) ? "me" : "other";
-
-        return {
-          id,
-          text: content,
-          time,
-          sender,
-          msg_type: m.msg_type ?? "text",      
-          attachment: m.attachment ?? null,
+      // ✅ สร้าง attachment object จาก URL ถ้าไม่มี
+      let attachment = m.attachment ?? null;
+      if (isS3Url && !attachment) {
+        const fileName = decodeURIComponent(content.split("/").pop().replace(/^[^_]+_/, ""));
+        const ext = fileName.split(".").pop().toLowerCase();
+        const mimeMap = {
+          png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
+          gif: "image/gif", webp: "image/webp",
+          mp4: "video/mp4", mov: "video/quicktime",
+          pdf: "application/pdf",
         };
-      });
-  }, [messages, currentUserId]);
+        attachment = {
+          file_url: content,
+          file_name: fileName,
+          mime_type: mimeMap[ext] ?? "application/octet-stream",
+          file_size: 0,
+        };
+      }
+
+      // ... ส่วนที่เหลือเหมือนเดิม
+      const id = m.id || `${m.sender_id || "temp"}-${m.created_at || Date.now()}-${index}`;
+      const createdRaw = m.created_at ?? m.time ?? null;
+      let time = "";
+      if (createdRaw) {
+        const dateObj = new Date(createdRaw);
+        time = dateObj.toLocaleTimeString("th-TH", {
+          timeZone: "Asia/Bangkok",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      return {
+        id,
+        text: content,
+        time,
+        sender: String(m.sender_id) === String(currentUserId) ? "me" : "other",
+        msg_type: inferredMsgType,  // ✅
+        attachment,                  // ✅
+      };
+    });
+}, [messages, currentUserId]);
 
   // ✅ 2. Auto Scroll
   useEffect(() => {
@@ -215,25 +239,44 @@ const ChatWindow = ({
       {/* --- Input Area --- */}
       <form className="chat-input-area" onSubmit={handleSend}>
         <div className="input-wrapper">
-          <button
-            type="button"
-            className="icon-attach-btn"
-            onClick={() => window.electronAPI.sendFile(selected?.id)}
-            title="Attach file"
-          >
-            📎
-          </button>
-          <input
-            type="text"
-            placeholder={`Message ${headerPrefix} ${headerName}`}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-          />
-          <button type="submit" className="icon-send-btn" disabled={!inputText.trim()}>
-            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-            </svg>
-          </button>
+            <button
+              type="button"
+              className="icon-attach-btn"
+              onClick={async () => {
+                const response = await window.electronAPI.sendFile(selected?.id);
+                
+                if (!response || response.status === 'cancelled' || response.status === 'error') return;
+                await refreshMessages();
+                const msg = response.message;
+                if (!msg) return;
+
+                onSendMessage({
+                  id: msg.id,
+                  content: msg.content,
+                  msg_type: msg.msg_type,
+                  created_at: msg.created_at,
+                  conversation_id: msg.conversation_id,
+                  sender_id: currentUserId,
+                  attachment: msg.attachment,
+                });
+              }}
+              title="Attach file"
+            >
+              📎
+            </button>
+            <input
+              type="text"
+              placeholder={`Message @${headerName}`}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+            />
+            
+            {/* ปุ่ม Send ไอคอนจรวด (ใช้ button type=submit เพื่อให้กด Enter ส่งได้เหมือนเดิม) */}
+            <button type="submit" className="icon-send-btn" disabled={!inputText.trim()}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                </svg>
+            </button>
         </div>
       </form>
     </div>
