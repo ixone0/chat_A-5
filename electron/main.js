@@ -95,6 +95,17 @@ ipcMain.handle('create-group-chat', async (event, payload) => {
   }
 });
 
+ipcMain.handle('rename-group', async (event, payload) => {
+  try {
+    return await send({
+      type: "rename_group",
+      conversation_id: payload.conversation_id,
+      new_title: payload.new_title
+    });
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
 
 // ✅ เพิ่ม IPC Listener สำหรับ Register
 ipcMain.handle('register-request', async (event, data) => {

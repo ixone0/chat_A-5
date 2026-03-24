@@ -711,6 +711,47 @@ def handle_client(conn, addr):
                                 "message": str(e)
                             })
 
+                    # ============ RENAME GROUP (ปรับปรุงเพิ่มการเช็คสิทธิ์) ============
+                    elif pkt_type == "rename_group":
+                        conv_id = pkt.get("conversation_id")
+                        new_title = pkt.get("new_title")
+                        
+                        if not user_id: # เช็คว่า login หรือยัง
+                            send_packet(conn, {"type": "rename_group_response", "status": "error", "message": "Unauthorized"})
+                            continue
+
+                        try:
+                            from repository.conversation_repo import update_conversation_title_db, get_user_conversations_db
+                            
+                            # 🛡️ เช็คก่อนว่าคนที่ส่งมา เป็น Owner ของห้องนี้จริงไหม?
+                            user_convs = get_user_conversations_db(user_id)
+                            is_owner = any(c['id'] == conv_id and c['role'] == 'owner' for c in user_convs)
+                            
+                            if not is_owner:
+                                send_packet(conn, {"type": "rename_group_response", "status": "error", "message": "Only owner can rename group"})
+                                continue
+
+                            success = update_conversation_title_db(conv_id, new_title)
+                            
+                            if success:
+                                # ตอบกลับคนเปลี่ยน
+                                send_packet(conn, {"type": "rename_group_response", "request_id": request_id, "status": "success", "new_title": new_title})
+                                
+                                # Broadcast บอกทุกคน
+                                members = get_conversation_members_service(conv_id)
+                                for m_id in members:
+                                    m_id_str = str(m_id)
+                                    if m_id_str in online_users:
+                                        send_packet(online_users[m_id_str], {
+                                            "type": "group_renamed_notification",
+                                            "conversation_id": conv_id,
+                                            "new_title": new_title
+                                        })
+                            else:
+                                send_packet(conn, {"type": "rename_group_response", "status": "error", "message": "Update failed"})
+                        except Exception as e:
+                            send_packet(conn, {"type": "rename_group_response", "status": "error", "message": str(e)})
+
                     # ---------------- UNKNOWN ----------------
                     else:
                         send_packet(conn, {

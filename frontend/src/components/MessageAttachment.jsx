@@ -1,6 +1,4 @@
 // components/MessageAttachment.jsx
-// ใช้ใน chat bubble เพื่อแสดงไฟล์ที่แนบมากับ message
-
 import React from 'react';
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
@@ -9,70 +7,93 @@ const VIDEO_TYPES = ['video/mp4', 'video/quicktime'];
 export default function MessageAttachment({ attachment }) {
   if (!attachment) return null;
 
-  const { file_name, file_url, mime_type, file_size } = attachment;
+  // ดึงข้อมูลแบบรองรับทั้งชื่อตัวแปรเก่าและใหม่ (Fallback)
+  const name = attachment.file_name || attachment.name || 'File';
+  const url = attachment.file_url || attachment.url;
+  const type = attachment.mime_type || attachment.type;
+  const size = attachment.file_size || 0;
 
-  // แสดงขนาดไฟล์อ่านง่าย
+  // ฟังก์ชันแสดงขนาดไฟล์
   const formatSize = (bytes) => {
+    if (!bytes) return '';
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // ─── รูปภาพ ───────────────────────────────────────────────────
-  if (IMAGE_TYPES.includes(mime_type)) {
+  // ─── 1. รูปภาพ ───────────────────────────────────────────────────
+  if (type && (type.startsWith('image/') || IMAGE_TYPES.includes(type))) {
     return (
-      <div style={{ marginTop: 6 }}>
+      <div style={{ marginTop: 6, marginBottom: 8 }}>
         <img
-          src={file_url}
-          alt={file_name}
+          src={url}
+          alt={name}
           style={{
-            maxWidth: 280,
-            maxHeight: 200,
+            maxWidth: 240,
+            maxHeight: 240,
             borderRadius: 8,
             cursor: 'pointer',
             display: 'block',
           }}
-          onClick={() => window.open(file_url, '_blank')}
+          onClick={() => window.open(url, '_blank')}
+          onError={(e) => { e.target.alt = 'Image failed to load'; }}
         />
-        <span style={{ fontSize: 11, color: '#888' }}>{file_name} · {formatSize(file_size)}</span>
+        <div style={{ fontSize: 10, color: '#94B4C1', marginTop: 4, opacity: 0.8 }}>
+          {name} {size > 0 && `· ${formatSize(size)}`}
+        </div>
       </div>
     );
   }
 
-  // ─── วิดีโอ ───────────────────────────────────────────────────
-  if (VIDEO_TYPES.includes(mime_type)) {
+  // ─── 2. วิดีโอ ───────────────────────────────────────────────────
+  if (type && (type.startsWith('video/') || VIDEO_TYPES.includes(type))) {
     return (
-      <div style={{ marginTop: 6 }}>
+      <div style={{ marginTop: 6, marginBottom: 8 }}>
         <video
-          src={file_url}
+          src={url}
           controls
-          style={{ maxWidth: 280, borderRadius: 8, display: 'block' }}
+          style={{ maxWidth: 240, borderRadius: 8, display: 'block' }}
         />
-        <span style={{ fontSize: 11, color: '#888' }}>{file_name} · {formatSize(file_size)}</span>
+        <div style={{ fontSize: 10, color: '#94B4C1', marginTop: 4, opacity: 0.8 }}>
+          {name} {size > 0 && `· ${formatSize(size)}`}
+        </div>
       </div>
     );
   }
 
-  // ─── ไฟล์ทั่วไป (PDF, docx, zip ...) ─────────────────────────
+  // ─── 3. ไฟล์ทั่วไป (PDF, docx, zip ...) ─────────────────────────
   return (
     <div
       style={{
         marginTop: 6,
+        marginBottom: 8,
         display: 'flex',
         alignItems: 'center',
         gap: 8,
         padding: '8px 12px',
-        background: '#f0f0f0',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         borderRadius: 8,
-        maxWidth: 280,
+        maxWidth: 240,
         cursor: 'pointer',
       }}
-      onClick={() => window.open(file_url, '_blank')}
+      onClick={() => window.open(url, '_blank')}
+      title={`Download: ${name}`}
     >
-      <span style={{ fontSize: 24 }}>📎</span>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 500 }}>{file_name}</div>
-        <div style={{ fontSize: 11, color: '#888' }}>{formatSize(file_size)}</div>
+      <span style={{ fontSize: '20px' }}>📎</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: '13px',
+          fontWeight: '600',
+          color: '#fff',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {name}
+        </div>
+        {size > 0 && (
+          <div style={{ fontSize: '11px', color: '#94B4C1' }}>{formatSize(size)}</div>
+        )}
       </div>
     </div>
   );

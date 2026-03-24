@@ -53,6 +53,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createGroupChat: (payload) => 
     ipcRenderer.invoke("create-group-chat", payload),
 
+  // ✅ ส่งคำสั่งเปลี่ยนชื่อ
+  renameGroup: (payload) => ipcRenderer.invoke("rename-group", payload),
+
+  // ✅ ฟังการแจ้งเตือนเมื่อชื่อกลุ่มเปลี่ยน
+  onGroupRenamed: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("group-renamed-notification", listener);
+    return () => ipcRenderer.removeListener("group-renamed-notification", listener);
+  },
+
   updateUserId: (data) =>
     ipcRenderer.invoke("update-user-id", data),
 
