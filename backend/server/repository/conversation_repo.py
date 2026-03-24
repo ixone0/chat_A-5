@@ -1,11 +1,10 @@
-#conversation_repo.py
+# repository/conversation_repo.py
 import psycopg2
 import os
 import uuid
 from connection import get_connection
 
 def get_other_user(conversation_id, user_id):
-
     conn = get_connection()
     cur = conn.cursor()
 
@@ -100,3 +99,41 @@ def get_user_conversations_db(user_id):
     finally:
         conn.close()
 
+# ==========================================
+# 🚀 ฟังก์ชันใหม่สำหรับสร้างกลุ่มและดึงเพื่อน (NEW)
+# ==========================================
+def create_group_with_members_db(title, chat_type, members):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        conv_id = str(uuid.uuid4())
+        
+        # เราดึงคนสร้าง (Creator) มาจากคนสุดท้ายของ list members (ที่ append ไว้ใน service)
+        owner_id = members[-1] if members else None
+        
+        # 1. สร้างห้องแชท
+        query = """
+            INSERT INTO conversations (id, type, title, owner_id, created_at) 
+            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+        """
+        cursor.execute(query, (conv_id, chat_type, title, owner_id))
+        
+        # 2. วนลูปยัดเพื่อนทุกคน (และคนสร้าง) เข้าไปในห้อง
+        member_query = """
+            INSERT INTO conversation_members (conversation_id, user_id, role, joined_at) 
+            VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+        """
+        for member_id in members:
+            # ให้สิทธิ์คนสร้างเป็น owner คนอื่นเป็น member
+            role = 'owner' if member_id == owner_id else 'member'
+            cursor.execute(member_query, (conv_id, member_id, role))
+            
+        conn.commit()
+        return conv_id
+    except Exception as e:
+        print(f"Error create_group_with_members_db: {e}")
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
