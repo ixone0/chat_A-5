@@ -4,6 +4,7 @@ import threading
 import os
 from dotenv import load_dotenv
 import json
+import traceback
 
 from services.auth_service import login_user, register_user
 from services.conversation_service import handle_create_conversation, get_user_conversations
