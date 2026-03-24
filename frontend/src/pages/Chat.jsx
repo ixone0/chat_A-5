@@ -379,9 +379,16 @@ const Chat = () => {
       refreshData(); // รีเฟรชโหลดห้องแชทใหม่ขึ้นมาทันที!
     });
 
+    // ✅ ฟังการแจ้งเตือนเมื่อชื่อกลุ่มเปลี่ยน
+    const unsubRename = window.electronAPI.onGroupRenamed?.((data) => {
+      console.log("📢 Group renamed!", data);
+      refreshData(); // โหลดข้อมูลใหม่เพื่อให้ชื่อกลุ่มอัปเดตทุกหน้าจอ
+    });
+
     return () => {
       if (unsubMsg) unsubMsg();
       if (unsubGroup) unsubGroup(); // ✅ อย่าลืม clear listener
+      if (unsubRename) unsubRename(); // ✅ clear rename listener
     };
   }, []);
 

@@ -1,6 +1,6 @@
-//ChatWindows.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./ChatWindow.css";
+import MessageAttachment from "./MessageAttachment";
 
 const ChatWindow = ({
   conversation = null,
@@ -46,6 +46,8 @@ const ChatWindow = ({
           text: content,
           time,
           sender,
+          msg_type: m.msg_type ?? "text",      
+          attachment: m.attachment ?? null,
         };
       });
   }, [rawMsgs, currentUserId]);
@@ -80,13 +82,25 @@ const ChatWindow = ({
     );
   }
 
-  // ✅ 4. แก้ชื่อ Header (เพิ่ม Fallback กัน Unknown)
-  const otherUser = conversation?.other_user || selectedUser;
-  const headerName = 
-    otherUser?.display_name || 
-    otherUser?.username || 
-    otherUser?.custom_id || 
-    "Unknown";
+  // ✅ 4. แก้ชื่อ Header (เช็คว่าเป็นกลุ่ม หรือ แชทเดี่ยว)
+  const isGroup = conversation?.type === "group";
+  let headerName = "Unknown";
+  let headerPrefix = "@";
+
+  if (isGroup) {
+    // ถ้าเป็นกลุ่ม ใช้ title
+    headerName = conversation?.title || "Group Chat";
+    headerPrefix = "👥";
+  } else {
+    // ถ้าเป็นแชทเดี่ยว ใช้ชื่ออีกฝ่าย
+    const otherUser = conversation?.other_user || selectedUser;
+    headerName = 
+      otherUser?.display_name || 
+      otherUser?.username || 
+      otherUser?.custom_id || 
+      "Unknown";
+    headerPrefix = "@";
+  }
 
   const headerAvatarChar = headerName.charAt(0).toUpperCase();
 
@@ -97,7 +111,7 @@ const ChatWindow = ({
       <div className="chat-header">
 
         <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-          <span style={{color: '#94B4C1', fontSize: '20px', fontWeight: 'bold'}}>@</span>
+          <span style={{color: '#94B4C1', fontSize: '20px', fontWeight: 'bold'}}>{headerPrefix}</span>
           <h3>{headerName}</h3>
         </div>
 
@@ -128,6 +142,7 @@ const ChatWindow = ({
 
       {/* --- Messages Area --- */}
       <div className="messages-display" ref={scrollRef}>
+        {/* โค้ดส่วนแสดงข้อความว่างเปล่า */}
         {formattedMessages.length === 0 && (
           <div style={{textAlign: 'center', color: '#94B4C1', marginTop: '20px', opacity: 0.7}}>
             No messages yet — say hi 👋
@@ -145,13 +160,31 @@ const ChatWindow = ({
               {!isMe && (
                 <div className="chat-avatar-container">
                   <div className="chat-avatar-img">
+                    {/* ถ้ามีชื่อคนส่ง (ในแชทกลุ่ม) อาจจะเอาตัวแรกมาโชว์ แต่ตอนนี้ใช้ตัวแรกของหัวแชทไปก่อน */}
                     {headerAvatarChar}
                   </div>
                 </div>
               )}
 
               <div className="chat-bubble">
-                <p className="msg-text">{msg.text}</p>
+                {msg.msg_type === "file" && msg.attachment ? (
+                  <MessageAttachment attachment={msg.attachment} />
+                ) : msg.msg_type === "file" && !msg.attachment ? (
+                  // กรณี attachment object หาย แต่ content เป็น URL อยู่
+                  <img
+                    src={msg.text}
+                    alt="file"
+                    style={{ maxWidth: 240, borderRadius: 8, cursor: "pointer" }}
+                    onClick={() => window.open(msg.text, "_blank")}
+                    onError={(e) => {
+                      // ถ้าไม่ใช่รูป แสดงเป็น link แทน
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                ) : (
+                  <p className="msg-text">{msg.text}</p>
+                )}
                 <span className="msg-time">{msg.time}</span>
               </div>
             </div>
@@ -162,9 +195,17 @@ const ChatWindow = ({
       {/* --- Input Area (Modern Style) --- */}
       <form className="chat-input-area" onSubmit={handleSend}>
         <div className="input-wrapper">
+            <button
+                type="button"
+                className="icon-attach-btn"
+                onClick={() => window.electronAPI.sendFile(selected?.id)}
+                title="Attach file"
+              >
+                📎
+              </button>
             <input
               type="text"
-              placeholder={`Message @${headerName}`}
+              placeholder={`Message ${headerPrefix} ${headerName}`}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
             />
