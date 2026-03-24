@@ -48,9 +48,14 @@ const Chat = () => {
   };
 
   const pcRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const callTypeRef = useRef(null); // 'audio' or 'video'
   
-  const startWebRTC = async (call_id, conversation_id) => {
-    console.log("START WEBRTC CALLED", call_id);
+  const startWebRTC = async (call_id, conversation_id, call_type = 'audio') => {
+    console.log("START WEBRTC CALLED", call_id, "Type:", call_type);
+    callTypeRef.current = call_type;
+    
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -71,25 +76,42 @@ const Chat = () => {
 
     pc.ontrack = (event) => {
       console.log("ONTRACK FIRED", event.streams[0]);
-      const audio = document.createElement("audio");
-      audio.autoplay = true;
-      audio.playsInline = true;
-      audio.muted = false;
-      audio.srcObject = event.streams[0];
-      audio.volume = 1.0;
       
-      setTimeout(() => {
-        audio.play().then(() => {
-          console.log("✅ Audio playing successfully");
-        }).catch(err => {
-          console.error("❌ Audio play error:", err);
-          document.addEventListener('click', () => {
-            audio.play().catch(console.error);
-          }, { once: true });
-        });
-      }, 100);
-      
-      document.body.appendChild(audio);
+      if (call_type === 'video') {
+        // ✅ Video call: show video
+        const video = document.createElement("video");
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = false;
+        video.srcObject = event.streams[0];
+        video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
+        
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.innerHTML = '';
+          remoteVideoRef.current.appendChild(video);
+        }
+      } else {
+        // 🔊 Audio call: just play audio
+        const audio = document.createElement("audio");
+        audio.autoplay = true;
+        audio.playsInline = true;
+        audio.muted = false;
+        audio.srcObject = event.streams[0];
+        audio.volume = 1.0;
+        
+        setTimeout(() => {
+          audio.play().then(() => {
+            console.log("✅ Audio playing successfully");
+          }).catch(err => {
+            console.error("❌ Audio play error:", err);
+            document.addEventListener('click', () => {
+              audio.play().catch(console.error);
+            }, { once: true });
+          });
+        }, 100);
+        
+        document.body.appendChild(audio);
+      }
     };
 
     pc.onicecandidate = (event) => {
@@ -108,12 +130,29 @@ const Chat = () => {
       }
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // ✅ Request audio + video based on call type
+    const mediaConstraints = call_type === 'video' 
+      ? { audio: true, video: { width: 640, height: 480 } }
+      : { audio: true };
+    
+    const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+    // ✅ Show local video if video call
+    if (call_type === 'video' && localVideoRef.current) {
+      const video = document.createElement("video");
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = true; // Mute self
+      video.srcObject = stream;
+      video.style.cssText = "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
+      localVideoRef.current.innerHTML = '';
+      localVideoRef.current.appendChild(video);
+    }
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    console.log("📤 SENDING OFFER TO BACKEND", { call_id, conversation_id });
+    console.log("📤 SENDING OFFER TO BACKEND", { call_id, conversation_id, call_type });
     window.electronAPI.sendRealtime({
       type: "webrtc_offer",
       call_id,
@@ -172,7 +211,7 @@ const Chat = () => {
         window.electronAPI.sendRealtime({
           type: "ice_candidate",
           call_id,
-          conversation_id,
+          conversation_id: currentCallConversationRef.current,
           candidate: {
             candidate: event.candidate.candidate,
             sdpMid: event.candidate.sdpMid,
@@ -190,12 +229,14 @@ const Chat = () => {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
+    console.log("📤 SENDING ANSWER TO BACKEND", { call_id, conversation_id: currentCallConversationRef.current });
     window.electronAPI.sendRealtime({
       type: "webrtc_answer",
       call_id,
-      conversation_id: selectedConversation.id,
+      conversation_id: currentCallConversationRef.current,
       answer
     });
+    console.log("ANSWER SENT", call_id);
 
     return pc;
   };
@@ -205,7 +246,7 @@ const Chat = () => {
 
     const handleOffer = async (data) => {
       console.log("RECEIVED WEBRTC OFFER", data.call_id);
-      const pc = await handleOfferLogic(data.offer, data.call_id , selectedConversation.id);
+      const pc = await handleOfferLogic(data.offer, data.call_id, data.conversation_id);
       console.log("ANSWER CREATED", data.call_id);
       setActiveCall({ call_id: data.call_id, pc });
     };
@@ -224,9 +265,8 @@ const Chat = () => {
           await pcRef.current.addIceCandidate(
             new RTCIceCandidate(candidate)
           );
-          console.log("✅ Added pending candidate");
         } catch (err) {
-          console.error("❌ Failed to add pending candidate:", err);
+          console.debug("Pending candidate add error (normal):", err.message);
         }
       }
       pendingCandidatesRef.current = [];
@@ -238,9 +278,14 @@ const Chat = () => {
         return;
       }
 
-      await pcRef.current.addIceCandidate(
-        new RTCIceCandidate(data.candidate)
-      );
+      try {
+        await pcRef.current.addIceCandidate(
+          new RTCIceCandidate(data.candidate)
+        );
+      } catch (err) {
+        // Ignore: some candidates may fail due to network conditions
+        console.debug("ICE candidate add error (normal):", err.message);
+      }
     };
 
     const offOffer = window.electronAPI.onWebRTCOffer(handleOffer);
