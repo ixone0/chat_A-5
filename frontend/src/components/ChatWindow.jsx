@@ -154,8 +154,24 @@ const ChatWindow = ({
               )}
 
               <div className="chat-bubble">
-                <p className="msg-text">{msg.text}</p>
-                {msg.attachment && <MessageAttachment attachment={msg.attachment} />}
+                {msg.msg_type === "file" && msg.attachment ? (
+                  <MessageAttachment attachment={msg.attachment} />
+                ) : msg.msg_type === "file" && !msg.attachment ? (
+                  // กรณี attachment object หาย แต่ content เป็น URL อยู่
+                  <img
+                    src={msg.text}
+                    alt="file"
+                    style={{ maxWidth: 240, borderRadius: 8, cursor: "pointer" }}
+                    onClick={() => window.open(msg.text, "_blank")}
+                    onError={(e) => {
+                      // ถ้าไม่ใช่รูป แสดงเป็น link แทน
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                ) : (
+                  <p className="msg-text">{msg.text}</p>
+                )}
                 <span className="msg-time">{msg.time}</span>
               </div>
             </div>

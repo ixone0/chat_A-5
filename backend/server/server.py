@@ -410,16 +410,6 @@ def handle_client(conn, addr):
                             })
                     # ---------------- SEND FILE ----------------
                     elif pkt_type == "send_file":
-                        """
-                        pkt คาดหวัง:
-                        {
-                            "type": "send_file",
-                            "conversation_id": "<uuid>",
-                            "file_name": "photo.jpg",
-                            "mime_type": "image/jpeg",
-                            "data": "<base64 string>"   ← ตัวไฟล์
-                        }
-                        """
                         if not user_id:
                             send_packet(conn, {
                                 "type": "send_file_response",
@@ -428,12 +418,12 @@ def handle_client(conn, addr):
                                 "message": "Unauthorized"
                             })
                             continue
- 
+
                         conversation_id = pkt.get("conversation_id")
                         file_name       = pkt.get("file_name", "file")
                         mime_type       = pkt.get("mime_type", "application/octet-stream")
                         b64_data        = pkt.get("data", "")
- 
+
                         if not conversation_id or not b64_data:
                             send_packet(conn, {
                                 "type": "send_file_response",
@@ -442,50 +432,53 @@ def handle_client(conn, addr):
                                 "message": "Missing conversation_id or file data"
                             })
                             continue
- 
+
                         try:
                             # 1. Upload ไฟล์ขึ้น S3
                             s3_result = upload_file_to_s3(
                                 b64_data, file_name, mime_type, user_id
                             )
- 
-                            # 2. สร้าง message ประเภท "file" ใน DB
-                            message = create_message_service(
+
+                            # 2. สร้าง message ใน DB
+                            result = create_message_service(
                                 conversation_id, user_id,
-                                content=s3_result["file_url"],  # เก็บ URL ใน content
+                                content=s3_result["file_url"],
                             )
- 
-                            # override msg_type เป็น file
-                            # (create_message_service เก็บ msg_type='text' ตอนนี้)
-                            # แก้ใน message_repo ด้วยถ้าต้องการเก็บ msg_type='file'
-                            message["msg_type"] = "file"
- 
-                            # 3. บันทึก attachment metadata
+
+                            # ดึง message dict จากข้างใน result
+                            msg_data = result.get("message", {})
+
+                            print("[DEBUG] msg_data:", msg_data)
+
+                            # 3. override msg_type เป็น file
+                            msg_data["msg_type"] = "file"
+
+                            # 4. บันทึก attachment metadata
                             attachment = insert_attachment(
-                                message_id=str(message.get("id") or message.get("message", {}).get("id", "")),
+                                message_id=str(msg_data["id"]),
                                 file_name=file_name,
                                 s3_key=s3_result["s3_key"],
                                 file_url=s3_result["file_url"],
                                 mime_type=mime_type,
                                 file_size=s3_result["file_size"]
                             )
- 
-                            message["attachment"] = attachment
- 
-                            # 4. ตอบกลับ sender
+
+                            msg_data["attachment"] = attachment
+
+                            # 5. ตอบกลับ sender
                             send_packet(conn, {
                                 "type": "send_file_response",
                                 "request_id": request_id,
                                 "status": "success",
-                                "message": message
+                                "message": msg_data
                             })
- 
-                            # 5. Broadcast ไปสมาชิกในห้อง
+
+                            # 6. Broadcast ไปสมาชิกในห้อง
                             try:
                                 members = get_conversation_members_service(conversation_id)
                             except Exception:
                                 members = []
- 
+
                             for member_id in members:
                                 member_id = str(member_id)
                                 if member_id != user_id and member_id in online_users:
@@ -493,13 +486,12 @@ def handle_client(conn, addr):
                                         send_packet(online_users[member_id], {
                                             "type": "receive_message",
                                             "conversation_id": conversation_id,
-                                            "message": message
+                                            "message": msg_data
                                         })
                                     except Exception:
                                         pass
- 
+
                         except ValueError as ve:
-                            # ไฟล์ใหญ่เกินหรือ base64 ผิด
                             send_packet(conn, {
                                 "type": "send_file_response",
                                 "request_id": request_id,
