@@ -26,8 +26,10 @@ const Chat = () => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [calling, setCalling] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
-
+  const isCallerRef = useRef(false);
+  const pendingCandidatesRef = useRef([]);
   const refreshData = async () => {
+
     if (!window.electronAPI) return;
     try {
       const [convRes, friendRes] = await Promise.all([
@@ -43,47 +45,44 @@ const Chat = () => {
   };
 
   const pcRef = useRef(null);
+  
   const startWebRTC = async (call_id) => {
+    console.log("START WEBRTC CALLED", call_id);
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+    
     const pc = new RTCPeerConnection({
       iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
         {
           urls: "turn:openrelay.metered.ca:80",
           username: "openrelayproject",
           credential: "openrelayproject"
         }
-     ]
+      ]
     });
 
     pcRef.current = pc;
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true
-    });
-
-    stream.getTracks().forEach(track => {
-      pc.addTrack(track, stream);
-    });
-
     pc.ontrack = (event) => {
-      const audio = new Audio();
+      console.log("ONTRACK FIRED", event.streams[0]);
+      const audio = document.createElement("audio");
+      audio.autoplay = true;
+      audio.playsInline = true;
       audio.srcObject = event.streams[0];
-      audio.play();
+      document.body.appendChild(audio);
+      audio.play().catch(console.error);
     };
-
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-
-    window.electronAPI.send({
-      type: "webrtc_offer",
-      call_id,
-      offer
-    });
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        window.electronAPI.send({
+        console.log("ICE TYPE:", event.candidate.candidate);
+        window.electronAPI.sendRealtime({
           type: "ice_candidate",
           call_id,
+          conversation_id: selectedConversation.id,
           candidate: {
             candidate: event.candidate.candidate,
             sdpMid: event.candidate.sdpMid,
@@ -93,55 +92,80 @@ const Chat = () => {
       }
     };
 
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    window.electronAPI.sendRealtime({
+      type: "webrtc_offer",
+      call_id,
+      conversation_id: selectedConversation.id,
+      offer
+    });
+    console.log("OFFER SENT", call_id);
     return pc;
   };
 
   const handleOfferLogic = async (offer, call_id) => {
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        {
+          urls: "turn:openrelay.metered.ca:80",
+          username: "openrelayproject",
+          credential: "openrelayproject"
+        }
+      ]
     });
 
     pcRef.current = pc;
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true
-    });
-
-    stream.getTracks().forEach(track => {
-      pc.addTrack(track, stream);
-    });
-
     pc.ontrack = (event) => {
-      const audio = new Audio();
+      console.log("ONTRACK FIRED", event.streams[0]);
+      const audio = document.createElement("audio");
+      audio.autoplay = true;
+      audio.playsInline = true;
       audio.srcObject = event.streams[0];
-      audio.play();
+      document.body.appendChild(audio);
+      audio.play().catch(console.error);
     };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        console.log("ICE TYPE:", event.candidate.candidate);
+        window.electronAPI.sendRealtime({
+          type: "ice_candidate",
+          call_id,
+          conversation_id: selectedConversation.id,
+          candidate: {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          }
+        });
+      }
+    };
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    window.electronAPI.send({
+    window.electronAPI.sendRealtime({
       type: "webrtc_answer",
       call_id,
+      conversation_id: selectedConversation.id,
       answer
     });
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        console.log("ICE:", event.candidate.candidate);
-        window.electronAPI.send({
-          type: "ice_candidate",
-          call_id,
-          candidate: {
-            candidate: event.candidate.candidate,
-            sdpMid: event.candidate.sdpMid,
-            sdpMLineIndex: event.candidate.sdpMLineIndex
-          }
-        });
-      }
-    };
 
     return pc;
   };
@@ -150,23 +174,26 @@ const Chat = () => {
     if (!window.electronAPI) return;
 
     const handleOffer = async (data) => {
+      console.log("RECEIVED WEBRTC OFFER", data.call_id);
       const pc = await handleOfferLogic(data.offer, data.call_id);
-
-      setActiveCall({
-        call_id: data.call_id
-      });
+      console.log("ANSWER CREATED", data.call_id);
+      setActiveCall({ call_id: data.call_id, pc });
     };
 
     const handleAnswer = async (data) => {
       if (!pcRef.current) return;
-
+      console.log("IS CALLER?", isCallerRef.current);
+      console.log("CALL_ID:", data.call_id);
       await pcRef.current.setRemoteDescription(
         new RTCSessionDescription(data.answer)
       );
     };
 
     const handleCandidate = async (data) => {
-      if (!pcRef.current) return;
+      if (!pcRef.current) {
+        pendingCandidatesRef.current.push(data.candidate);
+        return;
+      }
 
       await pcRef.current.addIceCandidate(
         new RTCIceCandidate(data.candidate)
@@ -183,15 +210,20 @@ const Chat = () => {
       offICE();
     };
   }, []);
+  const callingRef = useRef(calling);
+
+  useEffect(() => {
+    callingRef.current = calling;
+  }, [calling]);
 
   useEffect(() => {
     if (!window.electronAPI) return;
-
+    
     const handleIncoming = (data) => {
       console.log("Incoming call:", data);
 
       // 🔥 กันเคสตัวเองได้รับ event
-      if (calling && data.call_id === calling.call_id) {
+      if (callingRef.current && data.call_id === callingRef.current.call_id) {
         console.log("IGNORE self incoming");
         return;
       }
@@ -205,29 +237,41 @@ const Chat = () => {
       setIncomingCall(null);
       setCalling(null);
 
-      const pc = await startWebRTC(data.call_id);
-
-      setActiveCall({
-        call_id: data.call_id,
-        pc
-      });
+      // เฉพาะคนโทร (caller) เท่านั้นที่สร้าง offer
+      if (isCallerRef.current) {
+        const pc = await startWebRTC(data.call_id);
+        setActiveCall({ call_id: data.call_id, pc });
+      } else {
+        // ฝั่งรับสาย ไม่ต้องสร้าง offer
+        setActiveCall({ call_id: data.call_id });
+      }
     };
 
     const handleEnded = () => {
       setIncomingCall(null);
       setCalling(null);
       setActiveCall(null);
+      isCallerRef.current = false;
+
+      pcRef.current?.close();
+      pcRef.current = null;
     };
     
-    window.electronAPI.onIncomingCall(handleIncoming);
-    window.electronAPI.onCallAnswered(handleAnswered);
-    window.electronAPI.onCallEnded(handleEnded);
+    const offIncoming = window.electronAPI.onIncomingCall(handleIncoming);
+    const offAnswered = window.electronAPI.onCallAnswered(handleAnswered);
+    const offEnded = window.electronAPI.onCallEnded(handleEnded);
+
+    return () => {
+      offIncoming?.();
+      offAnswered?.();
+      offEnded?.();
+    };
 
   }, []);
 
   const startCall = async (type) => {
     if (!selectedConversation) return;
-
+    isCallerRef.current = true;
     // ✅ set ทันที
     setCalling({
       call_id: "temp",   // temporary
@@ -250,12 +294,13 @@ const Chat = () => {
     } catch (err) {
       console.error(err);
       setCalling(null); // ❌ error → reset
+      isCallerRef.current = true;
     }
   };
 
   const acceptCall = async () => {
     if (!incomingCall) return;
-
+    isCallerRef.current = false;
     await window.electronAPI.answerCall(incomingCall.call_id);
     console.log("WAITING FOR OFFER...");
     // ❌ ไม่ต้อง setActiveCall ตรงนี้

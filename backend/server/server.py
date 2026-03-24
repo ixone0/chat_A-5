@@ -520,7 +520,8 @@ def handle_client(conn, addr):
                         print("RELAY OFFER", call_id)
 
                         # 🔥 หาอีกฝั่ง
-                        members = get_conversation_members_service(call_id)
+                        conversation_id = pkt.get("conversation_id")
+                        members = get_conversation_members_service(conversation_id)
 
                         for user in members:
                             if user != user_id and user in online_users:
@@ -532,10 +533,10 @@ def handle_client(conn, addr):
                     elif pkt_type == "webrtc_answer":
                         call_id = pkt.get("call_id")
                         answer = pkt.get("answer")
-
+                        conversation_id = pkt.get("conversation_id")
                         print("RELAY ANSWER", call_id)
 
-                        members = get_conversation_members_service(call_id)
+                        members = get_conversation_members_service(conversation_id)
 
                         for user in members:
                             if user != user_id and user in online_users:
@@ -547,8 +548,8 @@ def handle_client(conn, addr):
                     elif pkt_type == "ice_candidate":
                         call_id = pkt.get("call_id")
                         candidate = pkt.get("candidate")
-
-                        members = get_conversation_members_service(call_id)
+                        conversation_id = pkt.get("conversation_id")
+                        members = get_conversation_members_service(conversation_id)
 
                         for user in members:
                             if user != user_id and user in online_users:

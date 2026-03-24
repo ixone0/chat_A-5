@@ -51,16 +51,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   endCall: (callId) =>
     ipcRenderer.invoke("end-call", callId),
   
+  sendRealtime: (data) => ipcRenderer.send("tcp-send", data),
+
   onIncomingCall: (callback) => {
-    ipcRenderer.on("incoming-call", (_, data) => callback(data));
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("incoming-call", listener);
+    return () => ipcRenderer.removeListener("incoming-call", listener);
   },
 
   onCallAnswered: (callback) => {
-    ipcRenderer.on("call-answered", (_, data) => callback(data));
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("call-answered", listener);
+    return () => ipcRenderer.removeListener("call-answered", listener);
   },
 
   onCallEnded: (callback) => {
-    ipcRenderer.on("call-ended", (_, data) => callback(data));
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("call-ended", listener);
+    return () => ipcRenderer.removeListener("call-ended", listener);
   },
   onWebRTCOffer: (callback) => {
     const listener = (_, data) => callback(data);
