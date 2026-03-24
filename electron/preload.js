@@ -33,11 +33,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener("receive-message", listener);
   },
 
+  // ✅ เพิ่มตรงนี้: รับแจ้งเตือนเมื่อถูกดึงเข้ากลุ่มใหม่
+  onReceiveGroupNotification: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("new-group-notification", listener);
+    return () => ipcRenderer.removeListener("new-group-notification", listener);
+  },
+
   getFriends: () =>
     ipcRenderer.invoke("get-friends"),
 
   startDirectChat: (friendId) =>
     ipcRenderer.invoke("start-direct-chat", friendId),
+
+  // ✅ เพิ่มตรงนี้: ส่งคำสั่งสร้างกลุ่มแชทไปที่ Main Process
+  createGroupChat: (payload) => 
+    ipcRenderer.invoke("create-group-chat", payload),
 
   updateUserId: (data) =>
     ipcRenderer.invoke("update-user-id", data),
@@ -62,6 +73,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onCallEnded: (callback) => {
     ipcRenderer.on("call-ended", (_, data) => callback(data));
   },
+  
   onWebRTCOffer: (callback) => {
     const listener = (_, data) => callback(data);
     ipcRenderer.on("webrtc-offer", listener);

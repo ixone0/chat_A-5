@@ -1,0 +1,105 @@
+.create-group-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f5f0;
+  height: 100%;
+}
+
+.create-group-header {
+  padding: 15px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.create-group-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px 40px 20px;
+}
+
+.create-group-form {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.friends-selection-list {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 2px solid rgba(84, 119, 146, 0.15);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fafbfc;
+}
+
+.friend-select-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 5px;
+}
+
+.friend-select-item:hover {
+  background: rgba(84, 119, 146, 0.1);
+}
+
+.friend-select-item.selected {
+  background: rgba(88, 101, 242, 0.1);
+  border: 1px solid rgba(88, 101, 242, 0.3);
+}
+
+.friend-avatar {
+  width: 36px;
+  height: 36px;
+  background: #547792;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 12px;
+}
+
+.friend-select-item.selected .friend-avatar {
+  background: #5865f2; /* เปลี่ยนสีอวาตาร์เมื่อเลือก */
+}
+
+.friend-info {
+  flex: 1;
+  color: #213448;
+  font-weight: 600;
+}
+
+.checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #94b4c1;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5865f2;
+  font-weight: bold;
+}
+
+.friend-select-item.selected .checkbox {
+  border-color: #5865f2;
+  background: white;
+}
+
+.no-friends-text {
+  text-align: center;
+  color: #94b4c1;
+  font-size: 0.9rem;
+  padding: 20px 0;
+}

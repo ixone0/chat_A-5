@@ -10,6 +10,7 @@ import Profile from "./Profile";
 import SettingsModal from "../components/SettingsModal";
 import CallModal from "../components/CallModal";
 import CallingModal from "../components/CallingModal";
+import CreateGroupForm from "../components/CreateGroupForm";
 
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
@@ -43,6 +44,7 @@ const Chat = () => {
   };
 
   const pcRef = useRef(null);
+  
   const startWebRTC = async (call_id) => {
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -51,7 +53,7 @@ const Chat = () => {
           username: "openrelayproject",
           credential: "openrelayproject"
         }
-     ]
+      ]
     });
 
     pcRef.current = pc;
@@ -268,6 +270,7 @@ const Chat = () => {
     setActiveCall(null);
     setCalling(null);
   };
+  
   useEffect(() => {
     selectedConvRef.current = selectedConversation;
   }, [selectedConversation]);
@@ -279,10 +282,13 @@ const Chat = () => {
     refreshData();
   }, []);
 
+  // ----------------------------------------
+  // 2. Real-time Listeners
+  // ----------------------------------------
   useEffect(() => {
-    if (!window.electronAPI?.onReceiveMessage) return;
+    if (!window.electronAPI) return;
 
-    const unsub = window.electronAPI.onReceiveMessage(async (msg) => {
+    const unsubMsg = window.electronAPI.onReceiveMessage(async (msg) => {
       // Normalize conversation id to string
       const convId = String(
         msg.conversation_id ?? msg.conversationId ?? msg.conversation ?? "",
@@ -367,8 +373,15 @@ const Chat = () => {
       }
     });
 
+    // ✅ ฟังการแจ้งเตือน group ที่ได้รับการสร้างขึ้นใหม่
+    const unsubGroup = window.electronAPI.onReceiveGroupNotification?.((data) => {
+      console.log("📢 You were added to a new group!", data);
+      refreshData(); // รีเฟรชโหลดห้องแชทใหม่ขึ้นมาทันที!
+    });
+
     return () => {
-      if (unsub) unsub();
+      if (unsubMsg) unsubMsg();
+      if (unsubGroup) unsubGroup(); // ✅ อย่าลืม clear listener
     };
   }, []);
 
@@ -414,6 +427,7 @@ const Chat = () => {
       console.error(err);
     }
   };
+  
   const handleSendMessage = (payload) => {
     if (!selectedConversation || !currentUser) return;
     const text = typeof payload === "string" ? payload : payload?.text;
@@ -524,9 +538,22 @@ const Chat = () => {
         );
       case "profile":
         return <Profile />;
+      
+      // ✅ เพิ่มหน้าสร้างกลุ่ม
+      case "create_group":
+        return (
+          <CreateGroupForm 
+            friends={friends} 
+            onCancel={() => setCurrentView("chat")} 
+            onSuccess={() => { 
+              refreshData(); 
+              setCurrentView("chat"); 
+            }} 
+          />
+        );
+        
       default:
         return (
-          // แทนบรรทัดเดิมที่ส่ง messages ไปให้ ChatWindow
           <ChatWindow
             conversation={selectedConversation}
             messages={
@@ -553,6 +580,21 @@ const Chat = () => {
           {currentUser?.username?.charAt(0).toUpperCase() || "U"}
         </div>
 
+        {/* ✅ ปุ่มสร้างกลุ่ม (SVG ไอคอนรูปคนซ้อนกัน) */}
+        <div 
+          className="sidebar-icon-btn" 
+          onClick={() => setCurrentView("create_group")}
+          title="Create Group"
+          style={{ marginTop: '10px' }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+
         {/* ✅ ปุ่มกระดิ่ง SVG พร้อมจุดแจ้งเตือน */}
         <div
           className="sidebar-icon-btn"
@@ -561,6 +603,7 @@ const Chat = () => {
             setHasNewRequest(false);
           }}
           title="Notifications"
+          style={{ marginTop: '10px' }}
         >
           <svg
             viewBox="0 0 24 24"
