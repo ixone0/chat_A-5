@@ -625,7 +625,8 @@ def handle_client(conn, addr):
 
                         # 🔥 หาอีกฝั่ง
                         conversation_id = pkt.get("conversation_id")
-                        print(f"[RELAY OFFER] Conversation ID: {conversation_id}")
+                        call_type = pkt.get("call_type", "audio")  # ✅ Get call type
+                        print(f"[RELAY OFFER] Conversation ID: {conversation_id}, Call Type: {call_type}")
                         
                         try:
                             members = get_conversation_members_service(conversation_id)
@@ -639,7 +640,9 @@ def handle_client(conn, addr):
                                     send_packet(online_users[user], {
                                         "type": "webrtc_offer",
                                         "call_id": call_id,
-                                        "offer": offer
+                                        "offer": offer,
+                                        "conversation_id": conversation_id,
+                                        "call_type": call_type  # ✅ Include call type
                                     })
                                     print(f"[RELAY OFFER] >>> Sent to {user}")
                             print("[RELAY OFFER] Done relaying")

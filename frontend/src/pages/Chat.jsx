@@ -145,25 +145,42 @@ const Chat = () => {
 
     pc.ontrack = (event) => {
       console.log("ONTRACK FIRED", event.streams[0]);
-      const audio = document.createElement("audio");
-      audio.autoplay = true;
-      audio.playsInline = true;
-      audio.muted = false;
-      audio.srcObject = event.streams[0];
-      audio.volume = 1.0;
       
-      setTimeout(() => {
-        audio.play().then(() => {
-          console.log("✅ Audio playing successfully");
-        }).catch(err => {
-          console.error("❌ Audio play error:", err);
-          document.addEventListener('click', () => {
-            audio.play().catch(console.error);
-          }, { once: true });
-        });
-      }, 100);
-      
-      document.body.appendChild(audio);
+      if (callTypeRef.current === 'video') {
+        // ✅ Video call: show video
+        const video = document.createElement("video");
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = false;
+        video.srcObject = event.streams[0];
+        video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
+        
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.innerHTML = '';
+          remoteVideoRef.current.appendChild(video);
+        }
+      } else {
+        // 🔊 Audio call: just play audio
+        const audio = document.createElement("audio");
+        audio.autoplay = true;
+        audio.playsInline = true;
+        audio.muted = false;
+        audio.srcObject = event.streams[0];
+        audio.volume = 1.0;
+        
+        setTimeout(() => {
+          audio.play().then(() => {
+            console.log("✅ Audio playing successfully");
+          }).catch(err => {
+            console.error("❌ Audio play error:", err);
+            document.addEventListener('click', () => {
+              audio.play().catch(console.error);
+            }, { once: true });
+          });
+        }, 100);
+        
+        document.body.appendChild(audio);
+      }
     };
 
     pc.onicecandidate = (event) => {
@@ -172,7 +189,7 @@ const Chat = () => {
         window.electronAPI.sendRealtime({
           type: "ice_candidate",
           call_id,
-          conversation_id,
+          conversation_id: currentCallConversationRef.current,
           candidate: {
             candidate: event.candidate.candidate,
             sdpMid: event.candidate.sdpMid,
@@ -182,18 +199,34 @@ const Chat = () => {
       }
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: true, 
+      video: callTypeRef.current === 'video' ? { width: 640, height: 480 } : false 
+    });
     stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+    // ✅ Show local video if video call
+    if (callTypeRef.current === 'video' && localVideoRef.current) {
+      const video = document.createElement("video");
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = true; // Mute self
+      video.srcObject = stream;
+      video.style.cssText = "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
+      localVideoRef.current.innerHTML = '';
+      localVideoRef.current.appendChild(video);
+    }
 
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
+    console.log("📤 SENDING ANSWER TO BACKEND", { call_id, conversation_id: currentCallConversationRef.current });
     window.electronAPI.sendRealtime({
       type: "webrtc_answer",
       call_id,
-      conversation_id: selectedConversation.id,
+      conversation_id: currentCallConversationRef.current,
       answer
     });
 
@@ -204,8 +237,13 @@ const Chat = () => {
     if (!window.electronAPI) return;
 
     const handleOffer = async (data) => {
-      console.log("RECEIVED WEBRTC OFFER", data.call_id);
-      const pc = await handleOfferLogic(data.offer, data.call_id , selectedConversation.id);
+      console.log("RECEIVED WEBRTC OFFER", data.call_id, { call_type: data.call_type });
+      
+      // ✅ Set conversation and call type from incoming offer
+      currentCallConversationRef.current = data.conversation_id;
+      callTypeRef.current = data.call_type || 'audio';
+      
+      const pc = await handleOfferLogic(data.offer, data.call_id, data.conversation_id);
       console.log("ANSWER CREATED", data.call_id);
       setActiveCall({ call_id: data.call_id, pc });
     };
@@ -287,7 +325,10 @@ const Chat = () => {
           console.error("❌ No conversation ID for call answered");
           return;
         }
-        const pc = await startWebRTC(data.call_id, convId);
+        
+        // ✅ Pass call type to startWebRTC for caller side
+        const callType = callTypeRef.current || data.call_type || 'audio';
+        const pc = await startWebRTC(data.call_id, convId, callType);
         setActiveCall({ call_id: data.call_id, pc });
       } else {
         // ฝั่งรับสาย ไม่ต้องสร้าง offer
@@ -321,6 +362,7 @@ const Chat = () => {
     if (!selectedConversation) return;
     isCallerRef.current = true;
     currentCallConversationRef.current = selectedConversation.id; // ✅ บันทึกตรงนี้
+    callTypeRef.current = type; // ✅ Set call type ref for caller
     // ✅ set ทันที
     setCalling({
       call_id: "temp",   // temporary
@@ -352,6 +394,7 @@ const Chat = () => {
     isCallerRef.current = false;
     // ✅ บันทึก conversation_id เมื่อ callee ตอบรับ
     currentCallConversationRef.current = incomingCall.conversation_id;
+    callTypeRef.current = incomingCall.call_type || 'audio'; // ✅ Set call type from incoming call
     await window.electronAPI.answerCall(incomingCall.call_id);
     console.log("WAITING FOR OFFER...");
     // ❌ ไม่ต้อง setActiveCall ตรงนี้
@@ -793,8 +836,38 @@ const Chat = () => {
 
       {activeCall && (
         <div className="call-modal">
-          <div className="call-box">
+          <div className="call-box" style={{ position: 'relative', width: '100%', height: '100%' }}>
             <h2>📞 In Call</h2>
+            
+            {/* ✅ Remote Video Container */}
+            <div 
+              ref={remoteVideoRef} 
+              style={{
+                width: '100%',
+                height: '400px',
+                backgroundColor: '#000',
+                borderRadius: '8px',
+                marginBottom: '10px',
+                overflow: 'hidden'
+              }}
+            />
+            
+            {/* ✅ Local Video Container (Picture-in-Picture) */}
+            <div 
+              ref={localVideoRef} 
+              style={{
+                position: 'absolute',
+                bottom: '100px',
+                right: '20px',
+                width: '150px',
+                height: '120px',
+                backgroundColor: '#000',
+                borderRadius: '8px',
+                border: '2px solid #fff',
+                overflow: 'hidden'
+              }}
+            />
+            
             <p>Call ID: {activeCall.call_id}</p>
 
             <button onClick={() => endCall(activeCall.call_id)}>
