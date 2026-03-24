@@ -28,6 +28,7 @@ const Chat = () => {
   const [activeCall, setActiveCall] = useState(null);
   const isCallerRef = useRef(false);
   const pendingCandidatesRef = useRef([]);
+  const currentCallConversationRef = useRef(null); // ✅ เก็บ conversation_id ของการโทรปัจจุบัน
   const refreshData = async () => {
 
     if (!window.electronAPI) return;
@@ -46,7 +47,7 @@ const Chat = () => {
 
   const pcRef = useRef(null);
   
-  const startWebRTC = async (call_id) => {
+  const startWebRTC = async (call_id, conversation_id) => {
     console.log("START WEBRTC CALLED", call_id);
     if (pcRef.current) {
       pcRef.current.close();
@@ -71,9 +72,22 @@ const Chat = () => {
       const audio = document.createElement("audio");
       audio.autoplay = true;
       audio.playsInline = true;
+      audio.muted = false;
       audio.srcObject = event.streams[0];
+      audio.volume = 1.0;
+      
+      setTimeout(() => {
+        audio.play().then(() => {
+          console.log("✅ Audio playing successfully");
+        }).catch(err => {
+          console.error("❌ Audio play error:", err);
+          document.addEventListener('click', () => {
+            audio.play().catch(console.error);
+          }, { once: true });
+        });
+      }, 100);
+      
       document.body.appendChild(audio);
-      audio.play().catch(console.error);
     };
 
     pc.onicecandidate = (event) => {
@@ -82,7 +96,7 @@ const Chat = () => {
         window.electronAPI.sendRealtime({
           type: "ice_candidate",
           call_id,
-          conversation_id: selectedConversation.id,
+          conversation_id,
           candidate: {
             candidate: event.candidate.candidate,
             sdpMid: event.candidate.sdpMid,
@@ -97,17 +111,18 @@ const Chat = () => {
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
+    console.log("📤 SENDING OFFER TO BACKEND", { call_id, conversation_id });
     window.electronAPI.sendRealtime({
       type: "webrtc_offer",
       call_id,
-      conversation_id: selectedConversation.id,
+      conversation_id,
       offer
     });
     console.log("OFFER SENT", call_id);
     return pc;
   };
 
-  const handleOfferLogic = async (offer, call_id) => {
+  const handleOfferLogic = async (offer, call_id, conversation_id) => {
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -131,9 +146,22 @@ const Chat = () => {
       const audio = document.createElement("audio");
       audio.autoplay = true;
       audio.playsInline = true;
+      audio.muted = false;
       audio.srcObject = event.streams[0];
+      audio.volume = 1.0;
+      
+      setTimeout(() => {
+        audio.play().then(() => {
+          console.log("✅ Audio playing successfully");
+        }).catch(err => {
+          console.error("❌ Audio play error:", err);
+          document.addEventListener('click', () => {
+            audio.play().catch(console.error);
+          }, { once: true });
+        });
+      }, 100);
+      
       document.body.appendChild(audio);
-      audio.play().catch(console.error);
     };
 
     pc.onicecandidate = (event) => {
@@ -142,7 +170,7 @@ const Chat = () => {
         window.electronAPI.sendRealtime({
           type: "ice_candidate",
           call_id,
-          conversation_id: selectedConversation.id,
+          conversation_id,
           candidate: {
             candidate: event.candidate.candidate,
             sdpMid: event.candidate.sdpMid,
@@ -175,7 +203,7 @@ const Chat = () => {
 
     const handleOffer = async (data) => {
       console.log("RECEIVED WEBRTC OFFER", data.call_id);
-      const pc = await handleOfferLogic(data.offer, data.call_id);
+      const pc = await handleOfferLogic(data.offer, data.call_id , selectedConversation.id);
       console.log("ANSWER CREATED", data.call_id);
       setActiveCall({ call_id: data.call_id, pc });
     };
@@ -187,6 +215,19 @@ const Chat = () => {
       await pcRef.current.setRemoteDescription(
         new RTCSessionDescription(data.answer)
       );
+
+      // ✅ Add pending candidates ที่สะสมไว้ระหว่างรอ answer
+      for (const candidate of pendingCandidatesRef.current) {
+        try {
+          await pcRef.current.addIceCandidate(
+            new RTCIceCandidate(candidate)
+          );
+          console.log("✅ Added pending candidate");
+        } catch (err) {
+          console.error("❌ Failed to add pending candidate:", err);
+        }
+      }
+      pendingCandidatesRef.current = [];
     };
 
     const handleCandidate = async (data) => {
@@ -239,7 +280,12 @@ const Chat = () => {
 
       // เฉพาะคนโทร (caller) เท่านั้นที่สร้าง offer
       if (isCallerRef.current) {
-        const pc = await startWebRTC(data.call_id);
+        const convId = currentCallConversationRef.current || selectedConversation?.id;
+        if (!convId) {
+          console.error("❌ No conversation ID for call answered");
+          return;
+        }
+        const pc = await startWebRTC(data.call_id, convId);
         setActiveCall({ call_id: data.call_id, pc });
       } else {
         // ฝั่งรับสาย ไม่ต้องสร้าง offer
@@ -272,6 +318,7 @@ const Chat = () => {
   const startCall = async (type) => {
     if (!selectedConversation) return;
     isCallerRef.current = true;
+    currentCallConversationRef.current = selectedConversation.id; // ✅ บันทึกตรงนี้
     // ✅ set ทันที
     setCalling({
       call_id: "temp",   // temporary
@@ -301,6 +348,8 @@ const Chat = () => {
   const acceptCall = async () => {
     if (!incomingCall) return;
     isCallerRef.current = false;
+    // ✅ บันทึก conversation_id เมื่อ callee ตอบรับ
+    currentCallConversationRef.current = incomingCall.conversation_id;
     await window.electronAPI.answerCall(incomingCall.call_id);
     console.log("WAITING FOR OFFER...");
     // ❌ ไม่ต้อง setActiveCall ตรงนี้
@@ -309,9 +358,10 @@ const Chat = () => {
 
   const endCall = async (callId) => {
     await window.electronAPI.endCall(callId);
-
     setActiveCall(null);
     setCalling(null);
+    isCallerRef.current = false;
+    currentCallConversationRef.current = null; // ✅ ล้างตรงนี้
   };
   useEffect(() => {
     selectedConvRef.current = selectedConversation;

@@ -517,19 +517,28 @@ def handle_client(conn, addr):
                         call_id = pkt.get("call_id")
                         offer = pkt.get("offer")
 
-                        print("RELAY OFFER", call_id)
+                        print("[RELAY OFFER] Received offer:", call_id)
 
                         # 🔥 หาอีกฝั่ง
                         conversation_id = pkt.get("conversation_id")
-                        members = get_conversation_members_service(conversation_id)
-
-                        for user in members:
-                            if user != user_id and user in online_users:
-                                send_packet(online_users[user], {
-                                    "type": "webrtc_offer",
-                                    "call_id": call_id,
-                                    "offer": offer
-                                })
+                        print(f"[RELAY OFFER] conversation_id: {conversation_id}, caller user_id: {user_id}")
+                        
+                        try:
+                            members = get_conversation_members_service(conversation_id)
+                            print(f"[RELAY OFFER] Members in conversation: {members}")
+                            
+                            for user in members:
+                                print(f"[RELAY OFFER] Checking user: {user}, is_caller: {user == user_id}, is_online: {user in online_users}")
+                                if user != user_id and user in online_users:
+                                    print(f"[RELAY OFFER] Sending offer to {user}")
+                                    send_packet(online_users[user], {
+                                        "type": "webrtc_offer",
+                                        "call_id": call_id,
+                                        "offer": offer
+                                    })
+                            print(f"[RELAY OFFER] Done relaying offer")
+                        except Exception as e:
+                            print(f"[ERROR RELAY OFFER] {traceback.format_exc()}")
                     elif pkt_type == "webrtc_answer":
                         call_id = pkt.get("call_id")
                         answer = pkt.get("answer")
