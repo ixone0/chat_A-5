@@ -177,6 +177,54 @@ function getMyConversations() {
   return send({ type: 'get_my_conversations' });
 }
 
+const fs = require('fs');
+const path = require('path');
+ 
+
+
+/**
+ * @param {string} conversationId
+ * @param {string} filePath
+ */
+function sendFile(conversationId, filePath) {
+  // 1. อ่านไฟล์เป็น Buffer แล้วแปลงเป็น base64
+  const fileBuffer = fs.readFileSync(filePath);
+ 
+  // 2. ตรวจขนาด (10 MB) ที่ฝั่ง client ก่อนส่งเลย
+  const MAX_SIZE = 10 * 1024 * 1024;
+  if (fileBuffer.length > MAX_SIZE) {
+    return Promise.reject(new Error('File too large (max 10MB)'));
+  }
+ 
+  const base64Data = fileBuffer.toString('base64');
+  const fileName   = path.basename(filePath);
+ 
+  // 3. เดา mime type จาก extension (เบื้องต้น)
+  const mimeMap = {
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+    gif: 'image/gif',  webp: 'image/webp', svg: 'image/svg+xml',
+    mp4: 'video/mp4',  mov: 'video/quicktime',
+    pdf: 'application/pdf',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    txt: 'text/plain', zip: 'application/zip',
+    mp3: 'audio/mpeg', wav: 'audio/wav',
+  };
+  const ext      = fileName.split('.').pop().toLowerCase();
+  const mimeType = mimeMap[ext] || 'application/octet-stream';
+ 
+  // 4. ส่งผ่าน TCP แบบเดิม
+  return send({
+    type: 'send_file',
+    conversation_id: conversationId,
+    file_name: fileName,
+    mime_type: mimeType,
+    data: base64Data,
+  });
+}
+
 function getMessages(conversation_id) {
   return send({ type: 'get_messages', conversation_id });
 }
@@ -216,5 +264,6 @@ module.exports = {
   getMessages,
   startCall,
   answerCall,
-  endCall
+  endCall,
+  sendFile
 };

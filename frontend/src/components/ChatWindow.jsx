@@ -1,6 +1,7 @@
 //ChatWindows.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./ChatWindow.css";
+import MessageAttachment from "./MessageAttachment";
 
 const ChatWindow = ({
   conversation = null,
@@ -46,6 +47,8 @@ const ChatWindow = ({
           text: content,
           time,
           sender,
+          msg_type: m.msg_type ?? "text",       
+          attachment: m.attachment ?? null,
         };
       });
   }, [rawMsgs, currentUserId]);
@@ -152,6 +155,7 @@ const ChatWindow = ({
 
               <div className="chat-bubble">
                 <p className="msg-text">{msg.text}</p>
+                {msg.attachment && <MessageAttachment attachment={msg.attachment} />}
                 <span className="msg-time">{msg.time}</span>
               </div>
             </div>
@@ -162,6 +166,14 @@ const ChatWindow = ({
       {/* --- Input Area (Modern Style) --- */}
       <form className="chat-input-area" onSubmit={handleSend}>
         <div className="input-wrapper">
+            <button
+                type="button"
+                className="icon-attach-btn"
+                onClick={() => window.electronAPI.sendFile(selected?.id)}
+                title="Attach file"
+              >
+                📎
+              </button>
             <input
               type="text"
               placeholder={`Message @${headerName}`}

@@ -1,3 +1,4 @@
+///pages/Chat.jsx
 import React, { useState, useEffect, useRef } from "react";
 import "./Chat.css";
 

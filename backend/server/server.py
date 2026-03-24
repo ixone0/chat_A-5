@@ -13,6 +13,8 @@ from services.message_service import (
     create_message_service,
     get_conversation_members_service
 )
+from services.s3_service import upload_file_to_s3
+from repository.attachment_repo import insert_attachment
 from services.call_service import (
     start_call_service,
     join_call_service,
@@ -328,7 +330,7 @@ def handle_client(conn, addr):
                                     pass
 
                     # ---------------- GET MY CONVERSATIONS ----------------
-                                        # ---------------- GET MY CONVERSATIONS ----------------
+                    
                     elif pkt_type == "get_my_conversations":
                         # ถ้าไม่ล็อกอิน
                         if not user_id:
@@ -404,6 +406,112 @@ def handle_client(conn, addr):
                                 "request_id": request_id,
                                 "status": "error",
                                 "message": str(e)
+                            })
+                    # ---------------- SEND FILE ----------------
+                    elif pkt_type == "send_file":
+                        """
+                        pkt คาดหวัง:
+                        {
+                            "type": "send_file",
+                            "conversation_id": "<uuid>",
+                            "file_name": "photo.jpg",
+                            "mime_type": "image/jpeg",
+                            "data": "<base64 string>"   ← ตัวไฟล์
+                        }
+                        """
+                        if not user_id:
+                            send_packet(conn, {
+                                "type": "send_file_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Unauthorized"
+                            })
+                            continue
+ 
+                        conversation_id = pkt.get("conversation_id")
+                        file_name       = pkt.get("file_name", "file")
+                        mime_type       = pkt.get("mime_type", "application/octet-stream")
+                        b64_data        = pkt.get("data", "")
+ 
+                        if not conversation_id or not b64_data:
+                            send_packet(conn, {
+                                "type": "send_file_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Missing conversation_id or file data"
+                            })
+                            continue
+ 
+                        try:
+                            # 1. Upload ไฟล์ขึ้น S3
+                            s3_result = upload_file_to_s3(
+                                b64_data, file_name, mime_type, user_id
+                            )
+ 
+                            # 2. สร้าง message ประเภท "file" ใน DB
+                            message = create_message_service(
+                                conversation_id, user_id,
+                                content=s3_result["file_url"],  # เก็บ URL ใน content
+                            )
+ 
+                            # override msg_type เป็น file
+                            # (create_message_service เก็บ msg_type='text' ตอนนี้)
+                            # แก้ใน message_repo ด้วยถ้าต้องการเก็บ msg_type='file'
+                            message["msg_type"] = "file"
+ 
+                            # 3. บันทึก attachment metadata
+                            attachment = insert_attachment(
+                                message_id=str(message["id"]),
+                                file_name=file_name,
+                                s3_key=s3_result["s3_key"],
+                                file_url=s3_result["file_url"],
+                                mime_type=mime_type,
+                                file_size=s3_result["file_size"]
+                            )
+ 
+                            message["attachment"] = attachment
+ 
+                            # 4. ตอบกลับ sender
+                            send_packet(conn, {
+                                "type": "send_file_response",
+                                "request_id": request_id,
+                                "status": "success",
+                                "message": message
+                            })
+ 
+                            # 5. Broadcast ไปสมาชิกในห้อง
+                            try:
+                                members = get_conversation_members_service(conversation_id)
+                            except Exception:
+                                members = []
+ 
+                            for member_id in members:
+                                member_id = str(member_id)
+                                if member_id != user_id and member_id in online_users:
+                                    try:
+                                        send_packet(online_users[member_id], {
+                                            "type": "receive_message",
+                                            "conversation_id": conversation_id,
+                                            "message": message
+                                        })
+                                    except Exception:
+                                        pass
+ 
+                        except ValueError as ve:
+                            # ไฟล์ใหญ่เกินหรือ base64 ผิด
+                            send_packet(conn, {
+                                "type": "send_file_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": str(ve)
+                            })
+                        except Exception:
+                            print(f"[EXC send_file] {traceback.format_exc()}")
+                            send_packet(conn, {
+                                "type": "send_file_response",
+                                "request_id": request_id,
+                                "status": "error",
+                                "message": "Server error during file upload"
                             })
 
                     # ---------------- GET FRIENDS ----------------
