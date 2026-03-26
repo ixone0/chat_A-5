@@ -80,16 +80,36 @@ const Chat = () => {
       
       if (call_type === 'video') {
         // ✅ Video call: show video
-        const video = document.createElement("video");
-        video.autoplay = true;
-        video.playsInline = true;
-        video.muted = false;
-        video.srcObject = event.streams[0];
-        video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
-        
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.innerHTML = '';
-          remoteVideoRef.current.appendChild(video);
+        try {
+          const video = document.createElement("video");
+          video.autoplay = true;
+          video.playsInline = true;
+          video.muted = false;
+          video.srcObject = event.streams[0];
+          video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
+          
+          // Try to play video
+          video.play().catch(err => {
+            console.warn("⚠️ Failed to auto-play remote video (caller):", err);
+          });
+          
+          video.onloadedmetadata = () => {
+            console.log("✅ Remote video metadata loaded (caller)");
+          };
+          
+          video.onerror = (err) => {
+            console.error("❌ Remote video error:", err);
+          };
+          
+          if (remoteVideoRef.current) {
+            console.log("✅ Appending remote video to container (caller)");
+            remoteVideoRef.current.innerHTML = '';
+            remoteVideoRef.current.appendChild(video);
+          } else {
+            console.error("❌ remoteVideoRef.current is null (caller)");
+          }
+        } catch (err) {
+          console.error("❌ Error creating remote video (caller):", err);
         }
       } else {
         // 🔊 Audio call: just play audio
@@ -135,8 +155,23 @@ const Chat = () => {
       ? { audio: true, video: { width: 640, height: 480 } }
       : { audio: true };
       
-    const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+    } catch (err) {
+      console.error("❌ getUserMedia error (caller):", err);
+      return pc;
+    }
+    
+    // ✅ Validate stream has tracks
+    const tracks = stream.getTracks();
+    console.log("📊 Stream tracks (caller):", tracks.length, tracks.map(t => t.kind));
+    if (tracks.length === 0) {
+      console.error("❌ Stream has no tracks!");
+      return pc;
+    }
+    
+    tracks.forEach(track => pc.addTrack(track, stream));
 
     // ✅ Show local video if video call
     if (call_type === 'video' && localVideoRef.current) {
@@ -146,21 +181,32 @@ const Chat = () => {
       video.muted = true; // Mute self
       video.srcObject = stream;
       video.style.cssText = "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
+      
+      // Try to play video
+      video.play().catch(err => {
+        console.warn("⚠️ Failed to auto-play local video (caller):", err);
+      });
+      
       localVideoRef.current.innerHTML = '';
       localVideoRef.current.appendChild(video);
+      console.log("✅ Local video appended (caller)");
     }
 
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    console.log("📤 SENDING OFFER TO BACKEND", { call_id, conversation_id, call_type });
-    window.electronAPI.sendRealtime({
-      type: "webrtc_offer",
-      call_id,
-      conversation_id,
-      offer,
-      call_type
-    });
-    console.log("OFFER SENT", call_id);
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      console.log("📤 SENDING OFFER TO BACKEND", { call_id, conversation_id, call_type });
+      window.electronAPI.sendRealtime({
+        type: "webrtc_offer",
+        call_id,
+        conversation_id,
+        offer,
+        call_type
+      });
+      console.log("OFFER SENT", call_id);
+    } catch (err) {
+      console.error("❌ Error creating/sending offer:", err);
+    }
     return pc;
   };
 
@@ -188,16 +234,36 @@ const Chat = () => {
       
       if (callTypeRef.current === 'video') {
         // ✅ Video call: show video
-        const video = document.createElement("video");
-        video.autoplay = true;
-        video.playsInline = true;
-        video.muted = false;
-        video.srcObject = event.streams[0];
-        video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
-        
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.innerHTML = '';
-          remoteVideoRef.current.appendChild(video);
+        try {
+          const video = document.createElement("video");
+          video.autoplay = true;
+          video.playsInline = true;
+          video.muted = false;
+          video.srcObject = event.streams[0];
+          video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
+          
+          // Try to play video
+          video.play().catch(err => {
+            console.warn("⚠️ Failed to auto-play remote video (callee):", err);
+          });
+          
+          video.onloadedmetadata = () => {
+            console.log("✅ Remote video metadata loaded (callee)");
+          };
+          
+          video.onerror = (err) => {
+            console.error("❌ Remote video error:", err);
+          };
+          
+          if (remoteVideoRef.current) {
+            console.log("✅ Appending remote video to container (callee)");
+            remoteVideoRef.current.innerHTML = '';
+            remoteVideoRef.current.appendChild(video);
+          } else {
+            console.error("❌ remoteVideoRef.current is null (callee)");
+          }
+        } catch (err) {
+          console.error("❌ Error creating remote video (callee):", err);
         }
       } else {
         // 🔊 Audio call: just play audio
@@ -239,11 +305,27 @@ const Chat = () => {
       }
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      audio: true, 
-      video: callTypeRef.current === 'video' ? { width: 640, height: 480 } : false 
-    });
-    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true, 
+        video: callTypeRef.current === 'video' ? { width: 640, height: 480 } : false 
+      });
+    } catch (err) {
+      console.error("❌ getUserMedia error (callee):", err);
+      alert("Cannot access camera: " + err.message);
+      return pc;
+    }
+    
+    // ✅ Validate stream has tracks
+    const tracks = stream.getTracks();
+    console.log("📊 Stream tracks (callee):", tracks.length, tracks.map(t => t.kind));
+    if (tracks.length === 0) {
+      console.error("❌ Stream has no tracks!");
+      return pc;
+    }
+    
+    tracks.forEach(track => pc.addTrack(track, stream));
 
     // ✅ Show local video if video call
     if (callTypeRef.current === 'video' && localVideoRef.current) {
@@ -253,22 +335,37 @@ const Chat = () => {
       video.muted = true; // Mute self
       video.srcObject = stream;
       video.style.cssText = "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
+      console.log("✅ Creating local video element (callee)");
+      
+      // Try to play video
+      video.play().catch(err => {
+        console.warn("⚠️ Failed to auto-play local video (callee):", err);
+      });
+      
+      video.onloadedmetadata = () => {
+        console.log("✅ Local video metadata loaded (callee)");
+      };
+      
       localVideoRef.current.innerHTML = '';
       localVideoRef.current.appendChild(video);
     }
 
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
 
-    console.log("📤 SENDING ANSWER TO BACKEND", { call_id, conversation_id: currentCallConversationRef.current });
-    window.electronAPI.sendRealtime({
-      type: "webrtc_answer",
-      call_id,
-      conversation_id: currentCallConversationRef.current,
-      answer
-    });
+      console.log("📤 SENDING ANSWER TO BACKEND", { call_id, conversation_id: currentCallConversationRef.current });
+      window.electronAPI.sendRealtime({
+        type: "webrtc_answer",
+        call_id,
+        conversation_id: currentCallConversationRef.current,
+        answer
+      });
+    } catch (err) {
+      console.error("❌ Error creating/sending answer:", err);
+    }
 
     return pc;
   };
@@ -285,7 +382,7 @@ const Chat = () => {
       
       const pc = await handleOfferLogic(data.offer, data.call_id, data.conversation_id);
       console.log("ANSWER CREATED", data.call_id);
-      setActiveCall({ call_id: data.call_id, pc });
+      setActiveCall({ call_id: data.call_id, pc, call_type: data.call_type || 'audio' });
     };
 
     const handleAnswer = async (data) => {
@@ -316,9 +413,14 @@ const Chat = () => {
         return;
       }
 
-      await pcRef.current.addIceCandidate(
-        new RTCIceCandidate(data.candidate)
-      );
+      try {
+        await pcRef.current.addIceCandidate(
+          new RTCIceCandidate(data.candidate)
+        );
+        console.log("✅ Added ICE candidate");
+      } catch (err) {
+        console.error("❌ Failed to add ICE candidate:", err);
+      }
     };
 
     const offOffer = window.electronAPI.onWebRTCOffer(handleOffer);
@@ -369,10 +471,10 @@ const Chat = () => {
         // ✅ Pass call type to startWebRTC for caller side
         const callType = callTypeRef.current || data.call_type || 'audio';
         const pc = await startWebRTC(data.call_id, convId, callType);
-        setActiveCall({ call_id: data.call_id, pc });
+        setActiveCall({ call_id: data.call_id, pc, call_type: callType });
       } else {
         // ฝั่งรับสาย ไม่ต้องสร้าง offer
-        setActiveCall({ call_id: data.call_id });
+        setActiveCall({ call_id: data.call_id, call_type: callTypeRef.current || 'audio' });
       }
     };
 
@@ -896,7 +998,7 @@ const Chat = () => {
             {/* ✅ Call Duration Display */}
             <div style={{
               position: 'absolute',
-              top: '60px',
+              top: activeCall.call_type === 'video' ? '60px' : '20px',
               left: '50%',
               transform: 'translateX(-50%)',
               backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -910,34 +1012,39 @@ const Chat = () => {
               ⏱️ {String(Math.floor(callElapsedTime / 60)).padStart(2, '0')}:{String(callElapsedTime % 60).padStart(2, '0')}
             </div>
             
-            {/* ✅ Remote Video Container */}
-            <div 
-              ref={remoteVideoRef} 
-              style={{
-                width: '100%',
-                height: '400px',
-                backgroundColor: '#000',
-                borderRadius: '8px',
-                marginBottom: '10px',
-                overflow: 'hidden'
-              }}
-            />
-            
-            {/* ✅ Local Video Container (Picture-in-Picture) */}
-            <div 
-              ref={localVideoRef} 
-              style={{
-                position: 'absolute',
-                bottom: '100px',
-                right: '20px',
-                width: '150px',
-                height: '120px',
-                backgroundColor: '#000',
-                borderRadius: '8px',
-                border: '2px solid #fff',
-                overflow: 'hidden'
-              }}
-            />
+            {/* ✅ Show video containers ONLY for video calls */}
+            {activeCall.call_type === 'video' && (
+              <>
+                {/* Remote Video Container */}
+                <div 
+                  ref={remoteVideoRef} 
+                  style={{
+                    width: '100%',
+                    height: '400px',
+                    backgroundColor: '#000',
+                    borderRadius: '8px',
+                    marginBottom: '10px',
+                    overflow: 'hidden'
+                  }}
+                />
+                
+                {/* Local Video Container (Picture-in-Picture) */}
+                <div 
+                  ref={localVideoRef} 
+                  style={{
+                    position: 'absolute',
+                    bottom: '100px',
+                    right: '20px',
+                    width: '150px',
+                    height: '120px',
+                    backgroundColor: '#000',
+                    borderRadius: '8px',
+                    border: '2px solid #fff',
+                    overflow: 'hidden'
+                  }}
+                />
+              </>
+            )}
             
             <p>Call ID: {activeCall.call_id}</p>
 
