@@ -2,7 +2,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  send: (data) => ipcRenderer.send("tcp-send", data),
+
   login: (data) => ipcRenderer.invoke('login-request', data),
 
   register: (data) => ipcRenderer.invoke('register-request', data),

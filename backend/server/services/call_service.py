@@ -4,7 +4,8 @@ from repository.call_repo import (
     join_call,
     leave_call,
     end_call,
-    get_call_by_id
+    get_call_by_id,
+    get_call_participants
 )
 
 from repository.conversation_repo import get_other_user
@@ -112,12 +113,30 @@ def leave_call_service(pkt, user_id):
         "status": "success"
     }
 
-
 def end_call_service(pkt, user_id):
     call_id = pkt.get("call_id")
 
+    # 1) end call ใน DB
     end_call(call_id)
 
+    # 2) หา participant ทุกคนในสาย
+    participants = get_call_participants(call_id)
+
+    payload = {
+        "type": "call_ended",
+        "call_id": call_id
+    }
+
+    # 3) broadcast ไปทุกคน (รวมคนกดด้วยก็ได้ หรือจะ skip ก็ได้)
+    for uid in participants:
+        conn = online_users.get(uid)  # ต้องมี mapping user_id -> connection
+        if conn:
+            try:
+                send_packet(conn, payload)
+            except Exception as e:
+                print(f"❌ send call_ended failed to {uid}: {e}")
+
+    # 4) response กลับคนที่กด (optional)
     return {
         "type": "end_call_response",
         "status": "success"

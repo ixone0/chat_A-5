@@ -32,6 +32,14 @@ const Chat = () => {
   const isCallerRef = useRef(false);
   const pendingCandidatesRef = useRef([]);
   const currentCallConversationRef = useRef(null); // ✅ เก็บ conversation_id ของการโทรปัจจุบัน
+  const pcRef = useRef(null);
+  const localVideoRef = useRef(null);      // ✅ Container for local video
+  const remoteVideoRef = useRef(null);     // ✅ Container for remote video
+  const callTypeRef = useRef(null);        // ✅ Track 'audio' or 'video' mode
+  
+  const localStreamRef = useRef(null);
+  const remoteMediaRef = useRef(null); // เก็บ remote <audio> หรือ <video>
+  const [isMicMuted, setIsMicMuted] = useState(false);
   const refreshData = async () => {
 
     if (!window.electronAPI) return;
@@ -47,12 +55,96 @@ const Chat = () => {
       console.error("Refresh Error:", err);
     }
   };
-
-  const pcRef = useRef(null);
-  const localVideoRef = useRef(null);      // ✅ Container for local video
-  const remoteVideoRef = useRef(null);     // ✅ Container for remote video
-  const callTypeRef = useRef(null);        // ✅ Track 'audio' or 'video' mode
   
+  const cleanupCall = () => {
+    try {
+      // ปิด local tracks จริง
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => {
+          try {
+            track.stop();
+          } catch (e) {
+            console.warn("Failed to stop local track:", e);
+          }
+        });
+        localStreamRef.current = null;
+      }
+
+      // ลบ remote media element
+      if (remoteMediaRef.current) {
+        try {
+          remoteMediaRef.current.pause?.();
+          remoteMediaRef.current.srcObject = null;
+          remoteMediaRef.current.remove?.();
+        } catch (e) {
+          console.warn("Failed to cleanup remote media:", e);
+        }
+        remoteMediaRef.current = null;
+      }
+
+      // ล้าง video containers
+      if (localVideoRef.current) {
+        localVideoRef.current.innerHTML = "";
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.innerHTML = "";
+      }
+
+      // ปิด peer connection จริง
+      if (pcRef.current) {
+        try {
+          pcRef.current.getSenders?.().forEach((sender) => {
+            try {
+              sender.track?.stop?.();
+            } catch (e) {}
+          });
+
+          pcRef.current.getReceivers?.().forEach((receiver) => {
+            try {
+              receiver.track?.stop?.();
+            } catch (e) {}
+          });
+
+          pcRef.current.getTransceivers?.().forEach((transceiver) => {
+            try {
+              transceiver.stop?.();
+            } catch (e) {}
+          });
+
+          pcRef.current.ontrack = null;
+          pcRef.current.onicecandidate = null;
+          pcRef.current.close();
+        } catch (e) {
+          console.warn("Failed to close peer connection:", e);
+        }
+
+        pcRef.current = null;
+      }
+
+      pendingCandidatesRef.current = [];
+      currentCallConversationRef.current = null;
+      callTypeRef.current = null;
+      setIsMicMuted(false);
+    } catch (err) {
+      console.error("cleanupCall error:", err);
+    }
+  };
+
+  const toggleMic = () => {
+    const stream = localStreamRef.current;
+    if (!stream) return;
+
+    const audioTracks = stream.getAudioTracks();
+    if (!audioTracks.length) return;
+
+    const nextMuted = !isMicMuted;
+    audioTracks.forEach((track) => {
+      track.enabled = !nextMuted;
+    });
+
+    setIsMicMuted(nextMuted);
+  };
+
   const startWebRTC = async (call_id, conversation_id, call_type = 'audio') => {
     console.log("START WEBRTC CALLED", { call_id, call_type });
     callTypeRef.current = call_type;
@@ -158,6 +250,8 @@ const Chat = () => {
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      localStreamRef.current = stream;
+      setIsMicMuted(false);
     } catch (err) {
       console.error("❌ getUserMedia error (caller):", err);
       return pc;
@@ -266,14 +360,15 @@ const Chat = () => {
           console.error("❌ Error creating remote video (callee):", err);
         }
       } else {
-        // 🔊 Audio call: just play audio
         const audio = document.createElement("audio");
         audio.autoplay = true;
         audio.playsInline = true;
         audio.muted = false;
         audio.srcObject = event.streams[0];
         audio.volume = 1.0;
-        
+
+        remoteMediaRef.current = audio;
+
         setTimeout(() => {
           audio.play().then(() => {
             console.log("✅ Audio playing successfully");
@@ -284,7 +379,7 @@ const Chat = () => {
             }, { once: true });
           });
         }, 100);
-        
+
         document.body.appendChild(audio);
       }
     };
@@ -311,6 +406,8 @@ const Chat = () => {
         audio: true, 
         video: callTypeRef.current === 'video' ? { width: 640, height: 480 } : false 
       });
+      localStreamRef.current = stream;
+      setIsMicMuted(false);
     } catch (err) {
       console.error("❌ getUserMedia error (callee):", err);
       alert("Cannot access camera: " + err.message);
@@ -336,7 +433,7 @@ const Chat = () => {
       video.srcObject = stream;
       video.style.cssText = "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
       console.log("✅ Creating local video element (callee)");
-      
+      remoteMediaRef.current = video;
       // Try to play video
       video.play().catch(err => {
         console.warn("⚠️ Failed to auto-play local video (callee):", err);
@@ -483,9 +580,7 @@ const Chat = () => {
       setCalling(null);
       setActiveCall(null);
       isCallerRef.current = false;
-
-      pcRef.current?.close();
-      pcRef.current = null;
+      cleanupCall();
     };
     
     const offIncoming = window.electronAPI.onIncomingCall(handleIncoming);
@@ -527,7 +622,7 @@ const Chat = () => {
     } catch (err) {
       console.error(err);
       setCalling(null); // ❌ error → reset
-      isCallerRef.current = true;
+      isCallerRef.current = false;
     }
   };
 
@@ -544,13 +639,26 @@ const Chat = () => {
   };
 
   const endCall = async (callId) => {
-    await window.electronAPI.endCall(callId);
-    setActiveCall(null);
-    setCalling(null);
-    isCallerRef.current = false;
-    currentCallConversationRef.current = null; // ✅ ล้างตรงนี้
+    try {
+      if (callId && callId !== "temp") {
+        await window.electronAPI.endCall(callId);
+      }
+    } catch (err) {
+      console.error("endCall error:", err);
+    } finally {
+      cleanupCall();
+      setIncomingCall(null);
+      setActiveCall(null);
+      setCalling(null);
+      isCallerRef.current = false;
+    }
   };
-  
+  useEffect(() => {
+    return () => {
+      cleanupCall();
+    };
+  }, []);
+
   useEffect(() => {
     selectedConvRef.current = selectedConversation;
   }, [selectedConversation]);
@@ -1048,9 +1156,39 @@ const Chat = () => {
             
             <p>Call ID: {activeCall.call_id}</p>
 
-            <button onClick={() => endCall(activeCall.call_id)}>
-              End Call
-            </button>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '12px',
+              marginTop: '16px'
+            }}>
+              <button
+                onClick={toggleMic}
+                style={{
+                  fontSize: '24px',
+                  padding: '12px 16px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+                title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
+              >
+                {isMicMuted ? '🔇' : '🎤'}
+              </button>
+
+              <button
+                onClick={() => endCall(activeCall.call_id)}
+                style={{
+                  fontSize: '18px',
+                  padding: '12px 20px',
+                  borderRadius: '999px',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                📞 End Call
+              </button>
+            </div>
           </div>
         </div>
       )}
