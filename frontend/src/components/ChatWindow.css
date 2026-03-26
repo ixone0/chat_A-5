@@ -219,23 +219,62 @@
 
 /* ===== Call Buttons ===== */
 
-.call-buttons{
-  display:flex;
-  gap:10px;
+/* ===== Call Buttons (Modern & Seamless) ===== */
+.call-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-.call-btn{
-  background:#547792;
-  border:none;
-  color:white;
-  font-size:18px;
-  padding:8px 12px;
-  border-radius:10px;
-  cursor:pointer;
-  transition:all 0.2s;
+.call-btn {
+  background-color: transparent !important; /* ✅ ลบสีพื้นหลังทึบออก */
+  border: none !important; /* ✅ ลบเส้นขอบ */
+  color: #94B4C1; /* ✅ เปลี่ยนสีไอคอนให้เข้ากับธีมแอป */
+  padding: 8px; /* ระยะสำหรับกดให้พอดีนิ้ว/เมาส์ */
+  border-radius: 8px; /* ขอบมนเวลา Hover */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
 }
 
-.call-btn:hover{
-  background:#94B4C1;
-  transform:scale(1.05);
+/* เวลาเอาเมาส์ชี้ ให้สว่างขึ้นและมีพื้นหลังโปร่งแสงนิดๆ (ไม่ก๊องแก๊ง) */
+.call-btn:hover {
+  background-color: rgba(148, 180, 193, 0.15) !important;
+  color: #ffffff;
+  transform: translateY(-2px); /* เด้งขึ้นนิดนึงให้ดูมีมิติ */
+}
+
+.call-btn:active {
+  transform: translateY(0);
+}
+/* ==================================
+   Attach File Button (Modern Style)
+   แก้ปัญหา: ลบพื้นหลังขาว, ปรับขนาดให้เล็กลง
+================================== */
+.icon-attach-btn {
+  background-color: transparent !important; 
+  border: none !important; /* ✅ ลบขอบปุ่ม */
+  color: rgba(148, 180, 193, 0.6) !important; /* ✅ สีไอคอนฟ้าหม่นๆ โปร่งแสง */
+  padding: 6px !important; /* ✅ ลด Padding ลงเพื่อให้ปุ่มเล็กลง */
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px; 
+}
+
+
+.icon-attach-btn:hover {
+  background-color: rgba(148, 180, 193, 0.1) !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+
+.icon-attach-btn svg {
+  width: 16px !important; /* ลดขนาดจาก 20px เหลือ 16px */
+  height: 16px !important;
 }
