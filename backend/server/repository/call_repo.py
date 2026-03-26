@@ -80,3 +80,20 @@ def end_call(call_id):
     conn.commit()
     cur.close()
     conn.close()
+    
+def get_call_participants(call_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT user_id
+        FROM call_participants
+        WHERE call_id = %s
+    """, (call_id,))
+
+    rows = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return [row[0] for row in rows]
