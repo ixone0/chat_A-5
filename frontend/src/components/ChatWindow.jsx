@@ -18,70 +18,67 @@ const ChatWindow = ({
 
   const selected = conversation || selectedUser;
 
-const rawMsgs = Array.isArray(messages) ? messages : [];
-const S3_REGEX = /https?:\/\/.*\.s3\.amazonaws\.com\/.+/;
+  const rawMsgs = Array.isArray(messages) ? messages : [];
+  const S3_REGEX = /https?:\/\/.*\.s3\.amazonaws\.com\/.+/;
 
-const formattedMessages = useMemo(() => {
-  return rawMsgs
-    .filter((m) => m && (m.content || m.text))
-    .map((m, index) => {
-      const content = m.content ?? m.text ?? "";
-      
-      // ✅ ตรวจว่า content เป็น S3 URL ไหม
-      const isS3Url = S3_REGEX.test(content);
-      const inferredMsgType = isS3Url ? "file" : (m.msg_type ?? "text");
+  const formattedMessages = useMemo(() => {
+    return rawMsgs
+      .filter((m) => m && (m.content || m.text))
+      .map((m, index) => {
+        const content = m.content ?? m.text ?? "";
+        
+        // ✅ ตรวจว่า content เป็น S3 URL ไหม
+        const isS3Url = S3_REGEX.test(content);
+        const inferredMsgType = isS3Url ? "file" : (m.msg_type ?? "text");
 
-      // ✅ สร้าง attachment object จาก URL ถ้าไม่มี
-      let attachment = m.attachment ?? null;
-      if (isS3Url && !attachment) {
-        const fileName = decodeURIComponent(content.split("/").pop().replace(/^[^_]+_/, ""));
-        const ext = fileName.split(".").pop().toLowerCase();
-        const mimeMap = {
-          png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
-          gif: "image/gif", webp: "image/webp",
-          mp4: "video/mp4", mov: "video/quicktime",
-          pdf: "application/pdf",
+        // ✅ สร้าง attachment object จาก URL ถ้าไม่มี
+        let attachment = m.attachment ?? null;
+        if (isS3Url && !attachment) {
+          const fileName = decodeURIComponent(content.split("/").pop().replace(/^[^_]+_/, ""));
+          const ext = fileName.split(".").pop().toLowerCase();
+          const mimeMap = {
+            png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
+            gif: "image/gif", webp: "image/webp",
+            mp4: "video/mp4", mov: "video/quicktime",
+            pdf: "application/pdf",
+          };
+          attachment = {
+            file_url: content,
+            file_name: fileName,
+            mime_type: mimeMap[ext] ?? "application/octet-stream",
+            file_size: 0,
+          };
+        }
+
+        const id = m.id || `${m.sender_id || "temp"}-${m.created_at || Date.now()}-${index}`;
+        const createdRaw = m.created_at ?? m.time ?? null;
+        let time = "";
+        if (createdRaw) {
+          const dateObj = new Date(createdRaw);
+          time = dateObj.toLocaleTimeString("th-TH", {
+            timeZone: "Asia/Bangkok",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+
+        return {
+          id,
+          text: content,
+          time,
+          sender: String(m.sender_id) === String(currentUserId) ? "me" : "other",
+          msg_type: inferredMsgType,  
+          attachment,                  
         };
-        attachment = {
-          file_url: content,
-          file_name: fileName,
-          mime_type: mimeMap[ext] ?? "application/octet-stream",
-          file_size: 0,
-        };
-      }
+      });
+  }, [messages, currentUserId]);
 
-      // ... ส่วนที่เหลือเหมือนเดิม
-      const id = m.id || `${m.sender_id || "temp"}-${m.created_at || Date.now()}-${index}`;
-      const createdRaw = m.created_at ?? m.time ?? null;
-      let time = "";
-      if (createdRaw) {
-        const dateObj = new Date(createdRaw);
-        time = dateObj.toLocaleTimeString("th-TH", {
-          timeZone: "Asia/Bangkok",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-
-      return {
-        id,
-        text: content,
-        time,
-        sender: String(m.sender_id) === String(currentUserId) ? "me" : "other",
-        msg_type: inferredMsgType,  // ✅
-        attachment,                  // ✅
-      };
-    });
-}, [messages, currentUserId]);
-
-  // ✅ 2. Auto Scroll
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [formattedMessages.length]);
 
-  // ✅ 3. Rename Group Logic
   const handleStartEdit = () => {
     if (conversation?.type === "group" && conversation?.role === "owner") {
       setTempTitle(conversation.title || "");
@@ -111,7 +108,6 @@ const formattedMessages = useMemo(() => {
     }
   };
 
-  // ✅ 4. Handle Send Message
   const handleSend = (e) => {
     e.preventDefault();
     const text = inputText.trim();
@@ -125,7 +121,6 @@ const formattedMessages = useMemo(() => {
     setInputText("");
   };
 
-  // --- Render : No Selection ---
   if (!selected) {
     return (
       <div className="chat-window-root" style={{ justifyContent: 'center', alignItems: 'center', color: '#94B4C1' }}>
@@ -135,32 +130,28 @@ const formattedMessages = useMemo(() => {
   }
 
   const isGroup = conversation?.type === "group";
-  // ✅ Fallback: ถ้า role undefined ให้เช็ค owner_id แทน
-  const isOwner = conversation?.role === "owner" || 
-                  String(conversation?.owner_id) === String(currentUserId);
-  
-  // 🔍 DEBUG: ตรวจสอบค่า
-  console.log("🔍 ChatWindow Debug:", {
-    conversation_id: conversation?.id,
-    conversation_type: conversation?.type,
-    conversation_role: conversation?.role,
-    conversation_owner_id: conversation?.owner_id,
-    currentUserId,
-    isGroup,
-    isOwner,
-    conversation
-  });
+  const isOwner = conversation?.role === "owner" || String(conversation?.owner_id) === String(currentUserId);
   
   let headerName = "Unknown";
-  let headerPrefix = "@";
+  let headerIcon = null; 
+  let placeholderText = ""; 
 
   if (isGroup) {
     headerName = conversation?.title || "Group Chat";
-    headerPrefix = "👥";
+    headerIcon = (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22" style={{ color: '#94B4C1' }}>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    );
+    placeholderText = `Message ${headerName}`; 
   } else {
     const otherUser = conversation?.other_user || selectedUser;
     headerName = otherUser?.display_name || otherUser?.username || otherUser?.custom_id || "Unknown";
-    headerPrefix = "@";
+    headerIcon = <span style={{color: '#94B4C1', fontSize: '20px', fontWeight: 'bold'}}>@</span>;
+    placeholderText = `Message @${headerName}`; 
   }
 
   const headerAvatarChar = headerName.charAt(0).toUpperCase();
@@ -171,7 +162,10 @@ const formattedMessages = useMemo(() => {
       {/* --- Header --- */}
       <div className="chat-header">
         <div style={{display: 'flex', alignItems: 'center', gap: '10px', flex: 1}}>
-          <span style={{color: '#94B4C1', fontSize: '20px', fontWeight: 'bold'}}>{headerPrefix}</span>
+          
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {headerIcon}
+          </div>
           
           {isEditing ? (
             <input 
@@ -205,8 +199,18 @@ const formattedMessages = useMemo(() => {
           )}
 
           {isGroup && isOwner && (
-            <span style={{ fontSize: '10px', background: '#FFD700', color: '#000', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-              OWNER
+           <span style={{ 
+              fontSize: '10px', 
+              backgroundColor: 'rgba(88, 101, 242, 0.15)', 
+              color: '#a5b0f5', 
+              border: '1px solid rgba(88, 101, 242, 0.3)',
+              padding: '2px 8px', 
+              borderRadius: '12px', 
+              fontWeight: '600', 
+              marginLeft: '8px',
+              letterSpacing: '0.5px'
+            }}>
+              Owner
             </span>
           )}
         </div>
@@ -214,8 +218,20 @@ const formattedMessages = useMemo(() => {
         {/* Call Buttons */}
         {conversation && (
           <div className="call-buttons">
-            <button className="call-btn" onClick={() => startCall("voice")} title="Voice Call">📞</button>
-            <button className="call-btn" onClick={() => startCall("video")} title="Video Call">🎥</button>
+            
+            <button className="call-btn" onClick={() => startCall("voice")} title="Voice Call">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+            </button>
+
+            <button className="call-btn" onClick={() => startCall("video")} title="Video Call">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+            </button>
+
           </div>
         )}
       </div>
@@ -276,16 +292,19 @@ const formattedMessages = useMemo(() => {
               }}
               title="Attach file"
             >
-              📎
+              {/* ✅ เปลี่ยนจาก "📎" เป็น SVG Icon Modern */}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+              </svg>
             </button>
             <input
               type="text"
-              placeholder={`Message @${headerName}`}
+              placeholder={placeholderText}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
             />
             
-            {/* ปุ่ม Send ไอคอนจรวด (ใช้ button type=submit เพื่อให้กด Enter ส่งได้เหมือนเดิม) */}
+            {/* ปุ่ม Send ไอคอนจรวด */}
             <button type="submit" className="icon-send-btn" disabled={!inputText.trim()}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>

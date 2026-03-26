@@ -68,7 +68,7 @@ const CreateGroupForm = ({ friends, onCancel, onSuccess }) => {
               className="modern-input"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              placeholder="Ex. The Avengers 🦸‍♂️"
+              placeholder="Create Group Name"
               autoFocus
             />
           </div>
