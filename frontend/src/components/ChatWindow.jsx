@@ -292,7 +292,6 @@ const ChatWindow = ({
               }}
               title="Attach file"
             >
-              {/* ✅ เปลี่ยนจาก "📎" เป็น SVG Icon Modern */}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
               </svg>
@@ -304,7 +303,6 @@ const ChatWindow = ({
               onChange={(e) => setInputText(e.target.value)}
             />
             
-            {/* ปุ่ม Send ไอคอนจรวด */}
             <button type="submit" className="icon-send-btn" disabled={!inputText.trim()}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
