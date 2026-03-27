@@ -160,3 +160,26 @@
     border-radius: 16px;
     background-color: #5865f2;
 }
+
+
+/* ===== Active Call (In-Call Screen) ===== */
+.active-call-box {
+  background: #213448;
+  color: #EAE0CF;
+  text-align: center;
+  padding: 20px;
+}
+
+.active-call-box button {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.active-call-box button:hover {
+  opacity: 0.85;
+  transform: scale(1.08);
+  transition: all 0.15s ease;
+}
