@@ -40,6 +40,44 @@ const Chat = () => {
   const localStreamRef = useRef(null);
   const remoteMediaRef = useRef(null); // เก็บ remote <audio> หรือ <video>
   const [isMicMuted, setIsMicMuted] = useState(false);
+
+  const attachLocalPreview = () => {
+    if (
+      !localVideoRef.current ||
+      !localStreamRef.current ||
+      callTypeRef.current !== "video"
+    ) {
+      return;
+    }
+
+    const existing = localVideoRef.current.querySelector("video");
+    if (existing) return;
+
+    const video = document.createElement("video");
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+    video.srcObject = localStreamRef.current;
+    video.style.cssText =
+      "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
+
+    video.onloadedmetadata = () => {
+      video.play().catch((err) => {
+        console.warn("⚠️ Failed to auto-play local preview:", err);
+      });
+    };
+
+    localVideoRef.current.innerHTML = "";
+    localVideoRef.current.appendChild(video);
+    console.log("✅ Local preview attached");
+  };
+
+  useEffect(() => {
+    if (activeCall?.call_type === "video") {
+      attachLocalPreview();
+    }
+  }, [activeCall]);
+  
   const refreshData = async () => {
 
     if (!window.electronAPI) return;
@@ -167,43 +205,42 @@ const Chat = () => {
 
     pcRef.current = pc;
 
-    pc.ontrack = (event) => {
-      console.log("ONTRACK FIRED", event.streams[0]);
-      
-      if (call_type === 'video') {
-        // ✅ Video call: show video
-        try {
-          const video = document.createElement("video");
+   pc.ontrack = (event) => {
+    console.log("ONTRACK FIRED", event.streams[0]);
+
+    if ((call_type || callTypeRef.current) === "video") {
+      try {
+        if (!remoteVideoRef.current) {
+          console.error("❌ remoteVideoRef.current is null");
+          return;
+        }
+
+        let video = remoteVideoRef.current.querySelector("video");
+        if (!video) {
+          video = document.createElement("video");
           video.autoplay = true;
           video.playsInline = true;
           video.muted = false;
-          video.srcObject = event.streams[0];
           video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
-          
-          // Try to play video
-          video.play().catch(err => {
-            console.warn("⚠️ Failed to auto-play remote video (caller):", err);
-          });
-          
-          video.onloadedmetadata = () => {
-            console.log("✅ Remote video metadata loaded (caller)");
-          };
-          
-          video.onerror = (err) => {
-            console.error("❌ Remote video error:", err);
-          };
-          
-          if (remoteVideoRef.current) {
-            console.log("✅ Appending remote video to container (caller)");
-            remoteVideoRef.current.innerHTML = '';
-            remoteVideoRef.current.appendChild(video);
-          } else {
-            console.error("❌ remoteVideoRef.current is null (caller)");
-          }
-        } catch (err) {
-          console.error("❌ Error creating remote video (caller):", err);
+          remoteVideoRef.current.innerHTML = "";
+          remoteVideoRef.current.appendChild(video);
         }
-      } else {
+
+        if (video.srcObject !== event.streams[0]) {
+          video.srcObject = event.streams[0];
+        }
+
+        video.onloadedmetadata = () => {
+          video.play().catch((err) => {
+            console.warn("⚠️ Failed to auto-play remote video:", err);
+          });
+        };
+
+        console.log("✅ Remote video attached");
+      } catch (err) {
+        console.error("❌ Error creating remote video:", err);
+      }
+    } else {
         // 🔊 Audio call: just play audio
         const audio = document.createElement("audio");
         audio.autoplay = true;
@@ -268,22 +305,8 @@ const Chat = () => {
     tracks.forEach(track => pc.addTrack(track, stream));
 
     // ✅ Show local video if video call
-    if (call_type === 'video' && localVideoRef.current) {
-      const video = document.createElement("video");
-      video.autoplay = true;
-      video.playsInline = true;
-      video.muted = true; // Mute self
-      video.srcObject = stream;
-      video.style.cssText = "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
-      
-      // Try to play video
-      video.play().catch(err => {
-        console.warn("⚠️ Failed to auto-play local video (caller):", err);
-      });
-      
-      localVideoRef.current.innerHTML = '';
-      localVideoRef.current.appendChild(video);
-      console.log("✅ Local video appended (caller)");
+    if (call_type === "video") {
+      attachLocalPreview();
     }
 
     try {
@@ -326,39 +349,8 @@ const Chat = () => {
     pc.ontrack = (event) => {
       console.log("ONTRACK FIRED", event.streams[0]);
       
-      if (callTypeRef.current === 'video') {
-        // ✅ Video call: show video
-        try {
-          const video = document.createElement("video");
-          video.autoplay = true;
-          video.playsInline = true;
-          video.muted = false;
-          video.srcObject = event.streams[0];
-          video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
-          
-          // Try to play video
-          video.play().catch(err => {
-            console.warn("⚠️ Failed to auto-play remote video (callee):", err);
-          });
-          
-          video.onloadedmetadata = () => {
-            console.log("✅ Remote video metadata loaded (callee)");
-          };
-          
-          video.onerror = (err) => {
-            console.error("❌ Remote video error:", err);
-          };
-          
-          if (remoteVideoRef.current) {
-            console.log("✅ Appending remote video to container (callee)");
-            remoteVideoRef.current.innerHTML = '';
-            remoteVideoRef.current.appendChild(video);
-          } else {
-            console.error("❌ remoteVideoRef.current is null (callee)");
-          }
-        } catch (err) {
-          console.error("❌ Error creating remote video (callee):", err);
-        }
+      if (callTypeRef.current === "video") {
+        attachLocalPreview();
       } else {
         const audio = document.createElement("audio");
         audio.autoplay = true;
@@ -449,7 +441,16 @@ const Chat = () => {
 
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
-
+      
+      for (const candidate of pendingCandidatesRef.current) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log("✅ Added pending candidate after remote description");
+        } catch (err) {
+          console.error("❌ Failed to add pending candidate:", err);
+        }
+      }
+      pendingCandidatesRef.current = [];
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -505,7 +506,7 @@ const Chat = () => {
     };
 
     const handleCandidate = async (data) => {
-      if (!pcRef.current) {
+      if (!pcRef.current || !pcRef.current.remoteDescription) {
         pendingCandidatesRef.current.push(data.candidate);
         return;
       }
@@ -557,21 +558,37 @@ const Chat = () => {
       setIncomingCall(null);
       setCalling(null);
 
-      // เฉพาะคนโทร (caller) เท่านั้นที่สร้าง offer
+      const callType = callTypeRef.current || data.call_type || "audio";
+
       if (isCallerRef.current) {
-        const convId = currentCallConversationRef.current || selectedConversation?.id;
+        const convId =
+          currentCallConversationRef.current || selectedConversation?.id;
+
         if (!convId) {
           console.error("❌ No conversation ID for call answered");
           return;
         }
-        
-        // ✅ Pass call type to startWebRTC for caller side
-        const callType = callTypeRef.current || data.call_type || 'audio';
-        const pc = await startWebRTC(data.call_id, convId, callType);
-        setActiveCall({ call_id: data.call_id, pc, call_type: callType });
+
+        // ✅ render call UI ก่อน เพื่อให้ ref ถูก mount
+        setActiveCall({
+          call_id: data.call_id,
+          call_type: callType,
+        });
+
+        // ✅ รอ 1 tick ให้ localVideoRef / remoteVideoRef พร้อม
+        setTimeout(async () => {
+          const pc = await startWebRTC(data.call_id, convId, callType);
+
+          setActiveCall((prev) => ({
+            ...prev,
+            pc,
+          }));
+        }, 0);
       } else {
-        // ฝั่งรับสาย ไม่ต้องสร้าง offer
-        setActiveCall({ call_id: data.call_id, call_type: callTypeRef.current || 'audio' });
+        setActiveCall({
+          call_id: data.call_id,
+          call_type: callTypeRef.current || "audio",
+        });
       }
     };
 
