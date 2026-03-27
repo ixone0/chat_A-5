@@ -348,9 +348,39 @@ const Chat = () => {
 
     pc.ontrack = (event) => {
       console.log("ONTRACK FIRED", event.streams[0]);
-      
+
       if (callTypeRef.current === "video") {
-        attachLocalPreview();
+        try {
+          if (!remoteVideoRef.current) {
+            console.error("❌ remoteVideoRef.current is null");
+            return;
+          }
+
+          let video = remoteVideoRef.current.querySelector("video");
+          if (!video) {
+            video = document.createElement("video");
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = false;
+            video.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
+            remoteVideoRef.current.innerHTML = "";
+            remoteVideoRef.current.appendChild(video);
+          }
+
+          if (video.srcObject !== event.streams[0]) {
+            video.srcObject = event.streams[0];
+          }
+
+          video.onloadedmetadata = () => {
+            video.play().catch((err) => {
+              console.warn("⚠️ Failed to auto-play remote video (callee):", err);
+            });
+          };
+
+          console.log("✅ Remote video attached (callee)");
+        } catch (err) {
+          console.error("❌ Error creating remote video (callee):", err);
+        }
       } else {
         const audio = document.createElement("audio");
         audio.autoplay = true;
