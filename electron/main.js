@@ -277,9 +277,9 @@ ipcMain.handle("answer-call", async (event, callId) => {
   }
 });
 
-ipcMain.handle("end-call", async (event, callId) => {
+ipcMain.handle("end-call", async (event, callId, duration) => {
   try {
-    return await endCall(callId);
+    return await endCall(callId, duration);
   } catch (err) {
     return { status: "error", message: err.message };
   }

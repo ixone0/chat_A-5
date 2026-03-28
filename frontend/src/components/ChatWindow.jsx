@@ -139,18 +139,6 @@ const formattedMessages = useMemo(() => {
   const isOwner = conversation?.role === "owner" || 
                   String(conversation?.owner_id) === String(currentUserId);
   
-  // 🔍 DEBUG: ตรวจสอบค่า
-  console.log("🔍 ChatWindow Debug:", {
-    conversation_id: conversation?.id,
-    conversation_type: conversation?.type,
-    conversation_role: conversation?.role,
-    conversation_owner_id: conversation?.owner_id,
-    currentUserId,
-    isGroup,
-    isOwner,
-    conversation
-  });
-  
   let headerName = "Unknown";
   let headerPrefix = "@";
 
