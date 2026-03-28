@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sendFile: (conversationId) =>
     ipcRenderer.invoke('send-file', conversationId),
   
+  confirmSendFile: (data) => ipcRenderer.invoke('confirm-send-file', data),
+  
   onFileSent: (callback) => {
   const listener = (_, data) => callback(data);
   ipcRenderer.on('file-sent', listener);

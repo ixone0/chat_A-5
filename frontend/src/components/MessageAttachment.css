@@ -1,0 +1,133 @@
+/* MessageAttachment.css */
+
+/* ─── Shared ─────────────────────────────────────────────── */
+.attachment-wrapper {
+  margin-top: 6px;
+  margin-bottom: 8px;
+  position: relative;
+  display: inline-block;
+}
+
+.attachment-info {
+  font-size: 10px;
+  color: #94B4C1;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* ─── Download Button ────────────────────────────────────── */
+.attachment-download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #94B4C1;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.attachment-download-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* ─── Image Attachment ───────────────────────────────────── */
+.attachment-image {
+  max-width: 240px;
+  max-height: 240px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: block;
+  transition: opacity 0.2s;
+}
+
+.attachment-image:hover {
+  opacity: 0.9;
+}
+
+.attachment-image-placeholder {
+  width: 240px;
+  height: 160px;
+  border-radius: 12px;
+  background: #3a3a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94B4C1;
+  font-size: 12px;
+}
+
+.attachment-image-fallback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  max-width: 240px;
+}
+
+.attachment-image-fallback-icon {
+  font-size: 24px;
+}
+
+.attachment-image-fallback-name {
+  font-size: 12px;
+  color: #94B4C1;
+  word-break: break-all;
+}
+
+/* ─── Video Attachment ───────────────────────────────────── */
+.attachment-video {
+  max-width: 240px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: block;
+}
+
+/* ─── Generic File Card ──────────────────────────────────── */
+.attachment-file-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  max-width: 240px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.attachment-file-card:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.attachment-file-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.attachment-file-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.attachment-file-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachment-file-size {
+  font-size: 11px;
+  color: #94B4C1;
+}

@@ -197,10 +197,10 @@ function sendFile(conversationId, filePath) {
   // 1. อ่านไฟล์เป็น Buffer แล้วแปลงเป็น base64
   const fileBuffer = fs.readFileSync(filePath);
  
-  // 2. ตรวจขนาด (10 MB) ที่ฝั่ง client ก่อนส่งเลย
-  const MAX_SIZE = 10 * 1024 * 1024;
+  // 2. ตรวจขนาด (25 MB) ที่ฝั่ง client ก่อนส่งเลย
+  const MAX_SIZE = 25 * 1024 * 1024;
   if (fileBuffer.length > MAX_SIZE) {
-    return Promise.reject(new Error('File too large (max 10MB)'));
+    return Promise.reject(new Error('File too large (max 25MB)'));
   }
  
   const base64Data = fileBuffer.toString('base64');

@@ -278,3 +278,64 @@
   width: 16px !important; /* ลดขนาดจาก 20px เหลือ 16px */
   height: 16px !important;
 }
+
+
+/* ===== Upload Progress Indicator ===== */
+.upload-progress-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  background-color: #213448;
+  color: #94B4C1;
+  font-size: 0.9rem;
+  border-top: 1px solid #547792;
+}
+
+.upload-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(148, 180, 193, 0.3);
+  border-top-color: #94B4C1;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== Upload Error Indicator ===== */
+.upload-error-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  border-top: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.upload-retry-btn {
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #ff6b6b;
+  border: 1px solid rgba(220, 53, 69, 0.4);
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.upload-retry-btn:hover {
+  background-color: rgba(220, 53, 69, 0.35);
+  color: #fff;
+}
+
+/* ===== Disabled Attach Button ===== */
+.icon-attach-btn-disabled {
+  opacity: 0.4 !important;
+  pointer-events: none !important;
+}

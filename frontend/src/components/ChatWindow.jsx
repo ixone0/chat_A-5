@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./ChatWindow.css";
 import MessageAttachment from "./MessageAttachment";
+import FilePreview from "./FilePreview";
 
 const ChatWindow = ({
   conversation = null,
@@ -14,6 +15,8 @@ const ChatWindow = ({
   const [inputText, setInputText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
+  const [uploadState, setUploadState] = useState(null);
+  const [previewData, setPreviewData] = useState(null);
   const scrollRef = useRef(null);
 
   const selected = conversation || selectedUser;
@@ -268,31 +271,105 @@ const ChatWindow = ({
         })}
       </div>
 
+      {/* --- Upload Progress Indicator --- */}
+      {uploadState?.status === 'uploading' && (
+        <div className="upload-progress-indicator">
+          <div className="upload-spinner" />
+          <span>กำลังส่ง {uploadState.fileName}...</span>
+        </div>
+      )}
+      {uploadState?.status === 'error' && (
+        <div className="upload-error-indicator">
+          <span>❌ ส่งไฟล์ {uploadState.fileName} ล้มเหลว: {uploadState.error}</span>
+          <button
+            className="upload-retry-btn"
+            onClick={async () => {
+              if (!uploadState.retryData) return;
+              const { filePath, conversationId } = uploadState.retryData;
+              setUploadState({ status: 'uploading', fileName: uploadState.fileName });
+              try {
+                const res = await window.electronAPI.confirmSendFile({ filePath, conversationId });
+                if (res?.status === 'error') {
+                  setUploadState({
+                    status: 'error',
+                    fileName: uploadState.fileName,
+                    error: res.message || 'เกิดข้อผิดพลาด',
+                    retryData: { filePath, conversationId },
+                  });
+                } else {
+                  setUploadState(null);
+                  await refreshMessages();
+                }
+              } catch (err) {
+                setUploadState({
+                  status: 'error',
+                  fileName: uploadState.fileName,
+                  error: err.message || 'เกิดข้อผิดพลาด',
+                  retryData: { filePath, conversationId },
+                });
+              }
+            }}
+          >
+            ลองใหม่
+          </button>
+        </div>
+      )}
+
+      {/* --- File Preview --- */}
+      {previewData && (
+        <FilePreview
+          preview={previewData}
+          onCancel={() => setPreviewData(null)}
+          onConfirm={async () => {
+            const { filePath, conversationId, name } = previewData;
+            setPreviewData(null);
+            setUploadState({ status: 'uploading', fileName: name });
+            try {
+              const res = await window.electronAPI.confirmSendFile({ filePath, conversationId });
+              if (res?.status === 'error') {
+                setUploadState({
+                  status: 'error',
+                  fileName: name,
+                  error: res.message || 'เกิดข้อผิดพลาด',
+                  retryData: { filePath, conversationId },
+                });
+              } else {
+                setUploadState(null);
+                await refreshMessages();
+              }
+            } catch (err) {
+              setUploadState({
+                status: 'error',
+                fileName: name,
+                error: err.message || 'เกิดข้อผิดพลาด',
+                retryData: { filePath, conversationId },
+              });
+            }
+          }}
+        />
+      )}
+
       {/* --- Input Area --- */}
       <form className="chat-input-area" onSubmit={handleSend}>
         <div className="input-wrapper">
             <button
               type="button"
               className="icon-attach-btn"
+              style={uploadState?.status === 'uploading' ? { opacity: 0.4, pointerEvents: 'none' } : {}}
               onClick={async () => {
                 const response = await window.electronAPI.sendFile(selected?.id);
                 
-                if (!response || response.status === 'cancelled' || response.status === 'error') return;
-                await refreshMessages();
-                const msg = response.message;
-                if (!msg) return;
+                if (!response || response.status === 'cancelled') return;
+                if (response.status === 'error') {
+                  alert(response.message);
+                  return;
+                }
 
-                onSendMessage({
-                  id: msg.id,
-                  content: msg.content,
-                  msg_type: msg.msg_type,
-                  created_at: msg.created_at,
-                  conversation_id: msg.conversation_id,
-                  sender_id: currentUserId,
-                  attachment: msg.attachment,
-                });
+                if (response.status === 'preview') {
+                  setPreviewData(response.preview);
+                }
               }}
-              title="Attach file"
+              title="แนบไฟล์ (สูงสุด 25 MB)"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>

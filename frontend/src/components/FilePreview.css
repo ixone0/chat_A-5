@@ -1,0 +1,114 @@
+/* src/components/FilePreview.css */
+
+.file-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeInOverlay 0.2s ease;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.file-preview-card {
+  background-color: #213448;
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 300px;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid #547792;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.file-preview-card h4 {
+  margin: 0 0 16px 0;
+  color: #EAE0CF;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.file-preview-thumbnail {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.file-preview-icon {
+  font-size: 48px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.file-preview-info {
+  margin-bottom: 20px;
+}
+
+.file-preview-name {
+  color: #EAE0CF;
+  font-size: 0.95rem;
+  font-weight: 600;
+  word-break: break-word;
+  margin-bottom: 6px;
+}
+
+.file-preview-meta {
+  color: #94B4C1;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.file-preview-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.file-preview-btn-confirm {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #2e7d32;
+  color: #fff;
+}
+
+.file-preview-btn-confirm:hover {
+  background-color: #388e3c;
+}
+
+.file-preview-btn-cancel {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #547792;
+  color: #EAE0CF;
+}
+
+.file-preview-btn-cancel:hover {
+  background-color: #6a8faa;
+}

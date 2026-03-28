@@ -1,8 +1,23 @@
 // electron/main.js
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 // 1. นำเข้า tcpClient ที่เพิ่งสร้าง
 const tcpClient = require('./tcpClient');
+
+// MIME type mapping สำหรับ file preview
+const mimeMap = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+  gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+  mp4: 'video/mp4', mov: 'video/quicktime',
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  txt: 'text/plain', zip: 'application/zip',
+  mp3: 'audio/mpeg', wav: 'audio/wav',
+};
 const {
   initTcpClient,
   sendLogin,
@@ -197,24 +212,59 @@ ipcMain.handle("send-message", async (event, data) => {
 ipcMain.handle('send-file', async (event, conversationId) => {
   // 1. เปิด file picker
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    title: 'Select file to send',
+    title: 'เลือกไฟล์ที่ต้องการส่ง (สูงสุด 25 MB)',
     properties: ['openFile'],
-    // ไม่ filter → รับทุกประเภท
   });
- 
+
   if (canceled || filePaths.length === 0) {
     return { status: 'cancelled' };
   }
- 
+
+  const filePath = filePaths[0];
+  const stat = fs.statSync(filePath);
+
+  // 2. ตรวจขนาดไฟล์ (25 MB)
+  if (stat.size > 25 * 1024 * 1024) {
+    return {
+      status: 'error',
+      message: `ไฟล์มีขนาด ${(stat.size / (1024 * 1024)).toFixed(1)} MB เกินขีดจำกัด 25 MB`
+    };
+  }
+
+  const fileName = path.basename(filePath);
+  const ext = fileName.split('.').pop().toLowerCase();
+  const mimeType = mimeMap[ext] || 'application/octet-stream';
+
+  // 3. สร้าง thumbnail สำหรับรูปภาพ
+  let thumbnail = null;
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+    const fileBuffer = fs.readFileSync(filePath);
+    thumbnail = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
+  }
+
+  // 4. Return preview data แทนการส่งทันที
+  return {
+    status: 'preview',
+    preview: {
+      filePath,
+      conversationId,
+      name: fileName,
+      size: stat.size,
+      mimeType,
+      thumbnail,
+    }
+  };
+});
+
+// IPC handler: confirm-send-file (ส่งไฟล์จริงหลังจาก user ยืนยัน preview)
+ipcMain.handle('confirm-send-file', async (event, { filePath, conversationId }) => {
   try {
-    // 2. ส่งไฟล์ผ่าน TCP
-    const response = await sendFile(conversationId, filePaths[0]);
-     if (response?.status === 'ok' || response?.message) {
+    const response = await sendFile(conversationId, filePath);
+    if (response?.status === 'ok' || response?.message) {
       mainWindow.webContents.send('file-sent', response.message ?? response);
     }
     return response;
   } catch (err) {
-    console.error('send-file error:', err);
     return { status: 'error', message: err.message };
   }
 });
