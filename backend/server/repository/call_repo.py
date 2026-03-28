@@ -75,11 +75,21 @@ def end_call(call_id):
         UPDATE calls
         SET status='ended', ended_at=NOW()
         WHERE id=%s
+        RETURNING conversation_id, call_type
     """, (call_id,))
+
+    row = cur.fetchone()
 
     conn.commit()
     cur.close()
     conn.close()
+
+    if row:
+        return {
+            "conversation_id": str(row[0]),
+            "call_type": row[1]
+        }
+    return None
     
 def get_call_participants(call_id):
     conn = get_connection()
@@ -96,4 +106,4 @@ def get_call_participants(call_id):
     cur.close()
     conn.close()
 
-    return [row[0] for row in rows]
+    return [str(row[0]) for row in rows]

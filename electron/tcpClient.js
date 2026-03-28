@@ -251,10 +251,11 @@ function answerCall(call_id) {
   });
 }
 
-function endCall(call_id) {
+function endCall(call_id, duration) {
   return send({
     type: "end_call",
-    call_id
+    call_id,
+    duration: duration || 0
   });
 }
 

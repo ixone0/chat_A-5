@@ -11,6 +11,7 @@ from repository.call_repo import (
 from repository.conversation_repo import get_other_user
 from state.online_users import online_users
 from utils.network import send_packet
+from services.message_service import create_message_service, get_conversation_members_service
 
 def send_packet_to_user(user_id, packet):
 
@@ -115,9 +116,10 @@ def leave_call_service(pkt, user_id):
 
 def end_call_service(pkt, user_id):
     call_id = pkt.get("call_id")
+    duration = pkt.get("duration", 0)
 
-    # 1) end call ใน DB
-    end_call(call_id)
+    # 1) end call ใน DB + ดึง conversation_id, call_type
+    call_info = end_call(call_id)
 
     # 2) หา participant ทุกคนในสาย
     participants = get_call_participants(call_id)
@@ -127,16 +129,56 @@ def end_call_service(pkt, user_id):
         "call_id": call_id
     }
 
-    # 3) broadcast ไปทุกคน (รวมคนกดด้วยก็ได้ หรือจะ skip ก็ได้)
+    # 3) broadcast call_ended ไปทุกคน
     for uid in participants:
-        conn = online_users.get(uid)  # ต้องมี mapping user_id -> connection
+        conn = online_users.get(uid)
         if conn:
             try:
                 send_packet(conn, payload)
             except Exception as e:
                 print(f"❌ send call_ended failed to {uid}: {e}")
 
-    # 4) response กลับคนที่กด (optional)
+    # 4) insert system message แจ้งสิ้นสุดการโทรในแชท
+    if call_info:
+        try:
+            mins = str(int(duration) // 60).zfill(2)
+            secs = str(int(duration) % 60).zfill(2)
+            call_type_label = "วิดีโอคอล" if call_info.get("call_type") == "video" else "การโทร"
+            text = f"📞 สิ้นสุด{call_type_label} ({mins}:{secs})"
+
+            conversation_id = call_info["conversation_id"]
+            print(f"[END_CALL] Inserting message: '{text}' into conv={conversation_id} by user={user_id}")
+            result = create_message_service(str(conversation_id), str(user_id), text)
+            print(f"[END_CALL] create_message_service result: {result.get('status')}")
+
+            if result.get("status") == "success":
+                msg = result
+                members = get_conversation_members_service(str(conversation_id))
+                print(f"[END_CALL] Broadcasting to members: {members}")
+                for member_id in members:
+                    mid = str(member_id)
+                    if mid in online_users:
+                        try:
+                            send_packet(online_users[mid], {
+                                "type": "receive_message",
+                                "conversation_id": str(conversation_id),
+                                "message": msg
+                            })
+                            print(f"[END_CALL] ✅ Sent to {mid}")
+                        except Exception as e:
+                            print(f"❌ send call-ended msg failed to {mid}: {e}")
+                    else:
+                        print(f"[END_CALL] ⚠️ {mid} not online")
+            else:
+                print(f"[END_CALL] ❌ Message insert failed: {result.get('message')}")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"❌ Failed to insert call-ended message: {e}")
+    else:
+        print(f"[END_CALL] ⚠️ call_info is None for call_id={call_id}")
+
+    # 5) response กลับคนที่กด
     return {
         "type": "end_call_response",
         "status": "success"

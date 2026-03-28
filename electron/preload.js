@@ -77,8 +77,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   answerCall: (callId) =>
     ipcRenderer.invoke("answer-call", callId),
 
-  endCall: (callId) =>
-    ipcRenderer.invoke("end-call", callId),
+  endCall: (callId, duration) =>
+    ipcRenderer.invoke("end-call", callId, duration),
   
   sendRealtime: (data) => ipcRenderer.send("tcp-send", data),
 

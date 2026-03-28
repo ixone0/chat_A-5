@@ -29,6 +29,7 @@ const Chat = () => {
   const [calling, setCalling] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [callElapsedTime, setCallElapsedTime] = useState(0); // ✅ Call duration in seconds
+  const callElapsedTimeRef = useRef(0);
   const isCallerRef = useRef(false);
   const pendingCandidatesRef = useRef([]);
   const currentCallConversationRef = useRef(null); // ✅ เก็บ conversation_id ของการโทรปัจจุบัน
@@ -703,9 +704,10 @@ const Chat = () => {
   };
 
   const endCall = async (callId) => {
+    const duration = callElapsedTimeRef.current;
     try {
       if (callId && callId !== "temp") {
-        await window.electronAPI.endCall(callId);
+        await window.electronAPI.endCall(callId, duration);
       }
     } catch (err) {
       console.error("endCall error:", err);
@@ -731,11 +733,15 @@ const Chat = () => {
   useEffect(() => {
     if (!activeCall) {
       setCallElapsedTime(0);
+      callElapsedTimeRef.current = 0;
       return;
     }
 
     const interval = setInterval(() => {
-      setCallElapsedTime(prev => prev + 1);
+      setCallElapsedTime(prev => {
+        callElapsedTimeRef.current = prev + 1;
+        return prev + 1;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
