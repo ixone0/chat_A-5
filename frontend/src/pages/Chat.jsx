@@ -186,21 +186,6 @@ const Chat = () => {
     setIsMicMuted(nextMuted);
   };
 
-  const toggleCamera = () => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-
-    const videoTracks = stream.getVideoTracks();
-    if (!videoTracks.length) return;
-
-    const nextOff = !isCameraOff;
-    videoTracks.forEach((track) => {
-      track.enabled = !nextOff;
-    });
-
-    setIsCameraOff(nextOff);
-  };
-
   const startWebRTC = async (call_id, conversation_id, call_type = 'audio') => {
     console.log("START WEBRTC CALLED", { call_id, call_type });
     callTypeRef.current = call_type;
@@ -647,20 +632,6 @@ const Chat = () => {
       setActiveCall(null);
       isCallerRef.current = false;
       cleanupCall();
-
-      // refresh messages หลังถูกวางสาย เพื่อแสดงข้อความ "สิ้นสุดการโทร"
-      if (convId) {
-        setTimeout(async () => {
-          try {
-            const res = await window.electronAPI.getMessages({ conversation_id: String(convId) });
-            if (res?.status === "success") {
-              setMessages((prev) => ({ ...prev, [String(convId)]: res.messages || [] }));
-            }
-          } catch (e) {
-            console.error("Failed to refresh messages after call ended:", e);
-          }
-        }, 500);
-      }
     };
     
     const offIncoming = window.electronAPI.onIncomingCall(handleIncoming);
@@ -733,20 +704,6 @@ const Chat = () => {
       setActiveCall(null);
       setCalling(null);
       isCallerRef.current = false;
-
-      // refresh messages หลังวางสาย เพื่อแสดงข้อความ "สิ้นสุดการโทร"
-      if (convId) {
-        setTimeout(async () => {
-          try {
-            const res = await window.electronAPI.getMessages({ conversation_id: String(convId) });
-            if (res?.status === "success") {
-              setMessages((prev) => ({ ...prev, [String(convId)]: res.messages || [] }));
-            }
-          } catch (e) {
-            console.error("Failed to refresh messages after call:", e);
-          }
-        }, 500);
-      }
     }
   };
   useEffect(() => {
@@ -1223,7 +1180,6 @@ const Chat = () => {
             {/* ✅ Show video containers ONLY for video calls */}
             {activeCall.call_type === 'video' && (
               <>
-                {/* Remote Video Container */}
                 <div 
                   ref={remoteVideoRef} 
                   style={{
@@ -1235,8 +1191,6 @@ const Chat = () => {
                     overflow: 'hidden'
                   }}
                 />
-                
-                {/* Local Video Container (Picture-in-Picture) */}
                 <div 
                   ref={localVideoRef} 
                   style={{
@@ -1278,58 +1232,9 @@ const Chat = () => {
                 }}
                 title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
               >
-                {isMicMuted ? (
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                    <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>
-                    <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.13 1.49-.35 2.17"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
-                ) : (
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EAE0CF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
-                )}
+                {isMicMuted ? '🔇' : '🎤'}
               </button>
 
-              {/* Camera toggle (video call only) */}
-              {activeCall.call_type === 'video' && (
-                <button
-                  onClick={toggleCamera}
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    border: 'none',
-                    cursor: 'pointer',
-                    backgroundColor: isCameraOff ? '#d9534f' : 'rgba(255,255,255,0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                  title={isCameraOff ? 'Turn on camera' : 'Turn off camera'}
-                >
-                  {isCameraOff ? (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                      <path d="M21 7l-5 3.5"/>
-                      <path d="M16 16V5a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11"/>
-                      <path d="M23 7v10"/>
-                    </svg>
-                  ) : (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EAE0CF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M23 7l-7 5 7 5V7z"/>
-                      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-                    </svg>
-                  )}
-                </button>
-              )}
-
-              {/* End call */}
               <button
                 onClick={() => endCall(activeCall.call_id)}
                 style={{

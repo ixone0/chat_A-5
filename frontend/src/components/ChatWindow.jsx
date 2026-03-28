@@ -130,7 +130,9 @@ const ChatWindow = ({
   }
 
   const isGroup = conversation?.type === "group";
-  const isOwner = conversation?.role === "owner" || String(conversation?.owner_id) === String(currentUserId);
+  // ✅ Fallback: ถ้า role undefined ให้เช็ค owner_id แทน
+  const isOwner = conversation?.role === "owner" || 
+                  String(conversation?.owner_id) === String(currentUserId);
   
   let headerName = "Unknown";
   let headerIcon = null; 
