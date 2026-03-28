@@ -152,7 +152,7 @@ def end_call_service(pkt, user_id):
             print(f"[END_CALL] create_message_service result: {result.get('status')}")
 
             if result.get("status") == "success":
-                msg = result
+                msg = result["message"]
                 members = get_conversation_members_service(str(conversation_id))
                 print(f"[END_CALL] Broadcasting to members: {members}")
                 for member_id in members:

@@ -641,11 +641,26 @@ const Chat = () => {
     };
 
     const handleEnded = () => {
+      const convId = currentCallConversationRef.current;
       setIncomingCall(null);
       setCalling(null);
       setActiveCall(null);
       isCallerRef.current = false;
       cleanupCall();
+
+      // refresh messages หลังถูกวางสาย เพื่อแสดงข้อความ "สิ้นสุดการโทร"
+      if (convId) {
+        setTimeout(async () => {
+          try {
+            const res = await window.electronAPI.getMessages({ conversation_id: String(convId) });
+            if (res?.status === "success") {
+              setMessages((prev) => ({ ...prev, [String(convId)]: res.messages || [] }));
+            }
+          } catch (e) {
+            console.error("Failed to refresh messages after call ended:", e);
+          }
+        }, 500);
+      }
     };
     
     const offIncoming = window.electronAPI.onIncomingCall(handleIncoming);
@@ -705,6 +720,7 @@ const Chat = () => {
 
   const endCall = async (callId) => {
     const duration = callElapsedTimeRef.current;
+    const convId = currentCallConversationRef.current;
     try {
       if (callId && callId !== "temp") {
         await window.electronAPI.endCall(callId, duration);
@@ -717,6 +733,20 @@ const Chat = () => {
       setActiveCall(null);
       setCalling(null);
       isCallerRef.current = false;
+
+      // refresh messages หลังวางสาย เพื่อแสดงข้อความ "สิ้นสุดการโทร"
+      if (convId) {
+        setTimeout(async () => {
+          try {
+            const res = await window.electronAPI.getMessages({ conversation_id: String(convId) });
+            if (res?.status === "success") {
+              setMessages((prev) => ({ ...prev, [String(convId)]: res.messages || [] }));
+            }
+          } catch (e) {
+            console.error("Failed to refresh messages after call:", e);
+          }
+        }, 500);
+      }
     }
   };
   useEffect(() => {
