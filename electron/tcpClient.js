@@ -116,7 +116,7 @@ function initTcpClient(mainWindow) {
 }
 
 // ✅ send พร้อม newline delimiter
-function send(packet) {
+function send(packet, timeoutMs = 10000) {
   return new Promise((resolve, reject) => {
     if (!client) return reject(new Error('TCP client not connected'));
 
@@ -129,7 +129,7 @@ function send(packet) {
         pending.delete(request_id);
         reject(new Error('TCP request timeout'));
       }
-    }, 10000);
+    }, timeoutMs);
 
     pending.set(request_id, { resolve, reject, timeout });
 
@@ -222,14 +222,14 @@ function sendFile(conversationId, filePath) {
   const ext      = fileName.split('.').pop().toLowerCase();
   const mimeType = mimeMap[ext] || 'application/octet-stream';
  
-  // 4. ส่งผ่าน TCP แบบเดิม
+  // 4. ส่งผ่าน TCP แบบเดิม (timeout 60 วินาทีสำหรับไฟล์ใหญ่)
   return send({
     type: 'send_file',
     conversation_id: conversationId,
     file_name: fileName,
     mime_type: mimeType,
     data: base64Data,
-  });
+  }, 60000);
 }
 
 function getMessages(conversation_id) {

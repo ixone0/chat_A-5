@@ -82,6 +82,12 @@ const ChatWindow = ({
     }
   }, [formattedMessages.length]);
 
+  // Clear upload state เมื่อเปลี่ยน conversation
+  useEffect(() => {
+    setUploadState(null);
+    setPreviewData(null);
+  }, [selected?.id]);
+
   const handleStartEdit = () => {
     if (conversation?.type === "group" && conversation?.role === "owner") {
       setTempTitle(conversation.title || "");
