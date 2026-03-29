@@ -96,6 +96,14 @@ function initTcpClient(mainWindow) {
         else if (parsed.type === 'group_renamed_notification') {
           win.webContents.send('group-renamed-notification', parsed);
         }
+        // ✅ แจ้งเตือนเมื่อมีคนถูกเพิ่มเข้ากลุ่ม
+        else if (parsed.type === 'member_added_notification') {
+          win.webContents.send('member-added-notification', parsed);
+        }
+        // ✅ แจ้งเตือนเมื่อมีคนถูกเตะออกจากกลุ่ม
+        else if (parsed.type === 'member_kicked_notification') {
+          win.webContents.send('member-kicked-notification', parsed);
+        }
         else {
           win.webContents.send('server-message', parsed);
         }

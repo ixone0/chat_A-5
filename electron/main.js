@@ -123,6 +123,44 @@ ipcMain.handle('rename-group', async (event, payload) => {
   }
 });
 
+// ✅ ดูสมาชิกในกลุ่ม
+ipcMain.handle('get-group-members', async (event, conversationId) => {
+  try {
+    return await send({
+      type: "get_group_members",
+      conversation_id: conversationId
+    });
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
+// ✅ เพิ่มสมาชิกเข้ากลุ่ม
+ipcMain.handle('add-group-members', async (event, payload) => {
+  try {
+    return await send({
+      type: "add_group_members",
+      conversation_id: payload.conversation_id,
+      members: payload.members
+    });
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
+// ✅ เตะสมาชิกออกจากกลุ่ม
+ipcMain.handle('kick-group-member', async (event, payload) => {
+  try {
+    return await send({
+      type: "kick_group_member",
+      conversation_id: payload.conversation_id,
+      target_user_id: payload.target_user_id
+    });
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
 // ✅ เพิ่ม IPC Listener สำหรับ Register
 ipcMain.handle('register-request', async (event, data) => {
   console.log('UI Request Register:', data.username);

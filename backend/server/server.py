@@ -784,6 +784,134 @@ def handle_client(conn, addr):
                         except Exception as e:
                             send_packet(conn, {"type": "rename_group_response", "status": "error", "message": str(e)})
 
+                    # ============ GET GROUP MEMBERS ============
+                    elif pkt_type == "get_group_members":
+                        conv_id = pkt.get("conversation_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "get_group_members_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import get_group_members_detail_db
+                            members_detail = get_group_members_detail_db(conv_id)
+                            send_packet(conn, {
+                                "type": "get_group_members_response",
+                                "request_id": request_id,
+                                "status": "success",
+                                "conversation_id": conv_id,
+                                "members": members_detail
+                            })
+                        except Exception as e:
+                            send_packet(conn, {"type": "get_group_members_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ ADD GROUP MEMBERS (Owner Only) ============
+                    elif pkt_type == "add_group_members":
+                        conv_id = pkt.get("conversation_id")
+                        new_members = pkt.get("members", [])
+                        if not user_id:
+                            send_packet(conn, {"type": "add_group_members_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import is_conversation_owner, add_members_to_group_db
+                            if not is_conversation_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "add_group_members_response", "request_id": request_id, "status": "error", "message": "Only owner can add members"})
+                                continue
+
+                            added = add_members_to_group_db(conv_id, new_members)
+                            send_packet(conn, {
+                                "type": "add_group_members_response",
+                                "request_id": request_id,
+                                "status": "success",
+                                "conversation_id": conv_id,
+                                "added_members": added
+                            })
+
+                            # Broadcast แจ้งคนที่ถูกเพิ่ม
+                            for member_id in added:
+                                m_str = str(member_id)
+                                if m_str in online_users:
+                                    try:
+                                        send_packet(online_users[m_str], {
+                                            "type": "new_group_notification",
+                                            "conversation_id": conv_id,
+                                            "message": "You were added to a group"
+                                        })
+                                    except Exception:
+                                        pass
+
+                            # Broadcast แจ้งสมาชิกเดิม
+                            existing_members = get_conversation_members_service(conv_id)
+                            for m_id in existing_members:
+                                m_str = str(m_id)
+                                if m_str != user_id and m_str not in [str(a) for a in added] and m_str in online_users:
+                                    try:
+                                        send_packet(online_users[m_str], {
+                                            "type": "member_added_notification",
+                                            "conversation_id": conv_id,
+                                            "added_members": added
+                                        })
+                                    except Exception:
+                                        pass
+
+                        except Exception as e:
+                            send_packet(conn, {"type": "add_group_members_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ KICK GROUP MEMBER (Owner Only) ============
+                    elif pkt_type == "kick_group_member":
+                        conv_id = pkt.get("conversation_id")
+                        target_id = pkt.get("target_user_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import is_conversation_owner, remove_member_from_group_db
+                            if not is_conversation_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Only owner can kick members"})
+                                continue
+                            if str(target_id) == str(user_id):
+                                send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Cannot kick yourself"})
+                                continue
+
+                            success = remove_member_from_group_db(conv_id, target_id)
+                            if success:
+                                send_packet(conn, {
+                                    "type": "kick_group_member_response",
+                                    "request_id": request_id,
+                                    "status": "success",
+                                    "conversation_id": conv_id,
+                                    "kicked_user_id": target_id
+                                })
+
+                                # แจ้งคนที่ถูกเตะ
+                                t_str = str(target_id)
+                                if t_str in online_users:
+                                    try:
+                                        send_packet(online_users[t_str], {
+                                            "type": "member_kicked_notification",
+                                            "conversation_id": conv_id,
+                                            "kicked_user_id": target_id,
+                                            "message": "You were removed from the group"
+                                        })
+                                    except Exception:
+                                        pass
+
+                                # แจ้งสมาชิกที่เหลือ
+                                remaining = get_conversation_members_service(conv_id)
+                                for m_id in remaining:
+                                    m_str = str(m_id)
+                                    if m_str != user_id and m_str in online_users:
+                                        try:
+                                            send_packet(online_users[m_str], {
+                                                "type": "member_kicked_notification",
+                                                "conversation_id": conv_id,
+                                                "kicked_user_id": target_id
+                                            })
+                                        except Exception:
+                                            pass
+                            else:
+                                send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Failed to kick member"})
+                        except Exception as e:
+                            send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": str(e)})
+
                     # ---------------- UNKNOWN ----------------
                     else:
                         send_packet(conn, {

@@ -166,3 +166,107 @@ def update_conversation_title_db(conv_id, new_title):
     finally:
         cursor.close()
         conn.close()
+
+
+# ==========================================
+# 👥 ดึงรายชื่อสมาชิกพร้อมข้อมูล user (สำหรับแสดงใน UI)
+# ==========================================
+def get_group_members_detail_db(conversation_id):
+    """ดึงสมาชิกทุกคนพร้อม username, display_name, custom_id, role"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT u.id, u.username, u.display_name, u.custom_id, cm.role
+                FROM conversation_members cm
+                JOIN users u ON u.id = cm.user_id
+                WHERE cm.conversation_id = %s
+                ORDER BY 
+                    CASE cm.role WHEN 'owner' THEN 0 ELSE 1 END,
+                    cm.joined_at ASC
+            """, (conversation_id,))
+            rows = cursor.fetchall()
+            return [
+                {
+                    "user_id": str(row[0]),
+                    "username": row[1],
+                    "display_name": row[2],
+                    "custom_id": row[3],
+                    "role": row[4]
+                }
+                for row in rows
+            ]
+    finally:
+        conn.close()
+
+# ==========================================
+# ➕ เพิ่มสมาชิกเข้ากลุ่ม (เช็ค duplicate)
+# ==========================================
+def add_members_to_group_db(conversation_id, new_member_ids):
+    """เพิ่มสมาชิกใหม่เข้ากลุ่ม คืน list ของ member_id ที่เพิ่มสำเร็จ"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    added = []
+    try:
+        for member_id in new_member_ids:
+            # เช็คว่าอยู่ในกลุ่มแล้วหรือยัง
+            cursor.execute(
+                "SELECT 1 FROM conversation_members WHERE conversation_id = %s AND user_id = %s",
+                (conversation_id, member_id)
+            )
+            if cursor.fetchone():
+                continue  # อยู่แล้ว ข้าม
+
+            cursor.execute("""
+                INSERT INTO conversation_members (conversation_id, user_id, role, joined_at)
+                VALUES (%s, %s, 'member', CURRENT_TIMESTAMP)
+            """, (conversation_id, member_id))
+            added.append(member_id)
+
+        conn.commit()
+        return added
+    except Exception as e:
+        print(f"Error add_members_to_group_db: {e}")
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+# ==========================================
+# ❌ เตะสมาชิกออกจากกลุ่ม
+# ==========================================
+def remove_member_from_group_db(conversation_id, target_user_id):
+    """ลบสมาชิกออกจากกลุ่ม คืน True ถ้าลบสำเร็จ"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            DELETE FROM conversation_members
+            WHERE conversation_id = %s AND user_id = %s AND role != 'owner'
+        """, (conversation_id, target_user_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(f"Error remove_member_from_group_db: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+# ==========================================
+# 🔍 เช็คว่า user เป็น owner ของ conversation นี้ไหม
+# ==========================================
+def is_conversation_owner(conversation_id, user_id):
+    """คืน True ถ้า user_id เป็น owner ของ conversation_id"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT 1 FROM conversation_members
+                WHERE conversation_id = %s AND user_id = %s AND role = 'owner'
+            """, (conversation_id, user_id))
+            return cursor.fetchone() is not None
+    finally:
+        conn.close()

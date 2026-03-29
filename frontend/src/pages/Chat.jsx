@@ -12,6 +12,7 @@ import SettingsModal from "../components/SettingsModal";
 import CallModal from "../components/CallModal";
 import CallingModal from "../components/CallingModal";
 import CreateGroupForm from "../components/CreateGroupForm";
+import GroupMembersModal from "../components/GroupMembersModal";
 
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
@@ -28,6 +29,7 @@ const Chat = () => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [calling, setCalling] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
+  const [showMembersModal, setShowMembersModal] = useState(false);
   const [callElapsedTime, setCallElapsedTime] = useState(0); // ✅ Call duration in seconds
   const callElapsedTimeRef = useRef(0);
   const isCallerRef = useRef(false);
@@ -879,13 +881,34 @@ const Chat = () => {
     // ✅ ฟังการแจ้งเตือนเมื่อชื่อกลุ่มเปลี่ยน
     const unsubRename = window.electronAPI.onGroupRenamed?.((data) => {
       console.log("📢 Group renamed!", data);
-      refreshData(); // โหลดข้อมูลใหม่เพื่อให้ชื่อกลุ่มอัปเดตทุกหน้าจอ
+      refreshData();
+    });
+
+    // ✅ ฟังการแจ้งเตือนเมื่อมีคนถูกเพิ่มเข้ากลุ่ม
+    const unsubMemberAdded = window.electronAPI.onMemberAdded?.((data) => {
+      console.log("📢 Member added!", data);
+      refreshData();
+    });
+
+    // ✅ ฟังการแจ้งเตือนเมื่อมีคนถูกเตะออกจากกลุ่ม
+    const unsubMemberKicked = window.electronAPI.onMemberKicked?.((data) => {
+      console.log("📢 Member kicked!", data);
+      // ถ้าตัวเองถูกเตะ ให้ปิด conversation ที่เปิดอยู่
+      const myId = localStorage.getItem("user_id");
+      if (String(data.kicked_user_id) === String(myId)) {
+        if (String(selectedConvRef.current?.id) === String(data.conversation_id)) {
+          setSelectedConversation(null);
+        }
+      }
+      refreshData();
     });
 
     return () => {
       if (unsubMsg) unsubMsg();
-      if (unsubGroup) unsubGroup(); // ✅ อย่าลืม clear listener
-      if (unsubRename) unsubRename(); // ✅ clear rename listener
+      if (unsubGroup) unsubGroup();
+      if (unsubRename) unsubRename();
+      if (unsubMemberAdded) unsubMemberAdded();
+      if (unsubMemberKicked) unsubMemberKicked();
     };
   }, []);
 
@@ -1068,6 +1091,7 @@ const Chat = () => {
             currentUserId={currentUser?.id}
             onSendMessage={handleSendMessage}
             startCall={startCall}
+            onShowMembers={() => setShowMembersModal(true)}
             refreshMessages={async () => {
               const res = await window.electronAPI.getMessages({
                 conversation_id: selectedConversation.id,
@@ -1172,6 +1196,20 @@ const Chat = () => {
           onClose={() => setShowSettings(false)}
           onLogout={handleLogout}
           currentUser={currentUser}
+        />
+      )}
+
+      {showMembersModal && selectedConversation?.type === 'group' && (
+        <GroupMembersModal
+          conversationId={selectedConversation.id}
+          isOwner={
+            selectedConversation.role === 'owner' ||
+            String(selectedConversation.owner_id) === String(currentUser?.id)
+          }
+          currentUserId={currentUser?.id}
+          friends={friends}
+          onClose={() => setShowMembersModal(false)}
+          onRefresh={refreshData}
         />
       )}
 

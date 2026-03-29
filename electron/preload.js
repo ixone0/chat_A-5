@@ -63,11 +63,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ✅ ส่งคำสั่งเปลี่ยนชื่อ
   renameGroup: (payload) => ipcRenderer.invoke("rename-group", payload),
 
+  // ✅ ดูสมาชิกในกลุ่ม
+  getGroupMembers: (conversationId) => ipcRenderer.invoke("get-group-members", conversationId),
+
+  // ✅ เพิ่มสมาชิกเข้ากลุ่ม
+  addGroupMembers: (payload) => ipcRenderer.invoke("add-group-members", payload),
+
+  // ✅ เตะสมาชิกออกจากกลุ่ม
+  kickGroupMember: (payload) => ipcRenderer.invoke("kick-group-member", payload),
+
   // ✅ ฟังการแจ้งเตือนเมื่อชื่อกลุ่มเปลี่ยน
   onGroupRenamed: (callback) => {
     const listener = (_, data) => callback(data);
     ipcRenderer.on("group-renamed-notification", listener);
     return () => ipcRenderer.removeListener("group-renamed-notification", listener);
+  },
+
+  // ✅ ฟังการแจ้งเตือนเมื่อมีคนถูกเพิ่ม/เตะ
+  onMemberAdded: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("member-added-notification", listener);
+    return () => ipcRenderer.removeListener("member-added-notification", listener);
+  },
+
+  onMemberKicked: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("member-kicked-notification", listener);
+    return () => ipcRenderer.removeListener("member-kicked-notification", listener);
   },
 
   updateUserId: (data) =>
