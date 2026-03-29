@@ -1070,6 +1070,13 @@ const Chat = () => {
         items.push(c);
       } else if (c.type === "group") items.push(c);
     });
+    // Sort by last message time (most recent first)
+    items.sort((a, b) => {
+      const timeA = a.last_message_at || a.created_at || '';
+      const timeB = b.last_message_at || b.created_at || '';
+      return new Date(timeB) - new Date(timeA);
+    });
+    // Friends without a conversation go at the bottom
     friends.forEach((f) => {
       if (!seen.has(String(f.id))) {
         items.push({
