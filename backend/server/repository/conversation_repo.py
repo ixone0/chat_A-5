@@ -81,12 +81,17 @@ def get_user_conversations_db(user_id):
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT c.id, c.title, c.type, c.created_at, cm.role, c.owner_id,
-                       (SELECT COUNT(*) FROM conversation_members cm2 WHERE cm2.conversation_id = c.id) as member_count
+                       (SELECT COUNT(*) FROM conversation_members cm2 WHERE cm2.conversation_id = c.id) as member_count,
+                       (SELECT m.content FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
+                       (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at
                 FROM conversations c
                 JOIN conversation_members cm
                   ON cm.conversation_id = c.id
                 WHERE cm.user_id = %s
-                ORDER BY c.created_at DESC
+                ORDER BY COALESCE(
+                    (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1),
+                    c.created_at
+                ) DESC
             """, (user_id,))
 
             rows = cursor.fetchall()
@@ -99,7 +104,9 @@ def get_user_conversations_db(user_id):
                     "created_at": row[3].isoformat() if row[3] else None,
                     "role": row[4],
                     "owner_id": str(row[5]) if row[5] else None,
-                    "member_count": row[6] or 0
+                    "member_count": row[6] or 0,
+                    "last_message": row[7] or None,
+                    "last_message_at": row[8].isoformat() if row[8] else None
                 }
                 for row in rows
             ]

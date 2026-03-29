@@ -122,6 +122,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateUserId: (data) =>
     ipcRenderer.invoke("update-user-id", data),
 
+  // Typing indicator
+  sendTyping: (conversationId) => ipcRenderer.send("tcp-send", { type: "typing", conversation_id: conversationId }),
+
+  onTypingIndicator: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("typing-indicator", listener);
+    return () => ipcRenderer.removeListener("typing-indicator", listener);
+  },
+
   startCall: (data) =>
     ipcRenderer.invoke("start-call", data),
 

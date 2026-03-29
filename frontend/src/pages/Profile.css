@@ -1,0 +1,112 @@
+.profile-page {
+  padding: 40px 32px;
+  max-width: 480px;
+  margin: 0 auto;
+  color: #213448;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px;
+  background: #213448;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(33,52,72,0.15);
+}
+
+.profile-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #547792;
+  color: #EAE0CF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.profile-username {
+  color: #EAE0CF;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.profile-custom-id {
+  color: #94B4C1;
+  font-size: 0.9rem;
+}
+
+.profile-section {
+  background: #213448;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(33,52,72,0.15);
+}
+
+.profile-section-title {
+  color: #EAE0CF;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.profile-id-form {
+  display: flex;
+  gap: 10px;
+}
+
+.profile-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid #547792;
+  border-radius: 10px;
+  color: #EAE0CF;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s;
+}
+.profile-input:focus {
+  border-color: #94B4C1;
+  box-shadow: 0 0 0 3px rgba(84,119,146,0.3);
+}
+.profile-input::placeholder { color: rgba(148,180,193,0.4); }
+
+.profile-save-btn {
+  padding: 10px 20px;
+  background: #547792;
+  color: #EAE0CF;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.profile-save-btn:hover { background: #688ba6; }
+.profile-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.profile-notif {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.profile-notif-success {
+  background: rgba(46,125,50,0.15);
+  color: #66bb6a;
+  border: 1px solid rgba(46,125,50,0.3);
+}
+.profile-notif-error {
+  background: rgba(220,53,69,0.15);
+  color: #ff6b7a;
+  border: 1px solid rgba(220,53,69,0.3);
+}

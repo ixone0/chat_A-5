@@ -1,78 +1,94 @@
 import React from 'react';
 import './UserList.css';
 
-// สร้างสี avatar จาก id เพื่อให้แต่ละกลุ่ม/คนมีสีต่างกัน
 const AVATAR_COLORS = [
   '#5865f2', '#57a6a1', '#e07c4f', '#9b59b6',
   '#2ecc71', '#e74c3c', '#f39c12', '#1abc9c',
   '#3498db', '#e91e63',
 ];
+
 function getAvatarColor(id) {
   if (!id) return AVATAR_COLORS[0];
   let hash = 0;
   const str = String(id);
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-const UserList = ({ users, selectedUser, onSelectUser, onAddClick }) => {
+function truncate(str, max = 30) {
+  if (!str) return '';
+  return str.length > max ? str.slice(0, max) + '...' : str;
+}
+
+const UserList = ({ users, selectedUser, onSelectUser, onAddClick, unreadMap = {}, searchQuery = '', onSearchChange }) => {
+  const filtered = searchQuery.trim()
+    ? users.filter(item => {
+        const name = item.type === 'group'
+          ? (item.title || '')
+          : (item.other_user?.display_name || item.other_user?.username || item.display_name || item.username || '');
+        return name.toLowerCase().includes(searchQuery.toLowerCase());
+      })
+    : users;
+
   return (
     <div className="user-list-panel">
       <div className="add-user-section">
-        <button className="add-ip-btn" onClick={onAddClick}>
-          ADD USER ID
-        </button>
+        <input
+          className="sidebar-search"
+          type="text"
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+        />
+        <button className="add-ip-btn" onClick={onAddClick}>ADD USER ID</button>
       </div>
 
       <div className="user-list">
-        {users.map(item => {
-          // ✅ เช็คว่าเป็นแชทกลุ่ม หรือ แชทเดี่ยว
+        {filtered.map(item => {
           const isGroup = item.type === "group";
-          
           let displayName = "Unknown";
-          let displayId = "No ID";
+          let subtitle = "";
 
           if (isGroup) {
             displayName = item.title || "Group Chat";
-            displayId = item.member_count ? `${item.member_count} members` : "Group"; 
+            subtitle = item.last_message ? truncate(item.last_message) : `${item.member_count || 0} members`;
           } else {
-            // ถ้าเป็นแชทเดี่ยว ดึงข้อมูลจาก other_user
             const friend = item.other_user || item;
             displayName = friend.display_name || friend.username || friend.name || "Unknown";
-            displayId = friend.custom_id || "No ID";
+            subtitle = item.last_message ? truncate(item.last_message) : `ID: ${friend.custom_id || "No ID"}`;
           }
-          
-          // ตัวอักษรย่อสำหรับ Avatar
+
           const avatarChar = displayName.charAt(0).toUpperCase();
+          const unreadCount = unreadMap[String(item.id)] || 0;
 
           return (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               className={`user-item ${selectedUser?.id === item.id ? 'active' : ''}`}
               onClick={() => onSelectUser(item)}
             >
-              {/* Avatar วงกลมแบบคลีน */}
-              <div className="user-avatar-small" style={{ backgroundColor: getAvatarColor(item.id) }}>
-                {avatarChar}
+              <div className="user-avatar-wrapper">
+                <div className="user-avatar-small" style={{ backgroundColor: getAvatarColor(item.id) }}>
+                  {avatarChar}
+                </div>
+                {!isGroup && item.other_user?.is_online && (
+                  <div className="online-dot" />
+                )}
               </div>
-
-              {/* ข้อมูลชื่อและ ID */}
               <div className="user-info">
                 <span className="user-name">{displayName}</span>
-                <span className="user-id-label">
-                  {/* ถ้าเป็นกลุ่มให้โชว์คำว่า Group เฉยๆ แต่ถ้าเป็นเดี่ยวให้โชว์ ID: ... */}
-                  {isGroup ? displayId : `ID: ${displayId}`}
-                </span> 
+                <span className="user-id-label">{subtitle}</span>
               </div>
+              {unreadCount > 0 && (
+                <div className="unread-badge">{unreadCount > 99 ? '99+' : unreadCount}</div>
+              )}
             </div>
           );
         })}
 
-        {users.length === 0 && (
+        {filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '20px', color: '#547792', fontSize: '0.85rem' }}>
-            No friends or groups found.
+            {searchQuery ? 'No results found' : 'No friends or groups found.'}
           </div>
         )}
       </div>

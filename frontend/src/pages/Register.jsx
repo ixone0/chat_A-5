@@ -177,7 +177,7 @@ const Register = () => {
                   )}
                 </button>
             </div>
-            {errorMsg && <div className="error-text">⚠ {errorMsg}</div>}
+            {errorMsg && <div className="error-text">{errorMsg}</div>}
           </div>
 
           <div className="button-group">
@@ -186,7 +186,7 @@ const Register = () => {
             </button>
           </div>
 
-          {successMsg && <div className="success-text">✅ {successMsg}</div>}
+          {successMsg && <div className="success-text">{successMsg}</div>}
 
           <div className="login-link-section">
             <span>Already have an account?</span>

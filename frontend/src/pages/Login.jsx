@@ -91,7 +91,7 @@ const Login = () => {
             />
             {errorMsg && (
               <div className="error-text">
-                ⚠ {errorMsg}
+                {errorMsg}
               </div>
             )}
           </div>

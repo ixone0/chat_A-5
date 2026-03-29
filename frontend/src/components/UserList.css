@@ -139,3 +139,78 @@
 .user-item.active .user-ip {
   color: rgba(234, 224, 207, 0.7); /* Cream แบบจางๆ */
 }
+
+/* Search bar */
+.sidebar-search {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(84,119,146,0.3);
+  border-radius: 8px;
+  color: #EAE0CF;
+  font-size: 0.85rem;
+  outline: none;
+  margin-bottom: 10px;
+  transition: all 0.2s;
+}
+.sidebar-search:focus {
+  border-color: #94B4C1;
+  box-shadow: 0 0 0 2px rgba(84,119,146,0.2);
+}
+.sidebar-search::placeholder { color: rgba(148,180,193,0.4); }
+
+/* Last message subtitle */
+.user-id-label {
+  font-size: 0.75rem;
+  color: rgba(148, 180, 193, 0.6);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.user-item:hover .user-id-label,
+.user-item.active .user-id-label {
+  color: rgba(234, 224, 207, 0.7);
+}
+
+/* Unread badge */
+.unread-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #f23f42;
+  color: white;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Avatar wrapper for online dot positioning */
+.user-avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.user-avatar-wrapper .user-avatar-small {
+  margin-right: 0;
+}
+
+/* Online status dot */
+.online-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: #2ecc71;
+  border: 2px solid #213448;
+  border-radius: 50%;
+}

@@ -13,6 +13,7 @@ const ChatWindow = ({
   startCall = () => {},
   refreshMessages = () => {},
   onShowMembers = null,
+  isTyping = false,
 }) => {
   const [inputText, setInputText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -58,6 +59,7 @@ const ChatWindow = ({
         const id = m.id || `${m.sender_id || "temp"}-${m.created_at || Date.now()}-${index}`;
         const createdRaw = m.created_at ?? m.time ?? null;
         let time = "";
+        let dateStr = "";
         if (createdRaw) {
           const dateObj = new Date(createdRaw);
           time = dateObj.toLocaleTimeString("th-TH", {
@@ -65,12 +67,19 @@ const ChatWindow = ({
             hour: "2-digit",
             minute: "2-digit",
           });
+          dateStr = dateObj.toLocaleDateString("en-US", {
+            timeZone: "Asia/Bangkok",
+            weekday: "long",
+            month: "short",
+            day: "numeric",
+          });
         }
 
         return {
           id,
           text: content,
           time,
+          dateStr,
           sender: m.msg_type === "system" ? "system" : (String(m.sender_id) === String(currentUserId) ? "me" : "other"),
           msg_type: inferredMsgType,  
           attachment,                  
@@ -269,35 +278,45 @@ const ChatWindow = ({
           </div>
         )}
 
-        {formattedMessages.map((msg) => {
-          // System message (join/leave/kick)
-          if (msg.sender === "system") {
-            return (
-              <div key={msg.id} className="chat-row row-system">
-                <div className="system-message">
-                  <span>{msg.text}</span>
-                </div>
-              </div>
-            );
-          }
+        {formattedMessages.map((msg, idx) => {
+          // Date separator
+          const prevDate = idx > 0 ? formattedMessages[idx - 1].dateStr : null;
+          const showDateSep = msg.dateStr && msg.dateStr !== prevDate;
 
-          const isMe = msg.sender === "me";
           return (
-            <div key={msg.id} className={`chat-row ${isMe ? "row-me" : "row-other"}`}>
-              {!isMe && (
-                <div className="chat-avatar-container">
-                  <div className="chat-avatar-img">{headerAvatarChar}</div>
+            <React.Fragment key={msg.id}>
+              {showDateSep && (
+                <div className="date-separator">
+                  <span>{msg.dateStr}</span>
                 </div>
               )}
-              <div className="chat-bubble">
-                {msg.msg_type === "file" && msg.attachment ? (
-                  <MessageAttachment attachment={msg.attachment} />
-                ) : (
-                  <p className="msg-text">{msg.text}</p>
-                )}
-                <span className="msg-time">{msg.time}</span>
-              </div>
-            </div>
+
+              {/* System message */}
+              {msg.sender === "system" ? (
+                <div className="chat-row row-system">
+                  <div className="system-message"><span>{msg.text}</span></div>
+                </div>
+              ) : (() => {
+                const isMe = msg.sender === "me";
+                return (
+                  <div className={`chat-row ${isMe ? "row-me" : "row-other"}`}>
+                    {!isMe && (
+                      <div className="chat-avatar-container">
+                        <div className="chat-avatar-img">{headerAvatarChar}</div>
+                      </div>
+                    )}
+                    <div className="chat-bubble">
+                      {msg.msg_type === "file" && msg.attachment ? (
+                        <MessageAttachment attachment={msg.attachment} />
+                      ) : (
+                        <p className="msg-text">{msg.text}</p>
+                      )}
+                      <span className="msg-time">{msg.time}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </React.Fragment>
           );
         })}
       </div>
@@ -381,6 +400,14 @@ const ChatWindow = ({
         />
       )}
 
+      {/* Typing indicator */}
+      {isTyping && (
+        <div className="typing-indicator">
+          <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+          <span className="typing-text">typing...</span>
+        </div>
+      )}
+
       {/* --- Input Area --- */}
       <form className="chat-input-area" onSubmit={handleSend}>
         <div className="input-wrapper">
@@ -411,7 +438,12 @@ const ChatWindow = ({
               type="text"
               placeholder={placeholderText}
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              onChange={(e) => {
+                setInputText(e.target.value);
+                if (e.target.value && conversation?.id) {
+                  window.electronAPI?.sendTyping?.(conversation.id);
+                }
+              }}
             />
             
             <button type="submit" className="icon-send-btn" disabled={!inputText.trim()}>

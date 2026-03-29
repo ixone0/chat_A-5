@@ -31,6 +31,9 @@ const Chat = () => {
   const [calling, setCalling] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [showMembersModal, setShowMembersModal] = useState(false);
+  const [unreadMap, setUnreadMap] = useState({});
+  const [sidebarSearch, setSidebarSearch] = useState("");
+  const [typingUserId, setTypingUserId] = useState(null);
   const [callElapsedTime, setCallElapsedTime] = useState(0); // ✅ Call duration in seconds
   const callElapsedTimeRef = useRef(0);
   const isCallerRef = useRef(false);
@@ -868,8 +871,11 @@ const Chat = () => {
           console.warn("Notification failed:", e);
         }
 
-        // ใช้ flag เพื่อแสดงจุดแจ้งเตือนใน UI (คุณอาจเพิ่ม unread map แยกต่างหาก)
-        setHasNewRequest(true);
+        // ใช้ unread map เพื่อแสดง badge ใน sidebar
+        setUnreadMap(prev => ({
+          ...prev,
+          [convId]: (prev[convId] || 0) + 1
+        }));
       }
     });
 
@@ -917,8 +923,18 @@ const Chat = () => {
     });
 
     const unsubOwnershipTransferred = window.electronAPI.onOwnershipTransferred?.((data) => {
-      console.log("📢 Ownership transferred!", data);
+      console.log("Ownership transferred!", data);
       refreshData();
+    });
+
+    // Typing indicator
+    let typingTimeout = null;
+    const unsubTyping = window.electronAPI.onTypingIndicator?.((data) => {
+      if (String(data.conversation_id) === String(selectedConvRef.current?.id)) {
+        setTypingUserId(data.user_id);
+        if (typingTimeout) clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => setTypingUserId(null), 3000);
+      }
     });
 
     return () => {
@@ -930,6 +946,8 @@ const Chat = () => {
       if (unsubMemberLeft) unsubMemberLeft();
       if (unsubGroupDeleted) unsubGroupDeleted();
       if (unsubOwnershipTransferred) unsubOwnershipTransferred();
+      if (unsubTyping) unsubTyping();
+      if (typingTimeout) clearTimeout(typingTimeout);
     };
   }, []);
 
@@ -959,6 +977,8 @@ const Chat = () => {
 
     setSelectedConversation(conv);
     setCurrentView("chat");
+    // Clear unread badge for this conversation
+    setUnreadMap(prev => { const next = { ...prev }; delete next[String(conv.id)]; return next; });
 
     try {
       const res = await window.electronAPI.getMessages({
@@ -1113,6 +1133,7 @@ const Chat = () => {
             onSendMessage={handleSendMessage}
             startCall={startCall}
             onShowMembers={() => setShowMembersModal(true)}
+            isTyping={!!typingUserId}
             refreshMessages={async () => {
               const res = await window.electronAPI.getMessages({
                 conversation_id: selectedConversation.id,
@@ -1204,6 +1225,9 @@ const Chat = () => {
         selectedUser={selectedConversation}
         onSelectUser={handleSelectConversation}
         onAddClick={() => setCurrentView("add_form")}
+        unreadMap={unreadMap}
+        searchQuery={sidebarSearch}
+        onSearchChange={setSidebarSearch}
       />
 
       <div className="chat-area">{renderRightPanel()}</div>

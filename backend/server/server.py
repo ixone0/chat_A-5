@@ -516,6 +516,11 @@ def handle_client(conn, addr):
                         try:
                             response = handle_get_friends(user_id)
                             response["request_id"] = request_id
+                            # Attach online status to each friend
+                            if response.get("status") == "success":
+                                friends_list = response.get("friends") or response.get("data") or []
+                                for f in friends_list:
+                                    f["is_online"] = str(f.get("id", "")) in online_users
                             send_packet(conn, response)
                         except Exception as e:
                             send_packet(conn, {
@@ -926,6 +931,26 @@ def handle_client(conn, addr):
                                 send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Failed to kick member"})
                         except Exception as e:
                             send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ TYPING INDICATOR (Relay Only) ============
+                    elif pkt_type == "typing":
+                        conv_id = pkt.get("conversation_id")
+                        if user_id and conv_id:
+                            try:
+                                members = get_conversation_members_service(conv_id)
+                                for m_id in members:
+                                    m_str = str(m_id)
+                                    if m_str != user_id and m_str in online_users:
+                                        try:
+                                            send_packet(online_users[m_str], {
+                                                "type": "typing_indicator",
+                                                "conversation_id": conv_id,
+                                                "user_id": user_id
+                                            })
+                                        except Exception:
+                                            pass
+                            except Exception:
+                                pass
 
                     # ============ LEAVE GROUP (Member Only) ============
                     elif pkt_type == "leave_group":

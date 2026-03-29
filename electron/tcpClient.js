@@ -116,6 +116,9 @@ function initTcpClient(mainWindow) {
         else if (parsed.type === 'ownership_transferred_notification') {
           win.webContents.send('ownership-transferred-notification', parsed);
         }
+        else if (parsed.type === 'typing_indicator') {
+          win.webContents.send('typing-indicator', parsed);
+        }
         else {
           win.webContents.send('server-message', parsed);
         }
