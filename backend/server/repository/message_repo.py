@@ -93,3 +93,34 @@ def get_messages_by_conversation(conversation_id, limit=50):
 
     finally:
         conn.close()
+
+
+def insert_system_message(conversation_id, content):
+    """Insert a system message (no sender) for group events like join/leave/kick"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            message_id = str(uuid.uuid4())
+            cursor.execute("""
+                INSERT INTO messages
+                (id, conversation_id, sender_id, content, msg_type, created_at)
+                VALUES (%s, %s, NULL, %s, %s, %s)
+                RETURNING *
+            """, (
+                message_id,
+                conversation_id,
+                content,
+                "system",
+                datetime.now(timezone.utc)
+            ))
+            message = cursor.fetchone()
+            conn.commit()
+            if message and message.get("created_at"):
+                message["created_at"] = message["created_at"].isoformat()
+            return message
+    except Exception as e:
+        conn.rollback()
+        print(f"Error insert_system_message: {e}")
+        return None
+    finally:
+        conn.close()

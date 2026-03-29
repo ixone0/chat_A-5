@@ -104,6 +104,18 @@ function initTcpClient(mainWindow) {
         else if (parsed.type === 'member_kicked_notification') {
           win.webContents.send('member-kicked-notification', parsed);
         }
+        // ✅ แจ้งเตือนเมื่อมีคนออกจากกลุ่ม
+        else if (parsed.type === 'member_left_notification') {
+          win.webContents.send('member-left-notification', parsed);
+        }
+        // ✅ แจ้งเตือนเมื่อกลุ่มถูกลบ
+        else if (parsed.type === 'group_deleted_notification') {
+          win.webContents.send('group-deleted-notification', parsed);
+        }
+        // ✅ แจ้งเตือนเมื่อโอนหัวหน้ากลุ่ม
+        else if (parsed.type === 'ownership_transferred_notification') {
+          win.webContents.send('ownership-transferred-notification', parsed);
+        }
         else {
           win.webContents.send('server-message', parsed);
         }

@@ -339,3 +339,22 @@
   opacity: 0.4 !important;
   pointer-events: none !important;
 }
+
+/* ===== SYSTEM MESSAGES ===== */
+.row-system {
+  justify-content: center !important;
+  padding: 4px 0;
+}
+
+.system-message {
+  background: rgba(148, 180, 193, 0.1);
+  border-radius: 12px;
+  padding: 4px 14px;
+  max-width: 80%;
+}
+
+.system-message span {
+  color: #94B4C1;
+  font-size: 0.75rem;
+  font-style: italic;
+}

@@ -72,6 +72,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ✅ เตะสมาชิกออกจากกลุ่ม
   kickGroupMember: (payload) => ipcRenderer.invoke("kick-group-member", payload),
 
+  // ✅ ออกจากกลุ่ม
+  leaveGroup: (conversationId) => ipcRenderer.invoke("leave-group", conversationId),
+
+  // ✅ ลบกลุ่ม
+  deleteGroup: (conversationId) => ipcRenderer.invoke("delete-group", conversationId),
+
+  // ✅ โอนหัวหน้ากลุ่ม
+  transferOwnership: (payload) => ipcRenderer.invoke("transfer-ownership", payload),
+
   // ✅ ฟังการแจ้งเตือนเมื่อชื่อกลุ่มเปลี่ยน
   onGroupRenamed: (callback) => {
     const listener = (_, data) => callback(data);
@@ -90,6 +99,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = (_, data) => callback(data);
     ipcRenderer.on("member-kicked-notification", listener);
     return () => ipcRenderer.removeListener("member-kicked-notification", listener);
+  },
+
+  onMemberLeft: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("member-left-notification", listener);
+    return () => ipcRenderer.removeListener("member-left-notification", listener);
+  },
+
+  onGroupDeleted: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("group-deleted-notification", listener);
+    return () => ipcRenderer.removeListener("group-deleted-notification", listener);
+  },
+
+  onOwnershipTransferred: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("ownership-transferred-notification", listener);
+    return () => ipcRenderer.removeListener("ownership-transferred-notification", listener);
   },
 
   updateUserId: (data) =>

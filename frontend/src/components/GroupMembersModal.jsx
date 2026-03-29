@@ -7,6 +7,7 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [selectedToAdd, setSelectedToAdd] = useState([]);
   const [addLoading, setAddLoading] = useState(false);
+  const [showTransferPanel, setShowTransferPanel] = useState(false);
 
   const fetchMembers = async () => {
     try {
@@ -21,12 +22,10 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
     }
   };
 
-  useEffect(() => {
-    fetchMembers();
-  }, [conversationId]);
+  useEffect(() => { fetchMembers(); }, [conversationId]);
 
   const handleKick = async (targetUserId, displayName) => {
-    if (!window.confirm(`ต้องการเตะ ${displayName} ออกจากกลุ่มจริงหรือไม่?`)) return;
+    if (!window.confirm(`Kick ${displayName} from the group?`)) return;
     try {
       const res = await window.electronAPI.kickGroupMember({
         conversation_id: conversationId,
@@ -38,9 +37,7 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
       } else {
         alert(res?.message || 'Failed to kick member');
       }
-    } catch (err) {
-      alert('Error: ' + err.message);
-    }
+    } catch (err) { alert('Error: ' + err.message); }
   };
 
   const handleAddMembers = async () => {
@@ -59,11 +56,51 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
       } else {
         alert(res?.message || 'Failed to add members');
       }
-    } catch (err) {
-      alert('Error: ' + err.message);
-    } finally {
-      setAddLoading(false);
-    }
+    } catch (err) { alert('Error: ' + err.message); }
+    finally { setAddLoading(false); }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!window.confirm('Leave this group?')) return;
+    try {
+      const res = await window.electronAPI.leaveGroup(conversationId);
+      if (res?.status === 'success') {
+        onClose();
+        if (onRefresh) onRefresh();
+      } else {
+        alert(res?.message || 'Failed to leave group');
+      }
+    } catch (err) { alert('Error: ' + err.message); }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!window.confirm('Delete this group permanently? All messages will be lost.')) return;
+    try {
+      const res = await window.electronAPI.deleteGroup(conversationId);
+      if (res?.status === 'success') {
+        onClose();
+        if (onRefresh) onRefresh();
+      } else {
+        alert(res?.message || 'Failed to delete group');
+      }
+    } catch (err) { alert('Error: ' + err.message); }
+  };
+
+  const handleTransferOwnership = async (newOwnerId, displayName) => {
+    if (!window.confirm(`Transfer ownership to ${displayName}?`)) return;
+    try {
+      const res = await window.electronAPI.transferOwnership({
+        conversation_id: conversationId,
+        new_owner_id: newOwnerId
+      });
+      if (res?.status === 'success') {
+        setShowTransferPanel(false);
+        await fetchMembers();
+        if (onRefresh) onRefresh();
+      } else {
+        alert(res?.message || 'Failed to transfer ownership');
+      }
+    } catch (err) { alert('Error: ' + err.message); }
   };
 
   const toggleAddMember = (friendId) => {
@@ -72,49 +109,76 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
     );
   };
 
-  // เพื่อนที่ยังไม่อยู่ในกลุ่ม
   const memberIds = members.map(m => String(m.user_id));
   const availableFriends = (friends || []).filter(f => !memberIds.includes(String(f.id)));
+  const nonOwnerMembers = members.filter(m => m.role !== 'owner' && String(m.user_id) !== String(currentUserId));
+
+  // Determine current panel
+  const currentPanel = showTransferPanel ? 'transfer' : showAddPanel ? 'add' : 'main';
+  const panelTitle = currentPanel === 'transfer' ? 'Transfer Ownership' : currentPanel === 'add' ? 'Add Members' : 'Group Members';
+
+  const handleBack = () => {
+    if (showTransferPanel) setShowTransferPanel(false);
+    else if (showAddPanel) setShowAddPanel(false);
+    else onClose();
+  };
 
   return (
     <div className="gm-overlay" onClick={onClose}>
       <div className="gm-modal" onClick={e => e.stopPropagation()}>
         <div className="gm-header">
-          <h3>{showAddPanel ? 'Add Members' : 'Group Members'}</h3>
-          <button className="gm-close-btn" onClick={showAddPanel ? () => setShowAddPanel(false) : onClose}>
-            {showAddPanel ? '←' : '✕'}
+          <h3>{panelTitle}</h3>
+          <button className="gm-close-btn" onClick={handleBack}>
+            {currentPanel !== 'main' ? '\u2190' : '\u2715'}
           </button>
         </div>
 
-        {showAddPanel ? (
+        {currentPanel === 'transfer' ? (
+          <div className="gm-add-panel">
+            {nonOwnerMembers.length === 0 ? (
+              <p className="gm-empty">No members to transfer ownership to</p>
+            ) : (
+              <div className="gm-list">
+                {nonOwnerMembers.map(member => {
+                  const name = member.display_name || member.username || 'Unknown';
+                  return (
+                    <div key={member.user_id} className="gm-item gm-item-selectable"
+                      onClick={() => handleTransferOwnership(member.user_id, name)}>
+                      <div className="gm-avatar">{name.charAt(0).toUpperCase()}</div>
+                      <div className="gm-info">
+                        <span className="gm-name">{name}</span>
+                      </div>
+                      <span className="gm-transfer-icon">{'\uD83D\uDC51'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : currentPanel === 'add' ? (
           <div className="gm-add-panel">
             {availableFriends.length === 0 ? (
               <p className="gm-empty">No friends available to add</p>
             ) : (
               <div className="gm-list">
                 {availableFriends.map(friend => (
-                  <div
-                    key={friend.id}
+                  <div key={friend.id}
                     className={`gm-item gm-item-selectable ${selectedToAdd.includes(friend.id) ? 'gm-item-selected' : ''}`}
-                    onClick={() => toggleAddMember(friend.id)}
-                  >
+                    onClick={() => toggleAddMember(friend.id)}>
                     <div className="gm-avatar">
                       {(friend.display_name || friend.username || '?').charAt(0).toUpperCase()}
                     </div>
                     <div className="gm-info">
                       <span className="gm-name">{friend.display_name || friend.username}</span>
                     </div>
-                    <div className="gm-checkbox">{selectedToAdd.includes(friend.id) ? '✓' : ''}</div>
+                    <div className="gm-checkbox">{selectedToAdd.includes(friend.id) ? '\u2713' : ''}</div>
                   </div>
                 ))}
               </div>
             )}
             {availableFriends.length > 0 && (
-              <button
-                className="gm-add-confirm-btn"
-                onClick={handleAddMembers}
-                disabled={selectedToAdd.length === 0 || addLoading}
-              >
+              <button className="gm-add-confirm-btn" onClick={handleAddMembers}
+                disabled={selectedToAdd.length === 0 || addLoading}>
                 {addLoading ? 'Adding...' : `Add ${selectedToAdd.length} member${selectedToAdd.length !== 1 ? 's' : ''}`}
               </button>
             )}
@@ -150,8 +214,23 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
             <div className="gm-footer">
               <span className="gm-count">{members.length} member{members.length !== 1 ? 's' : ''}</span>
               {isOwner && (
-                <button className="gm-add-btn" onClick={() => setShowAddPanel(true)}>
-                  + Add Members
+                <button className="gm-add-btn" onClick={() => setShowAddPanel(true)}>+ Add</button>
+              )}
+            </div>
+            <div className="gm-actions">
+              {isOwner && (
+                <>
+                  <button className="gm-action-btn gm-transfer-btn" onClick={() => setShowTransferPanel(true)}>
+                    {'\uD83D\uDC51'} Transfer Ownership
+                  </button>
+                  <button className="gm-action-btn gm-delete-btn" onClick={handleDeleteGroup}>
+                    {'\uD83D\uDDD1\uFE0F'} Delete Group
+                  </button>
+                </>
+              )}
+              {!isOwner && (
+                <button className="gm-action-btn gm-leave-btn" onClick={handleLeaveGroup}>
+                  {'\uD83D\uDEAA'} Leave Group
                 </button>
               )}
             </div>

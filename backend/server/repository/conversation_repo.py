@@ -79,9 +79,9 @@ def get_user_conversations_db(user_id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # ดึงข้อมูล cm.role และ c.owner_id มาด้วยเพื่อให้ Frontend เช็คสิทธิ์การแก้ไขได้
             cursor.execute("""
-                SELECT c.id, c.title, c.type, c.created_at, cm.role, c.owner_id
+                SELECT c.id, c.title, c.type, c.created_at, cm.role, c.owner_id,
+                       (SELECT COUNT(*) FROM conversation_members cm2 WHERE cm2.conversation_id = c.id) as member_count
                 FROM conversations c
                 JOIN conversation_members cm
                   ON cm.conversation_id = c.id
@@ -97,8 +97,9 @@ def get_user_conversations_db(user_id):
                     "title": row[1],
                     "type": row[2],
                     "created_at": row[3].isoformat() if row[3] else None,
-                    "role": row[4], # ส่ง role (owner/member) กลับไปให้ React
-                    "owner_id": str(row[5]) if row[5] else None # ส่ง owner_id สำหรับ fallback
+                    "role": row[4],
+                    "owner_id": str(row[5]) if row[5] else None,
+                    "member_count": row[6] or 0
                 }
                 for row in rows
             ]
@@ -268,5 +269,121 @@ def is_conversation_owner(conversation_id, user_id):
                 WHERE conversation_id = %s AND user_id = %s AND role = 'owner'
             """, (conversation_id, user_id))
             return cursor.fetchone() is not None
+    finally:
+        conn.close()
+
+# ==========================================
+# 🚪 ออกจากกลุ่ม (สำหรับ member ที่ไม่ใช่ owner)
+# ==========================================
+def leave_group_db(conversation_id, user_id):
+    """ลบตัวเองออกจากกลุ่ม คืน True ถ้าสำเร็จ (owner ออกไม่ได้)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            DELETE FROM conversation_members
+            WHERE conversation_id = %s AND user_id = %s AND role != 'owner'
+        """, (conversation_id, user_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(f"Error leave_group_db: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+# ==========================================
+# 🗑️ ลบกลุ่ม (เฉพาะ Owner)
+# ==========================================
+def delete_group_db(conversation_id):
+    """ลบกลุ่มทั้งหมด (สมาชิก + ห้อง) คืน True ถ้าสำเร็จ"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # ลบสมาชิกก่อน
+        cursor.execute(
+            "DELETE FROM conversation_members WHERE conversation_id = %s",
+            (conversation_id,)
+        )
+        # ลบข้อความ (ถ้ามี)
+        cursor.execute(
+            "DELETE FROM messages WHERE conversation_id = %s",
+            (conversation_id,)
+        )
+        # ลบห้อง
+        cursor.execute(
+            "DELETE FROM conversations WHERE id = %s AND type = 'group'",
+            (conversation_id,)
+        )
+        deleted = cursor.rowcount > 0
+        conn.commit()
+        return deleted
+    except Exception as e:
+        print(f"Error delete_group_db: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+# ==========================================
+# 👑 โอนหัวหน้ากลุ่ม
+# ==========================================
+def transfer_ownership_db(conversation_id, old_owner_id, new_owner_id):
+    """โอน ownership จาก old_owner ไป new_owner คืน True ถ้าสำเร็จ"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # เช็คว่า new_owner เป็นสมาชิกอยู่จริง
+        cursor.execute(
+            "SELECT 1 FROM conversation_members WHERE conversation_id = %s AND user_id = %s",
+            (conversation_id, new_owner_id)
+        )
+        if not cursor.fetchone():
+            return False
+
+        # เปลี่ยน role ของ owner เดิมเป็น member
+        cursor.execute("""
+            UPDATE conversation_members SET role = 'member'
+            WHERE conversation_id = %s AND user_id = %s AND role = 'owner'
+        """, (conversation_id, old_owner_id))
+
+        # เปลี่ยน role ของ owner ใหม่เป็น owner
+        cursor.execute("""
+            UPDATE conversation_members SET role = 'owner'
+            WHERE conversation_id = %s AND user_id = %s
+        """, (conversation_id, new_owner_id))
+
+        # อัปเดต owner_id ในตาราง conversations ด้วย
+        cursor.execute("""
+            UPDATE conversations SET owner_id = %s WHERE id = %s
+        """, (new_owner_id, conversation_id))
+
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error transfer_ownership_db: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+# ==========================================
+# 📊 นับจำนวนสมาชิกในกลุ่ม
+# ==========================================
+def get_member_count_db(conversation_id):
+    """คืนจำนวนสมาชิกในกลุ่ม"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) FROM conversation_members WHERE conversation_id = %s",
+                (conversation_id,)
+            )
+            row = cursor.fetchone()
+            return row[0] if row else 0
     finally:
         conn.close()

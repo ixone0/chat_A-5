@@ -161,6 +161,43 @@ ipcMain.handle('kick-group-member', async (event, payload) => {
   }
 });
 
+// ✅ ออกจากกลุ่ม
+ipcMain.handle('leave-group', async (event, conversationId) => {
+  try {
+    return await send({
+      type: "leave_group",
+      conversation_id: conversationId
+    });
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
+// ✅ ลบกลุ่ม
+ipcMain.handle('delete-group', async (event, conversationId) => {
+  try {
+    return await send({
+      type: "delete_group",
+      conversation_id: conversationId
+    });
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
+// ✅ โอนหัวหน้ากลุ่ม
+ipcMain.handle('transfer-ownership', async (event, payload) => {
+  try {
+    return await send({
+      type: "transfer_ownership",
+      conversation_id: payload.conversation_id,
+      new_owner_id: payload.new_owner_id
+    });
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
 // ✅ เพิ่ม IPC Listener สำหรับ Register
 ipcMain.handle('register-request', async (event, data) => {
   console.log('UI Request Register:', data.username);

@@ -893,7 +893,6 @@ const Chat = () => {
     // ✅ ฟังการแจ้งเตือนเมื่อมีคนถูกเตะออกจากกลุ่ม
     const unsubMemberKicked = window.electronAPI.onMemberKicked?.((data) => {
       console.log("📢 Member kicked!", data);
-      // ถ้าตัวเองถูกเตะ ให้ปิด conversation ที่เปิดอยู่
       const myId = localStorage.getItem("user_id");
       if (String(data.kicked_user_id) === String(myId)) {
         if (String(selectedConvRef.current?.id) === String(data.conversation_id)) {
@@ -903,12 +902,33 @@ const Chat = () => {
       refreshData();
     });
 
+    const unsubMemberLeft = window.electronAPI.onMemberLeft?.((data) => {
+      console.log("📢 Member left!", data);
+      refreshData();
+    });
+
+    const unsubGroupDeleted = window.electronAPI.onGroupDeleted?.((data) => {
+      console.log("📢 Group deleted!", data);
+      if (String(selectedConvRef.current?.id) === String(data.conversation_id)) {
+        setSelectedConversation(null);
+      }
+      refreshData();
+    });
+
+    const unsubOwnershipTransferred = window.electronAPI.onOwnershipTransferred?.((data) => {
+      console.log("📢 Ownership transferred!", data);
+      refreshData();
+    });
+
     return () => {
       if (unsubMsg) unsubMsg();
       if (unsubGroup) unsubGroup();
       if (unsubRename) unsubRename();
       if (unsubMemberAdded) unsubMemberAdded();
       if (unsubMemberKicked) unsubMemberKicked();
+      if (unsubMemberLeft) unsubMemberLeft();
+      if (unsubGroupDeleted) unsubGroupDeleted();
+      if (unsubOwnershipTransferred) unsubOwnershipTransferred();
     };
   }, []);
 

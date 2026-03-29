@@ -33,7 +33,7 @@ const ChatWindow = ({
         
         // ✅ ตรวจว่า content เป็น S3 URL ไหม
         const isS3Url = S3_REGEX.test(content);
-        const inferredMsgType = isS3Url ? "file" : (m.msg_type ?? "text");
+        const inferredMsgType = m.msg_type === "system" ? "system" : (isS3Url ? "file" : (m.msg_type ?? "text"));
 
         // ✅ สร้าง attachment object จาก URL ถ้าไม่มี
         let attachment = m.attachment ?? null;
@@ -70,7 +70,7 @@ const ChatWindow = ({
           id,
           text: content,
           time,
-          sender: String(m.sender_id) === String(currentUserId) ? "me" : "other",
+          sender: m.msg_type === "system" ? "system" : (String(m.sender_id) === String(currentUserId) ? "me" : "other"),
           msg_type: inferredMsgType,  
           attachment,                  
         };
@@ -268,6 +268,17 @@ const ChatWindow = ({
         )}
 
         {formattedMessages.map((msg) => {
+          // System message (join/leave/kick)
+          if (msg.sender === "system") {
+            return (
+              <div key={msg.id} className="chat-row row-system">
+                <div className="system-message">
+                  <span>{msg.text}</span>
+                </div>
+              </div>
+            );
+          }
+
           const isMe = msg.sender === "me";
           return (
             <div key={msg.id} className={`chat-row ${isMe ? "row-me" : "row-other"}`}>

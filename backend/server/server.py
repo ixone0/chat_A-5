@@ -825,6 +825,14 @@ def handle_client(conn, addr):
                                 "added_members": added
                             })
 
+                            # System message
+                            if added:
+                                try:
+                                    from repository.message_repo import insert_system_message
+                                    insert_system_message(conv_id, f"{len(added)} member(s) were added to the group")
+                                except Exception:
+                                    pass
+
                             # Broadcast แจ้งคนที่ถูกเพิ่ม
                             for member_id in added:
                                 m_str = str(member_id)
@@ -881,6 +889,13 @@ def handle_client(conn, addr):
                                     "kicked_user_id": target_id
                                 })
 
+                                # System message
+                                try:
+                                    from repository.message_repo import insert_system_message
+                                    insert_system_message(conv_id, "A member was removed from the group")
+                                except Exception:
+                                    pass
+
                                 # แจ้งคนที่ถูกเตะ
                                 t_str = str(target_id)
                                 if t_str in online_users:
@@ -911,6 +926,112 @@ def handle_client(conn, addr):
                                 send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Failed to kick member"})
                         except Exception as e:
                             send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ LEAVE GROUP (Member Only) ============
+                    elif pkt_type == "leave_group":
+                        conv_id = pkt.get("conversation_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "leave_group_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import is_conversation_owner, leave_group_db
+                            if is_conversation_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "leave_group_response", "request_id": request_id, "status": "error", "message": "Owner cannot leave. Transfer ownership first or delete the group."})
+                                continue
+                            success = leave_group_db(conv_id, user_id)
+                            if success:
+                                send_packet(conn, {"type": "leave_group_response", "request_id": request_id, "status": "success", "conversation_id": conv_id})
+                                # System message
+                                try:
+                                    from repository.message_repo import insert_system_message
+                                    insert_system_message(conv_id, "A member left the group")
+                                except Exception:
+                                    pass
+                                # แจ้งสมาชิกที่เหลือ
+                                remaining = get_conversation_members_service(conv_id)
+                                for m_id in remaining:
+                                    m_str = str(m_id)
+                                    if m_str in online_users:
+                                        try:
+                                            send_packet(online_users[m_str], {
+                                                "type": "member_left_notification",
+                                                "conversation_id": conv_id,
+                                                "left_user_id": user_id
+                                            })
+                                        except Exception:
+                                            pass
+                            else:
+                                send_packet(conn, {"type": "leave_group_response", "request_id": request_id, "status": "error", "message": "Failed to leave group"})
+                        except Exception as e:
+                            send_packet(conn, {"type": "leave_group_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ DELETE GROUP (Owner Only) ============
+                    elif pkt_type == "delete_group":
+                        conv_id = pkt.get("conversation_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "delete_group_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import is_conversation_owner, delete_group_db
+                            if not is_conversation_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "delete_group_response", "request_id": request_id, "status": "error", "message": "Only owner can delete group"})
+                                continue
+                            # ดึงสมาชิกก่อนลบ เพื่อ broadcast
+                            members_before = get_conversation_members_service(conv_id)
+                            success = delete_group_db(conv_id)
+                            if success:
+                                send_packet(conn, {"type": "delete_group_response", "request_id": request_id, "status": "success", "conversation_id": conv_id})
+                                for m_id in members_before:
+                                    m_str = str(m_id)
+                                    if m_str != user_id and m_str in online_users:
+                                        try:
+                                            send_packet(online_users[m_str], {
+                                                "type": "group_deleted_notification",
+                                                "conversation_id": conv_id,
+                                                "message": "This group has been deleted"
+                                            })
+                                        except Exception:
+                                            pass
+                            else:
+                                send_packet(conn, {"type": "delete_group_response", "request_id": request_id, "status": "error", "message": "Failed to delete group"})
+                        except Exception as e:
+                            send_packet(conn, {"type": "delete_group_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ TRANSFER OWNERSHIP (Owner Only) ============
+                    elif pkt_type == "transfer_ownership":
+                        conv_id = pkt.get("conversation_id")
+                        new_owner_id = pkt.get("new_owner_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "transfer_ownership_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import is_conversation_owner, transfer_ownership_db
+                            if not is_conversation_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "transfer_ownership_response", "request_id": request_id, "status": "error", "message": "Only owner can transfer ownership"})
+                                continue
+                            if str(new_owner_id) == str(user_id):
+                                send_packet(conn, {"type": "transfer_ownership_response", "request_id": request_id, "status": "error", "message": "Already the owner"})
+                                continue
+                            success = transfer_ownership_db(conv_id, user_id, new_owner_id)
+                            if success:
+                                send_packet(conn, {"type": "transfer_ownership_response", "request_id": request_id, "status": "success", "conversation_id": conv_id, "new_owner_id": new_owner_id})
+                                # แจ้งทุกคนในกลุ่ม
+                                members = get_conversation_members_service(conv_id)
+                                for m_id in members:
+                                    m_str = str(m_id)
+                                    if m_str in online_users:
+                                        try:
+                                            send_packet(online_users[m_str], {
+                                                "type": "ownership_transferred_notification",
+                                                "conversation_id": conv_id,
+                                                "new_owner_id": new_owner_id
+                                            })
+                                        except Exception:
+                                            pass
+                            else:
+                                send_packet(conn, {"type": "transfer_ownership_response", "request_id": request_id, "status": "error", "message": "Failed to transfer ownership"})
+                        except Exception as e:
+                            send_packet(conn, {"type": "transfer_ownership_response", "request_id": request_id, "status": "error", "message": str(e)})
 
                     # ---------------- UNKNOWN ----------------
                     else:
