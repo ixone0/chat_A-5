@@ -446,6 +446,9 @@ def handle_client(conn, addr):
                                 content=s3_result["file_url"],
                             )
 
+                            if result.get("status") != "success":
+                                raise Exception(result.get("message", "Failed to create message"))
+
                             # ดึง message dict จากข้างใน result
                             msg_data = result.get("message", {})
 

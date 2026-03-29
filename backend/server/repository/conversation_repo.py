@@ -108,14 +108,14 @@ def get_user_conversations_db(user_id):
 # ==========================================
 # 🚀 ฟังก์ชันสำหรับสร้างกลุ่มพร้อมดึงเพื่อนหลายคน
 # ==========================================
-def create_group_with_members_db(title, chat_type, members):
+def create_group_with_members_db(title, chat_type, members, creator_id=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         conv_id = str(uuid.uuid4())
         
-        # ดึงคนสร้าง (Creator) มาจากคนสุดท้ายของ list (ตาม logic ใน service)
-        owner_id = members[-1] if members else None
+        # ใช้ creator_id ที่ส่งมาตรงๆ เพื่อความถูกต้อง
+        owner_id = creator_id if creator_id else (members[0] if members else None)
         
         # 1. สร้างห้องแชท
         query = """

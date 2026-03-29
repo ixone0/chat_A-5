@@ -89,7 +89,7 @@ const ChatWindow = ({
   }, [selected?.id]);
 
   const handleStartEdit = () => {
-    if (conversation?.type === "group" && conversation?.role === "owner") {
+    if (conversation?.type === "group" && (conversation?.role === "owner" || String(conversation?.owner_id) === String(currentUserId))) {
       setTempTitle(conversation.title || "");
       setIsEditing(true);
     }

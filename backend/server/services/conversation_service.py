@@ -45,7 +45,7 @@ def handle_create_group_chat(pkt, creator_id):
 
     try:
         # เรียกใช้ DB เพื่อสร้างห้องและยัดสมาชิกทุกคนลงไป
-        conv_id = create_group_with_members_db(title, chat_type="group", members=members)
+        conv_id = create_group_with_members_db(title, chat_type="group", members=members, creator_id=creator_id)
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
