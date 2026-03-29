@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './GroupMembersModal.css';
+import { XIcon, ArrowLeftIcon, CheckIcon, CrownIcon, TrashIcon, LogOutIcon } from './Icons';
 
 const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, onClose, onRefresh }) => {
   const [members, setMembers] = useState([]);
@@ -129,7 +130,7 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
         <div className="gm-header">
           <h3>{panelTitle}</h3>
           <button className="gm-close-btn" onClick={handleBack}>
-            {currentPanel !== 'main' ? '\u2190' : '\u2715'}
+            {currentPanel !== 'main' ? <ArrowLeftIcon size={16} /> : <XIcon size={16} />}
           </button>
         </div>
 
@@ -148,7 +149,7 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
                       <div className="gm-info">
                         <span className="gm-name">{name}</span>
                       </div>
-                      <span className="gm-transfer-icon">{'\uD83D\uDC51'}</span>
+                      <span className="gm-transfer-icon"><CrownIcon size={18} color="#ffc107" /></span>
                     </div>
                   );
                 })}
@@ -171,7 +172,7 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
                     <div className="gm-info">
                       <span className="gm-name">{friend.display_name || friend.username}</span>
                     </div>
-                    <div className="gm-checkbox">{selectedToAdd.includes(friend.id) ? '\u2713' : ''}</div>
+                    <div className="gm-checkbox">{selectedToAdd.includes(friend.id) ? <CheckIcon size={16} color="#5865f2" /> : ''}</div>
                   </div>
                 ))}
               </div>
@@ -221,16 +222,16 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
               {isOwner && (
                 <>
                   <button className="gm-action-btn gm-transfer-btn" onClick={() => setShowTransferPanel(true)}>
-                    {'\uD83D\uDC51'} Transfer Ownership
+                    <CrownIcon size={16} /> Transfer Ownership
                   </button>
                   <button className="gm-action-btn gm-delete-btn" onClick={handleDeleteGroup}>
-                    {'\uD83D\uDDD1\uFE0F'} Delete Group
+                    <TrashIcon size={16} /> Delete Group
                   </button>
                 </>
               )}
               {!isOwner && (
                 <button className="gm-action-btn gm-leave-btn" onClick={handleLeaveGroup}>
-                  {'\uD83D\uDEAA'} Leave Group
+                  <LogOutIcon size={16} /> Leave Group
                 </button>
               )}
             </div>

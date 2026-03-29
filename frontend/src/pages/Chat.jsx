@@ -13,6 +13,7 @@ import CallModal from "../components/CallModal";
 import CallingModal from "../components/CallingModal";
 import CreateGroupForm from "../components/CreateGroupForm";
 import GroupMembersModal from "../components/GroupMembersModal";
+import { PhoneIcon } from "../components/Icons";
 
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
@@ -1254,7 +1255,7 @@ const Chat = () => {
       {activeCall && (
         <div className="call-modal">
           <div className="active-call-box" style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <h2>📞 In Call</h2>
+            <h2><PhoneIcon size={22} style={{ verticalAlign: 'middle', marginRight: 8 }} />In Call</h2>
             
             {/* ✅ Call Duration Display */}
             <div style={{

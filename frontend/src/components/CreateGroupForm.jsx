@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './CreateGroupForm.css';
+import { XIcon, CheckIcon } from './Icons';
 
 const CreateGroupForm = ({ friends, onCancel, onSuccess }) => {
   const [groupName, setGroupName] = useState('');
@@ -53,7 +54,7 @@ const CreateGroupForm = ({ friends, onCancel, onSuccess }) => {
   return (
     <div className="create-group-view">
       <div className="create-group-header">
-        <button className="close-icon-btn" onClick={onCancel}>✕</button>
+        <button className="close-icon-btn" onClick={onCancel}><XIcon size={16} /></button>
       </div>
 
       <div className="create-group-content">
@@ -92,7 +93,7 @@ const CreateGroupForm = ({ friends, onCancel, onSuccess }) => {
                       <span className="friend-name">{friend.display_name || friend.username}</span>
                     </div>
                     <div className="checkbox">
-                      {selectedMembers.includes(friend.id) && '✓'}
+                      {selectedMembers.includes(friend.id) && <CheckIcon size={16} color="#5865f2" />}
                     </div>
                   </div>
                 ))

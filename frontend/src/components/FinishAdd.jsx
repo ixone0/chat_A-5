@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './AddFriendForm.css';
+import { XIcon } from './Icons';
 
 const FinishAdd = ({ user, onCancel, onSuccess }) => {
   const [isAdding, setIsAdding] = useState(false);
@@ -35,7 +36,7 @@ const FinishAdd = ({ user, onCancel, onSuccess }) => {
   return (
     <div className="add-user-view">
       <div className="add-user-header">
-        <button className="close-icon-btn" onClick={onCancel}>✕</button>
+        <button className="close-icon-btn" onClick={onCancel}><XIcon size={16} /></button>
       </div>
 
       <div className="add-user-content">

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./ChatWindow.css";
 import MessageAttachment from "./MessageAttachment";
 import FilePreview from "./FilePreview";
+import { AlertCircleIcon, MessageCircleIcon } from "./Icons";
 
 const ChatWindow = ({
   conversation = null,
@@ -263,7 +264,8 @@ const ChatWindow = ({
       <div className="messages-display" ref={scrollRef}>
         {formattedMessages.length === 0 && (
           <div style={{textAlign: 'center', color: '#94B4C1', marginTop: '20px', opacity: 0.7}}>
-            No messages yet — say hi 👋
+            No messages yet — say hi
+            <MessageCircleIcon size={18} color="#94B4C1" style={{ marginLeft: 6, verticalAlign: 'middle' }} />
           </div>
         )}
 
@@ -309,7 +311,8 @@ const ChatWindow = ({
       )}
       {uploadState?.status === 'error' && (
         <div className="upload-error-indicator">
-          <span>❌ ส่งไฟล์ {uploadState.fileName} ล้มเหลว: {uploadState.error}</span>
+          <span><AlertCircleIcon size={14} color="#ff6b7a" style={{ verticalAlign: 'middle', marginRight: 4 }} />
+            Send file {uploadState.fileName} failed: {uploadState.error}</span>
           <button
             className="upload-retry-btn"
             onClick={async () => {

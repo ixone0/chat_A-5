@@ -1,6 +1,7 @@
 // components/MessageAttachment.jsx
 import { useState } from 'react';
 import './MessageAttachment.css';
+import { FileIcon, FileTextIcon, ArchiveIcon, TableIcon, PaperclipIcon, DownloadIcon, ImageIcon } from './Icons';
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 const VIDEO_TYPES = ['video/mp4', 'video/quicktime'];
@@ -13,13 +14,14 @@ export function formatFileSize(bytes) {
 }
 
 export function getFileIcon(mimeType) {
-  if (!mimeType) return '📎';
-  if (mimeType === 'application/pdf') return '📄';
-  if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('compressed')) return '🗜️';
-  if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
-  if (mimeType.includes('sheet') || mimeType.includes('excel')) return '📊';
-  if (mimeType === 'text/plain') return '📃';
-  return '📎';
+  if (!mimeType) return <PaperclipIcon size={24} color="#94B4C1" />;
+  if (mimeType === 'application/pdf') return <FileTextIcon size={24} color="#e07c4f" />;
+  if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('compressed')) return <ArchiveIcon size={24} color="#9b59b6" />;
+  if (mimeType.includes('word') || mimeType.includes('document')) return <FileTextIcon size={24} color="#3498db" />;
+  if (mimeType.includes('sheet') || mimeType.includes('excel')) return <TableIcon size={24} color="#2ecc71" />;
+  if (mimeType === 'text/plain') return <FileIcon size={24} color="#94B4C1" />;
+  if (mimeType.startsWith('image/')) return <ImageIcon size={24} color="#1abc9c" />;
+  return <PaperclipIcon size={24} color="#94B4C1" />;
 }
 
 function DownloadButton({ url, name }) {
@@ -28,10 +30,10 @@ function DownloadButton({ url, name }) {
       href={url}
       download={name}
       className="attachment-download-btn"
-      title="ดาวน์โหลด"
+      title="Download"
       onClick={(e) => e.stopPropagation()}
     >
-      ⬇️
+      <DownloadIcon size={16} />
     </a>
   );
 }
@@ -54,7 +56,7 @@ export default function MessageAttachment({ attachment }) {
       return (
         <div className="attachment-wrapper">
           <div className="attachment-image-fallback">
-            <span className="attachment-image-fallback-icon">🖼️</span>
+            <span className="attachment-image-fallback-icon"><ImageIcon size={24} color="#94B4C1" /></span>
             <span className="attachment-image-fallback-name">{name}</span>
             <DownloadButton url={url} name={name} />
           </div>

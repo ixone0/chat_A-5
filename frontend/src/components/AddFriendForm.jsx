@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './AddFriendForm.css';
 import FinishAdd from './FinishAdd';
+import { XIcon } from './Icons';
 
 const AddFriendForm = ({ onSearch, onCancel }) => { // ปรับ Prop ให้สื่อความหมาย
   const [searchId, setSearchId] = useState('');
@@ -50,7 +51,7 @@ const AddFriendForm = ({ onSearch, onCancel }) => { // ปรับ Prop ให�
   return (
     <div className="add-user-view">
       <div className="add-user-header">
-        <button className="close-icon-btn" onClick={onCancel}>✕</button>
+        <button className="close-icon-btn" onClick={onCancel}><XIcon size={16} /></button>
       </div>
       
       <div className="add-user-content">

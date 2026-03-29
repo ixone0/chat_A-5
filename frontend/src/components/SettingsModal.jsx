@@ -1,5 +1,6 @@
 import React from 'react';
 import './SettingsModal.css';
+import { XIcon } from './Icons';
 
 const SettingsModal = ({ onClose, onLogout, currentUser }) => {
   return (
@@ -9,9 +10,9 @@ const SettingsModal = ({ onClose, onLogout, currentUser }) => {
         {/* Header ส่วนหัว */}
         <div className="settings-header">
           <h3>
-            <span>⚙️</span> Settings
+            Settings
           </h3>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button className="close-btn" onClick={onClose}><XIcon size={16} /></button>
         </div>
 
         <div className="settings-body">

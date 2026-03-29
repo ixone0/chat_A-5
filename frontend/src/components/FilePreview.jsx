@@ -11,7 +11,7 @@ export default function FilePreview({ preview, onConfirm, onCancel }) {
   return (
     <div className="file-preview-overlay" onClick={onCancel}>
       <div className="file-preview-card" onClick={(e) => e.stopPropagation()}>
-        <h4>ยืนยันส่งไฟล์</h4>
+        <h4>Confirm send file</h4>
 
         {isImage ? (
           <img
@@ -28,16 +28,16 @@ export default function FilePreview({ preview, onConfirm, onCancel }) {
         <div className="file-preview-info">
           <div className="file-preview-name">{name}</div>
           <div className="file-preview-meta">
-            {formatFileSize(size)} · {mimeType || 'ไม่ทราบประเภท'}
+            {formatFileSize(size)} · {mimeType || 'Unknown type'}
           </div>
         </div>
 
         <div className="file-preview-actions">
           <button className="file-preview-btn-cancel" onClick={onCancel}>
-            ยกเลิก
+            Cancel
           </button>
           <button className="file-preview-btn-confirm" onClick={onConfirm}>
-            ส่งไฟล์
+            Send File
           </button>
         </div>
       </div>

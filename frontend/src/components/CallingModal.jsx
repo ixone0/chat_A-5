@@ -1,6 +1,7 @@
 //CallingModal.jsx
 import React from "react";
 import "./CallingModal.css";
+import { PhoneIcon } from "./Icons";
 
 export default function CallingModal({ call, onCancel }) {
 
@@ -10,7 +11,7 @@ export default function CallingModal({ call, onCancel }) {
     <div className="call-modal">
       <div className="call-box">
 
-        <h2>📞 Calling...</h2>
+        <h2><PhoneIcon size={22} style={{ verticalAlign: 'middle', marginRight: 8 }} />Calling...</h2>
 
         <p>Waiting for answer...</p>
 
