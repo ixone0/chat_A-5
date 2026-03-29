@@ -1070,13 +1070,7 @@ const Chat = () => {
         items.push(c);
       } else if (c.type === "group") items.push(c);
     });
-    // Sort by last message time (most recent first)
-    items.sort((a, b) => {
-      const timeA = a.last_message_at || a.created_at || '';
-      const timeB = b.last_message_at || b.created_at || '';
-      return new Date(timeB) - new Date(timeA);
-    });
-    // Friends without a conversation go at the bottom
+    // Friends without a conversation — treat as newest so they appear at top
     friends.forEach((f) => {
       if (!seen.has(String(f.id))) {
         items.push({
@@ -1085,8 +1079,15 @@ const Chat = () => {
           other_user: { ...f, display_name: f.display_name || f.username },
           isFriendOnly: true,
           friend: f,
+          created_at: new Date().toISOString(),
         });
       }
+    });
+    // Sort everything by last message time (most recent first)
+    items.sort((a, b) => {
+      const timeA = a.last_message_at || a.created_at || '';
+      const timeB = b.last_message_at || b.created_at || '';
+      return new Date(timeB) - new Date(timeA);
     });
     return items;
   })();
