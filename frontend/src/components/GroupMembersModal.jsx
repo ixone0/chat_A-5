@@ -17,7 +17,9 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
   const fetchMembers = async () => {
     try {
       const res = await window.electronAPI.getGroupMembers(conversationId);
+      console.log('getGroupMembers response:', res);
       if (res?.status === 'success') setMembers(res.members || []);
+      else console.error('getGroupMembers failed:', res?.message);
     } catch (err) { console.error('Failed to fetch members:', err); }
     finally { setLoading(false); }
   };
@@ -25,6 +27,7 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
   const fetchGroupInfo = async () => {
     try {
       const res = await window.electronAPI.getGroupInfo(conversationId);
+      console.log('getGroupInfo response:', res);
       if (res?.status === 'success' && res.data) {
         setDescription(res.data.description || '');
       }

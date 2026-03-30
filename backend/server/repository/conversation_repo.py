@@ -422,22 +422,40 @@ def get_group_info_db(conv_id):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT id, title, type, owner_id, description
-                FROM conversations WHERE id = %s
-            """, (conv_id,))
-            row = cursor.fetchone()
-            if not row:
-                return None
-            return {
-                "id": str(row[0]),
-                "title": row[1],
-                "type": row[2],
-                "owner_id": str(row[3]) if row[3] else None,
-                "description": row[4] or ""
-            }
+            # ลอง query แบบมี description ก่อน
+            try:
+                cursor.execute("""
+                    SELECT id, title, type, owner_id, description
+                    FROM conversations WHERE id = %s
+                """, (conv_id,))
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                return {
+                    "id": str(row[0]),
+                    "title": row[1],
+                    "type": row[2],
+                    "owner_id": str(row[3]) if row[3] else None,
+                    "description": row[4] or ""
+                }
+            except Exception:
+                # Fallback ถ้า column description ยังไม่มี
+                conn.rollback()
+                cursor.execute("""
+                    SELECT id, title, type, owner_id
+                    FROM conversations WHERE id = %s
+                """, (conv_id,))
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                return {
+                    "id": str(row[0]),
+                    "title": row[1],
+                    "type": row[2],
+                    "owner_id": str(row[3]) if row[3] else None,
+                    "description": ""
+                }
     except Exception as e:
-        # ถ้า column description ยังไม่มี ให้ fallback
         print(f"get_group_info_db error: {e}")
         return None
     finally:

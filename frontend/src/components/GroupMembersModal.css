@@ -12,11 +12,12 @@
   background: #213448;
   border-radius: 16px;
   width: 380px;
-  max-height: 520px;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
   border: 1px solid #547792;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  overflow: hidden;
 }
 
 .gm-header {
