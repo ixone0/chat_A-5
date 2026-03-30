@@ -1,67 +1,46 @@
-/* src/pages/Login.css */
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', 'Inter', sans-serif; }
 
-/* Global Reset & Font */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', 'Inter', sans-serif;
-}
-
-/* 1. พื้นหลังหลัก: เปลี่ยนเป็นสีครีม #EAE0CF */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #EAE0CF; /* สีครีมเป็นพื้นหลังหลัก */
-  /* เพิ่มลวดลายนิดหน่อยเพื่อให้ดูไม่เรียบเกินไป (Optional) */
-  background-image: radial-gradient(#d6cbb7 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-color: var(--bg-chat);
 }
 
-/* 2. กล่อง Login: เปลี่ยนเป็นสีเข้ม #213448 เพื่อให้ตัดกับพื้นหลังครีม */
 .login-box {
-  background: #213448; /* สี Deep Slate */
-  color: #EAE0CF;      /* ตัวหนังสือสีครีม */
-  
+  background: var(--card-bg);
+  color: var(--text-primary);
   padding: 40px 35px;
   border-radius: 20px;
-  /* เพิ่มเงาให้ดูลอยเด่นออกมาจากพื้นครีม */
-  box-shadow: 0 20px 40px rgba(33, 52, 72, 0.25); 
-  
+  box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+  border: 1px solid var(--card-border);
   width: 100%;
   max-width: 380px;
   text-align: center;
-  
   opacity: 0;
   animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* หัวข้อ */
 .login-header h2 {
   font-size: 26px;
   font-weight: 700;
-  color: #EAE0CF;
+  color: var(--text-primary);
   margin-bottom: 5px;
   letter-spacing: 0.5px;
 }
 
 .login-header p {
   font-size: 14px;
-  color: #94B4C1; /* สีฟ้าอ่อน */
+  color: var(--text-secondary);
   margin-bottom: 30px;
 }
 
-/* ฟอร์ม */
-.input-group {
-  margin-bottom: 18px;
-  text-align: left;
-}
+.input-group { margin-bottom: 18px; text-align: left; }
 
 .input-group label {
   font-size: 13px;
-  color: #94B4C1;
+  color: var(--text-secondary);
   font-weight: 500;
   margin-bottom: 6px;
   display: block;
@@ -70,29 +49,24 @@
 .input-group input {
   width: 100%;
   padding: 12px 15px;
-  /* ปรับสีพื้นหลัง Input ให้เข้มกว่ากล่องนิดนึง */
-  background: rgba(0, 0, 0, 0.25); 
-  border: 1px solid #547792;      
-  border-radius: 10px;            
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   font-size: 15px;
-  color: #EAE0CF;                 
+  color: var(--text-primary);
   outline: none;
   transition: all 0.3s ease;
 }
 
 .input-group input:focus {
-  border-color: #94B4C1;
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 0 3px rgba(84, 119, 146, 0.3);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(88,101,242,0.15);
 }
 
-.input-group input::placeholder {
-  color: rgba(148, 180, 193, 0.4);
-}
+.input-group input::placeholder { color: var(--text-muted); }
 
-/* Error Text */
 .error-text {
-  color: #ff8a8a; /* ปรับสีแดงให้อ่อนลงนิดนึงให้อ่านง่ายบนพื้นเข้ม */
+  color: #e74c3c;
   font-size: 12px;
   margin-top: 5px;
   display: flex;
@@ -100,50 +74,38 @@
   gap: 5px;
 }
 
-/* ปุ่มกด */
-.button-group {
-  margin-top: 30px;
-}
+.button-group { margin-top: 30px; }
 
 .login-btn {
   width: 100%;
   padding: 12px;
-  background: #547792; /* สี Steel Blue */
-  color: #EAE0CF;      
+  background: var(--accent);
+  color: #fff;
   border: none;
   border-radius: 10px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .login-btn:hover {
-  background: #688ba6; /* สว่างขึ้นตอน Hover */
+  background: var(--accent-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
-.login-btn:active {
-  transform: translateY(0);
-}
+.login-btn:active { transform: translateY(0); }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-.login-btn:disabled {
-  background: #3e5263;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Link สมัครสมาชิก */
 .register-section {
   margin-top: 20px;
   font-size: 13px;
-  color: #94B4C1;
+  color: var(--text-secondary);
 }
 
 .register-link-text {
-  color: #EAE0CF;
+  color: var(--accent);
   font-weight: 600;
   margin-left: 5px;
   cursor: pointer;
@@ -158,22 +120,13 @@
   height: 1px;
   bottom: -2px;
   left: 0;
-  background-color: #EAE0CF;
+  background-color: var(--accent);
   transition: width 0.3s;
 }
 
-.register-link-text:hover::after {
-  width: 100%;
-}
+.register-link-text:hover::after { width: 100%; }
 
-/* Animation */
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }

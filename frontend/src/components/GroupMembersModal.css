@@ -9,13 +9,13 @@
 }
 
 .gm-modal {
-  background: #213448;
+  background: var(--card-bg);
   border-radius: 16px;
   width: 380px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid #547792;
+  border: 1px solid var(--border);
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   overflow: hidden;
 }
@@ -30,7 +30,7 @@
 
 .gm-header h3 {
   margin: 0;
-  color: #EAE0CF;
+  color: var(--text-primary);
   font-size: 1rem;
 }
 
@@ -72,7 +72,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #EAE0CF;
+  color: var(--text-primary);
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
@@ -87,7 +87,7 @@
 }
 
 .gm-name {
-  color: #EAE0CF;
+  color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 500;
 }

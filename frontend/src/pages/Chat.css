@@ -17,49 +17,6 @@
 }
 
 /* --- Sidebar Strip (ซ้ายสุด) --- */
-.sidebar-strip {
-  width: 72px; /* ขยายกว้างขึ้นนิดนึงให้ดูไม่อึดอัด */
-  background-color: #213448; /* Main Dark Color */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24px 0; /* เพิ่ม Space บนล่าง */
-  box-shadow: 4px 0 15px rgba(33, 52, 72, 0.2); /* เงาฟุ้งๆ ให้ดูลอยเหนือ Chat Area */
-  z-index: 50;
-  gap: 16px; /* ระยะห่างระหว่างปุ่ม */
-}
-
-/* วงกลมไอคอน (User, Bell, Settings) */
-.profile-circle, .settings-circle, .icon-circle {
-  width: 48px;
-  height: 48px;
-  background-color: #547792; /* Steel Blue: สีปุ่มตัดกับพื้นหลังเข้ม */
-  color: #EAE0CF; /* ไอคอนสีครีม */
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Effect เด้งดึ๋ง */
-  border: 2px solid transparent;
-  position: relative;
-}
-
-/* Hover Effect สไตล์ Discord (เปลี่ยนจากกลมเป็นเหลี่ยมมน) */
-.profile-circle:hover, .settings-circle:hover, .icon-circle:hover {
-  background-color: #94B4C1; /* Soft Blue: สว่างขึ้นตอน Hover */
-  color: #213448; /* ตัวหนังสือเปลี่ยนเป็นสีเข้ม */
-  border-radius: 16px; /* Squircle shape */
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(84, 119, 146, 0.4);
-}
-
-/* Active Indicator (แถบขาวข้างๆ เวลาเลือก - ถ้าอยากทำเพิ่มในอนาคต) */
-.profile-circle:active, .settings-circle:active {
-  transform: scale(0.95);
-}
 
 /* --- Chat Area Container (พื้นที่ขวา) --- */
 .chat-area {
@@ -90,9 +47,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #b5bac1; /* สีเทาอ่อน */
-    background-color: #313338;
-    border-radius: 50%; /* เริ่มต้นเป็นวงกลม */
+    color: var(--text-secondary);
+    background-color: var(--bg-secondary);
+    border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -127,8 +84,8 @@
     right: 10px;
     width: 12px;
     height: 12px;
-    background-color: #f23f42; /* สีแดง */
-    border: 3px solid #1e1f22; /* ตัดขอบให้ดูคมขึ้น */
+    background-color: #f23f42;
+    border: 3px solid var(--bg-tertiary);
     border-radius: 50%;
 }
 
@@ -140,8 +97,8 @@
 .profile-circle {
     width: 48px;
     height: 48px;
-    background-color: #313338;
-    color: white;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -154,14 +111,15 @@
 
 .profile-circle:hover {
     border-radius: 16px;
-    background-color: #5865f2;
+    background-color: var(--accent);
+    color: #fff;
 }
 
 
 /* ===== Active Call (In-Call Screen) ===== */
 .active-call-box {
-  background: #213448;
-  color: #EAE0CF;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   text-align: center;
   padding: 20px;
 }

@@ -20,7 +20,7 @@
 }
 
 .file-preview-card {
-  background-color: #213448;
+  background-color: var(--card-bg);
   border-radius: 16px;
   padding: 24px;
   min-width: 300px;
@@ -37,7 +37,7 @@
 
 .file-preview-card h4 {
   margin: 0 0 16px 0;
-  color: #EAE0CF;
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -70,7 +70,7 @@
 }
 
 .file-preview-name {
-  color: #EAE0CF;
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: 600;
   word-break: break-word;

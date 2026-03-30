@@ -33,13 +33,13 @@
 
 /* ปุ่มควบคุมหน้าต่าง */
 .window-controls span {
-  color: #94B4C1;
+  color: var(--text-secondary);
   cursor: pointer;
   margin-left: 15px;
   transition: color 0.2s;
 }
 .window-controls span:hover {
-  color: #EAE0CF;
+  color: var(--text-primary);
 }
 
 /* ===== Messages Area ===== */
@@ -54,7 +54,7 @@
   
   /* Scrollbar Styling */
   scrollbar-width: thin;
-  scrollbar-color: #547792 transparent;
+  scrollbar-color: var(--accent) transparent;
 }
 
 /* Webkit Scrollbar */
@@ -65,8 +65,7 @@
   background: transparent;
 }
 .messages-display::-webkit-scrollbar-thumb {
-  background-color: #547792;
-  border-radius: 4px;
+  background-color: var(--accent);
 }
 
 /* ===== Message Rows ===== */
@@ -91,20 +90,20 @@
 .chat-avatar-img {
   width: 40px;
   height: 40px;
-  background-color: #94B4C1;
+  background-color: var(--text-secondary);
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 14px;
-  color: #213448;
+  color: var(--bg-primary);
   font-weight: 700;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .me-avatar {
-  background-color: #547792;
-  color: #EAE0CF;
+  background-color: var(--accent);
+  color: #fff;
 }
 
 /* ===== Bubbles ===== */
@@ -191,10 +190,10 @@
 /* ปุ่มไอคอน Send (จรวดกระดาษ) */
 .icon-send-btn {
   position: absolute;
-  right: 12px; /* ลอยอยู่ขวาสุดของ input */
+  right: 12px;
   background: transparent;
   border: none;
-  color: #547792;
+  color: var(--accent);
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
@@ -205,8 +204,8 @@
 }
 
 .icon-send-btn:hover {
-  background-color: rgba(84, 119, 146, 0.2);
-  color: #94B4C1;
+  background-color: var(--hover-bg);
+  color: var(--text-primary);
 }
 
 /* ถ้าไม่มีข้อความ ให้ปุ่มจางลง */
@@ -228,7 +227,7 @@
 .call-btn {
   background-color: transparent !important; /* ✅ ลบสีพื้นหลังทึบออก */
   border: none !important; /* ✅ ลบเส้นขอบ */
-  color: #94B4C1; /* ✅ เปลี่ยนสีไอคอนให้เข้ากับธีมแอป */
+  color: var(--text-secondary); /* เปลี่ยนสีไอคอนให้เข้ากับธีมแอป */
   padding: 8px; /* ระยะสำหรับกดให้พอดีนิ้ว/เมาส์ */
   border-radius: 8px; /* ขอบมนเวลา Hover */
   cursor: pointer;
@@ -295,7 +294,7 @@
   width: 18px;
   height: 18px;
   border: 2px solid rgba(148, 180, 193, 0.3);
-  border-top-color: #94B4C1;
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -353,7 +352,7 @@
 }
 
 .system-message span {
-  color: #94B4C1;
+  color: var(--text-secondary);
   font-size: 0.75rem;
   font-style: italic;
 }
@@ -398,8 +397,8 @@
 }
 
 .date-separator span {
-  background: rgba(33,52,72,0.7);
-  color: #94B4C1;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 0.7rem;
   font-weight: 600;
   padding: 4px 14px;
@@ -409,7 +408,7 @@
 
 /* ===== PINNED MESSAGES BAR ===== */
 .pinned-bar {
-  background: #1a2a3a;
+  background: var(--bg-secondary);
   border-bottom: 1px solid rgba(84,119,146,0.3);
   max-height: 180px;
   overflow-y: auto;
@@ -432,7 +431,7 @@
 .pinned-bar-close {
   background: none;
   border: none;
-  color: #94B4C1;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 2px;
   border-radius: 4px;
@@ -457,13 +456,13 @@
 }
 
 .pinned-item-author {
-  color: #94B4C1;
+  color: var(--text-secondary);
   font-size: 0.65rem;
   font-weight: 600;
 }
 
 .pinned-item-text {
-  color: #EAE0CF;
+  color: var(--text-primary);
   font-size: 0.75rem;
   white-space: nowrap;
   overflow: hidden;
@@ -473,7 +472,7 @@
 .pinned-unpin-btn {
   background: none;
   border: none;
-  color: #94B4C1;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -485,8 +484,8 @@
 .msg-context-menu {
   position: fixed;
   z-index: 1000;
-  background: #213448;
-  border: 1px solid #547792;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   padding: 4px;
@@ -499,7 +498,7 @@
   padding: 8px 12px;
   background: none;
   border: none;
-  color: #EAE0CF;
+  color: var(--text-primary);
   font-size: 0.8rem;
   text-align: left;
   cursor: pointer;
@@ -521,8 +520,8 @@
   position: absolute;
   top: -36px;
   right: 0;
-  background: #213448;
-  border: 1px solid #547792;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 2px 4px;
   gap: 2px;
