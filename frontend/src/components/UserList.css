@@ -2,30 +2,28 @@
 
 /* กล่องรวม Sidebar รายชื่อเพื่อน */
 .user-list-panel {
-  width: 280px; /* ขยายกว้างขึ้นนิดนึงให้ดูไม่อึดอัด */
-  background-color: #213448; /* Main Dark Color */
+  width: 280px;
+  background-color: var(--bg-sidebar);
   display: flex;
   flex-direction: column;
-  /* เส้นขอบขวา ใช้สี Steel Blue จางๆ */
-  border-right: 1px solid rgba(84, 119, 146, 0.3);
+  border-right: 1px solid var(--border);
 }
 
 /* ส่วนหัวที่มีปุ่ม Add */
 .add-user-section {
   padding: 20px;
-  /* พื้นหลังเข้มขึ้นนิดนึงเพื่อแยกส่วน */
-  background-color: #1d2d40; 
-  border-bottom: 1px solid rgba(84, 119, 146, 0.2);
+  background-color: var(--bg-secondary); 
+  border-bottom: 1px solid var(--border);
 }
 
 /* ปุ่ม Add User */
 .add-ip-btn {
   width: 100%;
   padding: 12px;
-  background-color: #547792; /* Steel Blue */
-  color: #EAE0CF; /* Cream Text */
+  background-color: var(--accent);
+  color: var(--text-primary);
   border: none;
-  border-radius: 8px; /* ปรับมนขึ้น (Modern) */
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 700;
   font-size: 0.9rem;
@@ -34,8 +32,8 @@
 }
 
 .add-ip-btn:hover {
-  background-color: #6a8ba3; /* สว่างขึ้นตอน Hover */
-  transform: translateY(-1px); /* ลอยขึ้นนิดนึง */
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
@@ -66,27 +64,25 @@
   display: flex;
   align-items: center;
   padding: 10px 12px;
-  margin-bottom: 4px; /* ระยะห่างระหว่างคน */
+  margin-bottom: 4px;
   cursor: pointer;
-  border-radius: 8px; /* มนแบบ Discord */
+  border-radius: 8px;
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  color: #94B4C1; /* สีตัวหนังสือปกติ (Soft Blue) */
+  color: var(--text-secondary);
   border: 1px solid transparent;
 }
 
 /* Hover Effect */
 .user-item:hover {
-  background-color: rgba(84, 119, 146, 0.15); /* พื้นหลังสีฟ้าจางๆ */
-  color: #EAE0CF; /* ตัวหนังสือสว่างขึ้น */
+  background-color: rgba(84, 119, 146, 0.15);
+  color: var(--text-primary);
 }
 
-/* Active State (คนที่ถูกเลือก) */
+/* Active State */
 .user-item.active {
-  background-color: rgba(84, 119, 146, 0.3); /* พื้นหลังเข้มขึ้น */
-  color: #EAE0CF; /* ตัวหนังสือสีครีม */
-  border-left: 4px solid #547792; /* แถบสีด้านซ้าย */
-  /* หรือถ้าชอบแบบไม่มีขอบซ้าย แต่เป็นกรอบเรืองแสงแทน ให้ใช้บรรทัดล่างนี้แทนบรรทัดบน */
-  /* border: 1px solid rgba(84, 119, 146, 0.5); border-left: 1px solid rgba(84, 119, 146, 0.5); */
+  background-color: rgba(84, 119, 146, 0.3);
+  color: var(--text-primary);
+  border-left: 4px solid var(--accent);
 }
 
 /* รูปโปรไฟล์เล็ก */
@@ -125,6 +121,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text-primary);
 }
 
 /* ข้อความสถานะ หรือ ID ด้านล่างชื่อ */

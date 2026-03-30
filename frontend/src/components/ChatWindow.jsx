@@ -23,6 +23,7 @@ const ChatWindow = ({
   const [pinnedMessages, setPinnedMessages] = useState([]);
   const [showPinned, setShowPinned] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+  const [activeReactionMsgId, setActiveReactionMsgId] = useState(null);
   const scrollRef = useRef(null);
 
   const selected = conversation || selectedUser;
@@ -166,12 +167,12 @@ const ChatWindow = ({
     setContextMenu({ x: e.clientX, y: e.clientY, messageId: msgId });
   };
 
-  // Close context menu on click anywhere
+  // Close context menu + reaction picker on click anywhere
   useEffect(() => {
-    const close = () => setContextMenu(null);
-    if (contextMenu) window.addEventListener('click', close);
+    const close = () => { setContextMenu(null); setActiveReactionMsgId(null); };
+    if (contextMenu || activeReactionMsgId) window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
-  }, [contextMenu]);
+  }, [contextMenu, activeReactionMsgId]);
 
   const REACTIONS = ['\u2764\uFE0F', '\uD83D\uDC4D', '\uD83D\uDE02', '\uD83D\uDE2E', '\uD83D\uDE22', '\uD83D\uDD25'];
 
@@ -418,7 +419,9 @@ const ChatWindow = ({
                         <div className="chat-avatar-img">{headerAvatarChar}</div>
                       </div>
                     )}
-                    <div className="chat-bubble" onContextMenu={(e) => handleContextMenu(e, msg.id)}>
+                    <div className="chat-bubble"
+                      onContextMenu={(e) => handleContextMenu(e, msg.id)}
+                      onDoubleClick={() => setActiveReactionMsgId(prev => prev === msg.id ? null : msg.id)}>
                       {msg.msg_type === "file" && msg.attachment ? (
                         <MessageAttachment attachment={msg.attachment} />
                       ) : (
@@ -436,12 +439,14 @@ const ChatWindow = ({
                           ))}
                         </div>
                       )}
-                      {/* Reaction picker on hover */}
-                      <div className="reaction-picker">
-                        {REACTIONS.map(r => (
-                          <button key={r} className="reaction-pick-btn" onClick={() => handleReaction(msg.id, r)}>{r}</button>
-                        ))}
-                      </div>
+                      {/* Reaction picker on double-click */}
+                      {activeReactionMsgId === msg.id && (
+                        <div className="reaction-picker reaction-picker-visible">
+                          {REACTIONS.map(r => (
+                            <button key={r} className="reaction-pick-btn" onClick={() => { handleReaction(msg.id, r); setActiveReactionMsgId(null); }}>{r}</button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

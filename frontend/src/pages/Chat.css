@@ -13,7 +13,7 @@
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background-color: #EAE0CF; /* ใช้สีครีมเป็นพื้นหลังรวม */
+  background-color: var(--bg-chat);
 }
 
 /* --- Sidebar Strip (ซ้ายสุด) --- */
@@ -64,16 +64,12 @@
 /* --- Chat Area Container (พื้นที่ขวา) --- */
 .chat-area {
   flex: 1;
-  background-color: #EAE0CF; /* สีครีม: แก้ปัญหา "มืดไป" */
+  background-color: var(--bg-chat);
   display: flex;
   flex-direction: column;
   position: relative;
-  
-  /* ลบ background-image ลายจุดออกตามที่ขอ */
   background-image: none; 
-  
-  /* เพิ่มสี Text หลักให้เป็นสีเข้ม เพื่อให้อ่านง่ายบนพื้นครีม */
-  color: #213448; 
+  color: var(--text-primary); 
 }
 
 /* แถบ Sidebar แคบๆ ด้านซ้ายสุด */
@@ -83,7 +79,7 @@
     align-items: center;
     padding: 15px 0;
     gap: 15px;
-    background-color: #1e1f22; /* สีพื้นหลัง Discord */
+    background-color: var(--bg-tertiary);
     width: 72px;
 }
 

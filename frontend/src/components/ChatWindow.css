@@ -6,21 +6,21 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background-color: #EAE0CF; /* พื้นหลังสีครีม */
+  background-color: var(--bg-chat);
 }
 
 /* ===== Header ===== */
 .chat-header {
   height: 70px;
   flex-shrink: 0;
-  background-color: #213448; /* สีหลักเข้ม */
+  background-color: var(--bg-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 24px;
-  border-bottom: 1px solid #547792;
+  border-bottom: 1px solid var(--border);
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  color: #EAE0CF;
+  color: var(--text-primary);
   font-family: 'Segoe UI', 'Inter', sans-serif;
 }
 
@@ -119,14 +119,14 @@
 
 /* เพื่อนพูด (ซ้าย) */
 .row-other .chat-bubble {
-  background-color: #213448; /* พื้นหลังเข้ม */
-  color: #EAE0CF; /* ตัวหนังสือครีม */
+  background-color: var(--bubble-other);
+  color: var(--text-primary);
   border-radius: 18px 18px 18px 4px;
 }
 
 /* เราพูด (ขวา) */
 .row-me .chat-bubble {
-  background: linear-gradient(135deg, #547792 0%, #4a6a8a 100%); /* ไล่สี */
+  background: var(--bubble-me);
   color: #fff;
   border-radius: 18px 18px 4px 18px;
 }
@@ -149,9 +149,9 @@
 .chat-input-area {
   height: 80px;
   flex-shrink: 0;
-  background-color: #213448; /* พื้นหลังเข้ม */
+  background-color: var(--bg-primary);
   padding: 0 24px;
-  border-top: 1px solid #547792;
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
 }
@@ -167,25 +167,24 @@
 .input-wrapper input {
   width: 100%;
   height: 48px;
-  /* เว้นขวาไว้ 50px เผื่อปุ่มไอคอน */
   padding: 0 50px 0 24px;
-  border: 2px solid #547792;
+  border: 2px solid var(--border);
   border-radius: 24px;
-  background-color: #1a2a3a; /* สีพื้นหลังช่องพิมพ์ */
-  color: #EAE0CF;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.2s;
   outline: none;
 }
 
 .input-wrapper input::placeholder {
-  color: #94B4C1;
+  color: var(--text-secondary);
   opacity: 0.6;
 }
 
 .input-wrapper input:focus {
-  border-color: #94B4C1;
-  background-color: #213448;
+  border-color: var(--accent);
+  background-color: var(--bg-primary);
   box-shadow: 0 0 0 4px rgba(84, 119, 146, 0.2);
 }
 
@@ -286,10 +285,10 @@
   align-items: center;
   gap: 10px;
   padding: 10px 24px;
-  background-color: #213448;
-  color: #94B4C1;
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 0.9rem;
-  border-top: 1px solid #547792;
+  border-top: 1px solid var(--border);
 }
 
 .upload-spinner {
@@ -365,13 +364,13 @@
   align-items: center;
   gap: 4px;
   padding: 4px 24px;
-  background: #213448;
+  background: var(--bg-primary);
 }
 
 .typing-dot {
   width: 6px;
   height: 6px;
-  background: #94B4C1;
+  background: var(--text-secondary);
   border-radius: 50%;
   animation: typingBounce 1.4s infinite ease-in-out;
 }
@@ -384,7 +383,7 @@
 }
 
 .typing-text {
-  color: #94B4C1;
+  color: var(--text-secondary);
   font-size: 0.75rem;
   margin-left: 4px;
   font-style: italic;
@@ -520,7 +519,7 @@
 .reaction-picker {
   display: none;
   position: absolute;
-  top: -32px;
+  top: -36px;
   right: 0;
   background: #213448;
   border: 1px solid #547792;
@@ -531,8 +530,14 @@
   z-index: 10;
 }
 
-.chat-bubble:hover .reaction-picker {
+.reaction-picker-visible {
   display: flex;
+  animation: reactionPop 0.15s ease;
+}
+
+@keyframes reactionPop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .reaction-pick-btn {
