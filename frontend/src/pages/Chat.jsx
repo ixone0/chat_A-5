@@ -113,7 +113,6 @@ const Chat = () => {
     } finally {
       setSidebarLoading(false);
     }
-    }
   };
   
   const cleanupCall = () => {
