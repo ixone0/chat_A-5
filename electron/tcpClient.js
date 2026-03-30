@@ -119,6 +119,9 @@ function initTcpClient(mainWindow) {
         else if (parsed.type === 'typing_indicator') {
           win.webContents.send('typing-indicator', parsed);
         }
+        else if (parsed.type === 'reaction_update') {
+          win.webContents.send('reaction-update', parsed);
+        }
         else {
           win.webContents.send('server-message', parsed);
         }

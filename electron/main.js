@@ -237,6 +237,12 @@ ipcMain.handle('set-member-role', async (event, payload) => {
   catch (err) { return { status: "error", message: err.message }; }
 });
 
+// Toggle reaction
+ipcMain.handle('toggle-reaction', async (event, payload) => {
+  try { return await send({ type: "toggle_reaction", message_id: payload.message_id, reaction: payload.reaction, conversation_id: payload.conversation_id }); }
+  catch (err) { return { status: "error", message: err.message }; }
+});
+
 // ✅ เพิ่ม IPC Listener สำหรับ Register
 ipcMain.handle('register-request', async (event, data) => {
   console.log('UI Request Register:', data.username);

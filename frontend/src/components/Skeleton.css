@@ -1,0 +1,60 @@
+.skeleton-pulse {
+  background: linear-gradient(90deg, rgba(84,119,146,0.1) 25%, rgba(84,119,146,0.2) 50%, rgba(84,119,146,0.1) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-chat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.skeleton-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+}
+.skeleton-line-name { width: 60%; }
+.skeleton-line-msg { width: 80%; height: 10px; }
+
+.skeleton-msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.skeleton-msg-left { justify-content: flex-start; }
+.skeleton-msg-right { justify-content: flex-end; }
+
+.skeleton-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-bubble {
+  height: 36px;
+  border-radius: 16px;
+  min-width: 80px;
+}

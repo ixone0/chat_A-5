@@ -173,6 +173,36 @@ const ChatWindow = ({
     return () => window.removeEventListener('click', close);
   }, [contextMenu]);
 
+  const REACTIONS = ['\u2764\uFE0F', '\uD83D\uDC4D', '\uD83D\uDE02', '\uD83D\uDE2E', '\uD83D\uDE22', '\uD83D\uDD25'];
+
+  const [reactions, setReactions] = useState({});
+
+  const handleReaction = async (messageId, reaction) => {
+    if (!selected?.id) return;
+    try {
+      await window.electronAPI.toggleReaction({ message_id: messageId, reaction, conversation_id: selected.id });
+      // Optimistic update
+      setReactions(prev => {
+        const msgReactions = [...(prev[messageId] || [])];
+        const existing = msgReactions.find(r => r.reaction === reaction);
+        if (existing) {
+          const hasMe = existing.users.includes(String(currentUserId));
+          if (hasMe) {
+            existing.count -= 1;
+            existing.users = existing.users.filter(u => u !== String(currentUserId));
+            if (existing.count <= 0) return { ...prev, [messageId]: msgReactions.filter(r => r.reaction !== reaction) };
+          } else {
+            existing.count += 1;
+            existing.users = [...existing.users, String(currentUserId)];
+          }
+        } else {
+          msgReactions.push({ reaction, count: 1, users: [String(currentUserId)] });
+        }
+        return { ...prev, [messageId]: msgReactions };
+      });
+    } catch (err) { console.error(err); }
+  };
+
   const handleSend = (e) => {
     e.preventDefault();
     const text = inputText.trim();
@@ -395,6 +425,23 @@ const ChatWindow = ({
                         <p className="msg-text">{msg.text}</p>
                       )}
                       <span className="msg-time">{msg.time}</span>
+                      {/* Reaction display */}
+                      {reactions[msg.id]?.length > 0 && (
+                        <div className="reaction-display">
+                          {reactions[msg.id].map(r => (
+                            <span key={r.reaction} className="reaction-chip" onClick={() => handleReaction(msg.id, r.reaction)}
+                              title={`${r.count} reaction(s)`}>
+                              {r.reaction} {r.count > 1 ? r.count : ''}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {/* Reaction picker on hover */}
+                      <div className="reaction-picker">
+                        {REACTIONS.map(r => (
+                          <button key={r} className="reaction-pick-btn" onClick={() => handleReaction(msg.id, r)}>{r}</button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 );

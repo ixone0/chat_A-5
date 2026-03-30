@@ -1,5 +1,7 @@
 import React from 'react';
 import './UserList.css';
+import { SidebarSkeleton } from './Skeleton';
+import { EmptySidebar } from './EmptyState';
 
 const AVATAR_COLORS = [
   '#5865f2', '#57a6a1', '#e07c4f', '#9b59b6',
@@ -20,7 +22,7 @@ function truncate(str, max = 30) {
   return str.length > max ? str.slice(0, max) + '...' : str;
 }
 
-const UserList = ({ users, selectedUser, onSelectUser, onAddClick, unreadMap = {}, searchQuery = '', onSearchChange }) => {
+const UserList = ({ users, selectedUser, onSelectUser, onAddClick, unreadMap = {}, searchQuery = '', onSearchChange, loading = false }) => {
   const filtered = searchQuery.trim()
     ? users.filter(item => {
         const name = item.type === 'group'
@@ -44,7 +46,16 @@ const UserList = ({ users, selectedUser, onSelectUser, onAddClick, unreadMap = {
       </div>
 
       <div className="user-list">
-        {filtered.map(item => {
+        {loading ? (
+          <SidebarSkeleton />
+        ) : filtered.length === 0 ? (
+          searchQuery ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#547792', fontSize: '0.85rem' }}>No results found</div>
+          ) : (
+            <EmptySidebar />
+          )
+        ) : (
+          filtered.map(item => {
           const isGroup = item.type === "group";
           let displayName = "Unknown";
           let subtitle = "";
@@ -84,12 +95,7 @@ const UserList = ({ users, selectedUser, onSelectUser, onAddClick, unreadMap = {
               )}
             </div>
           );
-        })}
-
-        {filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#547792', fontSize: '0.85rem' }}>
-            {searchQuery ? 'No results found' : 'No friends or groups found.'}
-          </div>
+        })
         )}
       </div>
     </div>

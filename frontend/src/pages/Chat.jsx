@@ -34,6 +34,7 @@ const Chat = () => {
   const [unreadMap, setUnreadMap] = useState({});
   const [sidebarSearch, setSidebarSearch] = useState("");
   const [typingUserId, setTypingUserId] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [callElapsedTime, setCallElapsedTime] = useState(0); // ✅ Call duration in seconds
   const callElapsedTimeRef = useRef(0);
   const isCallerRef = useRef(false);
@@ -86,6 +87,14 @@ const Chat = () => {
     }
   }, [activeCall]);
   
+  // Apply theme
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
   const refreshData = async () => {
 
     if (!window.electronAPI) return;
@@ -1253,6 +1262,8 @@ const Chat = () => {
           onClose={() => setShowSettings(false)}
           onLogout={handleLogout}
           currentUser={currentUser}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       )}
 

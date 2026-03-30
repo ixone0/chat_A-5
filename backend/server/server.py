@@ -1058,6 +1058,41 @@ def handle_client(conn, addr):
                         except Exception as e:
                             send_packet(conn, {"type": "transfer_ownership_response", "request_id": request_id, "status": "error", "message": str(e)})
 
+                    # ============ TOGGLE REACTION ============
+                    elif pkt_type == "toggle_reaction":
+                        message_id = pkt.get("message_id")
+                        reaction = pkt.get("reaction")
+                        conv_id = pkt.get("conversation_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "toggle_reaction_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.message_repo import toggle_reaction_db
+                            result = toggle_reaction_db(message_id, user_id, reaction)
+                            if result:
+                                send_packet(conn, {"type": "toggle_reaction_response", "request_id": request_id, "status": "success", "action": result, "message_id": message_id, "reaction": reaction})
+                                # Broadcast to all members
+                                if conv_id:
+                                    members = get_conversation_members_service(conv_id)
+                                    for m_id in members:
+                                        m_str = str(m_id)
+                                        if m_str != user_id and m_str in online_users:
+                                            try:
+                                                send_packet(online_users[m_str], {
+                                                    "type": "reaction_update",
+                                                    "conversation_id": conv_id,
+                                                    "message_id": message_id,
+                                                    "reaction": reaction,
+                                                    "action": result,
+                                                    "user_id": user_id
+                                                })
+                                            except Exception:
+                                                pass
+                            else:
+                                send_packet(conn, {"type": "toggle_reaction_response", "request_id": request_id, "status": "error", "message": "Failed"})
+                        except Exception as e:
+                            send_packet(conn, {"type": "toggle_reaction_response", "request_id": request_id, "status": "error", "message": str(e)})
+
                     # ============ UPDATE GROUP DESCRIPTION ============
                     elif pkt_type == "update_group_description":
                         conv_id = pkt.get("conversation_id")

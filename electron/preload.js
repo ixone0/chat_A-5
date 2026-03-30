@@ -96,6 +96,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Set member role
   setMemberRole: (payload) => ipcRenderer.invoke("set-member-role", payload),
 
+  // Reactions
+  toggleReaction: (payload) => ipcRenderer.invoke("toggle-reaction", payload),
+
+  onReactionUpdate: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("reaction-update", listener);
+    return () => ipcRenderer.removeListener("reaction-update", listener);
+  },
+
   // ✅ ฟังการแจ้งเตือนเมื่อชื่อกลุ่มเปลี่ยน
   onGroupRenamed: (callback) => {
     const listener = (_, data) => callback(data);

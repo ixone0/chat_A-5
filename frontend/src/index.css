@@ -1,3 +1,37 @@
+:root {
+  --bg-primary: #213448;
+  --bg-secondary: #1a2a3a;
+  --bg-tertiary: #1e1f22;
+  --bg-chat: #EAE0CF;
+  --bg-sidebar: #213448;
+  --text-primary: #EAE0CF;
+  --text-secondary: #94B4C1;
+  --text-muted: rgba(148,180,193,0.6);
+  --accent: #547792;
+  --accent-hover: #6a8faa;
+  --border: rgba(84,119,146,0.3);
+  --bubble-other: #213448;
+  --bubble-me: #547792;
+  --input-bg: rgba(0,0,0,0.25);
+}
+
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f2f3f5;
+  --bg-tertiary: #e3e5e8;
+  --bg-chat: #ffffff;
+  --bg-sidebar: #f2f3f5;
+  --text-primary: #2e3338;
+  --text-secondary: #4f5660;
+  --text-muted: rgba(79,86,96,0.5);
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+  --border: rgba(0,0,0,0.08);
+  --bubble-other: #f2f3f5;
+  --bubble-me: #5865f2;
+  --input-bg: #ebedef;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
