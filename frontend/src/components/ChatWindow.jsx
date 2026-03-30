@@ -16,6 +16,9 @@ const ChatWindow = ({
   refreshMessages = () => {},
   onShowMembers = null,
   isTyping = false,
+  activeCall = null,
+  callParticipants = [],
+  acceptCall = () => {},
 }) => {
   const toast = useToast();
   const [inputText, setInputText] = useState("");
@@ -344,7 +347,48 @@ const ChatWindow = ({
 
         {/* Call Buttons + Members */}
         {conversation && (
-          <div className="call-buttons">
+          <>
+            {/* ✅ Show participants info and Join button if group call is active */}
+            {activeCall && activeCall.is_group && callParticipants.length > 0 && (
+              <div style={{
+                backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                marginBottom: '8px',
+                fontSize: '12px',
+                color: '#a5b0f5',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span>
+                  👥 {callParticipants.length} {callParticipants.length === 1 ? 'person' : 'people'} in call{': '}
+                  {callParticipants.slice(0, 3).map(p => p.username || `User ${p.user_id}`).join(', ')}
+                  {callParticipants.length > 3 && ` +${callParticipants.length - 3}`}
+                </span>
+                {/* Join Call Button */}
+                <button 
+                  onClick={acceptCall}
+                  style={{
+                    backgroundColor: '#5865f2',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '4px 12px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    marginLeft: '8px',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="Join the active group call"
+                >
+                  Join Call
+                </button>
+              </div>
+            )}
+            
+            <div className="call-buttons">
 
             {isGroup && (
               <button className="call-btn" onClick={() => onShowMembers && onShowMembers()} title="View Members">
@@ -380,6 +424,7 @@ const ChatWindow = ({
             </button>
 
           </div>
+          </>
         )}
       </div>
 

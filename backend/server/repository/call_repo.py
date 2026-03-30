@@ -107,3 +107,49 @@ def get_call_participants(call_id):
     conn.close()
 
     return [str(row[0]) for row in rows]
+
+
+def get_call_participants_info(call_id):
+    """ดึงข้อมูล participants พร้อม username/display_name"""
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT cp.user_id, u.username, u.display_name
+        FROM call_participants cp
+        JOIN users u ON u.id = cp.user_id
+        WHERE cp.call_id = %s
+    """, (call_id,))
+
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return [
+        {
+            "user_id": str(row[0]),
+            "username": row[1],
+            "display_name": row[2] or row[1]
+        }
+        for row in rows
+    ]
+
+
+def get_active_call_for_conversation(conversation_id):
+    """ดึง call ที่กำลัง active อยู่ใน conversation"""
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id, call_type FROM calls
+        WHERE conversation_id = %s AND status IN ('ringing', 'active')
+        ORDER BY created_at DESC LIMIT 1
+    """, (conversation_id,))
+
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if row:
+        return {"call_id": str(row[0]), "call_type": row[1]}
+    return None

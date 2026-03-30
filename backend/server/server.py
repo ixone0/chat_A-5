@@ -20,7 +20,8 @@ from services.call_service import (
     start_call_service,
     join_call_service,
     leave_call_service,
-    end_call_service
+    end_call_service,
+    get_active_call_service
 )
 from services.friend_service import handle_get_friends, handle_start_direct_chat
 import packet
@@ -622,6 +623,18 @@ def handle_client(conn, addr):
                                 "type": "end_call_response",
                                 "status": "error",
                                 "message": str(e)
+                            })
+
+                    elif pkt_type == "get_active_call":
+                        try:
+                            response = get_active_call_service(pkt, user_id)
+                            response["request_id"] = request_id
+                            send_packet(conn, response)
+                        except Exception as e:
+                            send_packet(conn, {
+                                "type": "get_active_call_response",
+                                "request_id": request_id,
+                                "status": "none"
                             })
                             
                     elif pkt_type == "webrtc_offer":

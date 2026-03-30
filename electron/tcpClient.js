@@ -75,7 +75,10 @@ function initTcpClient(mainWindow) {
         }
         else if (parsed.type === 'call_ended') {
           win.webContents.send('call-ended', parsed);
-        } 
+        }
+        else if (parsed.type === 'call_participants_update') {
+          win.webContents.send('call-participants-update', parsed);
+        }
         else if (parsed.type === 'search_user_response') {
           win.webContents.send('search-user-response', parsed);
         }
@@ -285,6 +288,10 @@ function endCall(call_id, duration) {
   });
 }
 
+function getActiveCall(conversation_id) {
+  return send({ type: "get_active_call", conversation_id });
+}
+
 function sendRealtime(data) {
   if (!client) {
     throw new Error('TCP client not connected');
@@ -313,5 +320,6 @@ module.exports = {
   answerCall,
   endCall,
   sendFile,
-  sendRealtime
+  sendRealtime,
+  getActiveCall
 };

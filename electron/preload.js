@@ -201,4 +201,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on("ice-candidate", listener);
     return () => ipcRenderer.removeListener("ice-candidate", listener);
   },
+
+  onCallParticipantsUpdate: (callback) => {
+    const listener = (_, data) => callback(data);
+    ipcRenderer.on("call-participants-update", listener);
+    return () => ipcRenderer.removeListener("call-participants-update", listener);
+  },
+
+  getActiveCall: (conversationId) =>
+    ipcRenderer.invoke("get-active-call", conversationId),
 });

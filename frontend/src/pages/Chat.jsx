@@ -57,6 +57,7 @@ const Chat = () => {
   const pcsRef = useRef({});
   // Group call: map of userId -> remote stream
   const [remoteStreams, setRemoteStreams] = useState({});
+  const [callParticipants, setCallParticipants] = useState([]); // ✅ List of participants in current call
   const isGroupCallRef = useRef(false);
 
   const attachLocalPreview = () => {
@@ -190,6 +191,7 @@ const Chat = () => {
       });
       pcsRef.current = {};
       setRemoteStreams({});
+      setCallParticipants([]); // ✅ Clear participants list
       isGroupCallRef.current = false;
     } catch (err) {
       console.error("cleanupCall error:", err);
@@ -766,10 +768,18 @@ const Chat = () => {
     const offAnswered = window.electronAPI.onCallAnswered(handleAnswered);
     const offEnded = window.electronAPI.onCallEnded(handleEnded);
 
+    // ✅ Listen for participant list updates
+    const handleParticipantsUpdate = (data) => {
+      console.log("📍 Participants update:", data);
+      setCallParticipants(data.participants || []);
+    };
+    const offParticipants = window.electronAPI.onCallParticipantsUpdate?.(handleParticipantsUpdate);
+
     return () => {
       offIncoming?.();
       offAnswered?.();
       offEnded?.();
+      offParticipants?.();
     };
 
   }, []);
@@ -1261,6 +1271,9 @@ const Chat = () => {
                 }));
               }
             }}
+            activeCall={activeCall}
+            callParticipants={callParticipants}
+            acceptCall={acceptCall}
           />
         );
     }
@@ -1400,6 +1413,28 @@ const Chat = () => {
           <div className="active-call-box" style={{ position: 'relative', width: '100%', height: '100%' }}>
             <h2><PhoneIcon size={22} style={{ verticalAlign: 'middle', marginRight: 8 }} />In Call</h2>
             
+            {/* ✅ Participants Info */}
+            {activeCall.is_group && callParticipants.length > 0 && (
+              <div style={{
+                fontSize: '13px',
+                color: '#888',
+                marginBottom: '8px',
+                padding: '0 8px'
+              }}>
+                👥 {callParticipants.length} {callParticipants.length === 1 ? 'participant' : 'participants'}
+                {callParticipants.length <= 5 && (
+                  <>
+                    {': '}
+                    {callParticipants.map((p, i) => (
+                      <span key={p.user_id}>
+                        <strong>{p.username || `User ${p.user_id}`}</strong>
+                        {i < callParticipants.length - 1 ? ', ' : ''}
+                      </span>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
             {/* ✅ Call Duration Display */}
             <div style={{
               position: 'absolute',
