@@ -1,5 +1,5 @@
 ///pages/Chat.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./Chat.css";
 
 import UserList from "../components/UserList";
@@ -60,7 +60,7 @@ const Chat = () => {
   const [callParticipants, setCallParticipants] = useState([]); // ✅ List of participants in current call
   const isGroupCallRef = useRef(false);
 
-  const attachLocalPreview = () => {
+  const attachLocalPreview = useCallback(() => {
     if (!localVideoRef.current || !localStreamRef.current || callTypeRef.current !== "video") return;
     // Group call: localVideoRef เป็น <video> element โดยตรง
     if (activeCall?.is_group) {
@@ -81,13 +81,13 @@ const Chat = () => {
     video.onloadedmetadata = () => { video.play().catch(() => {}); };
     localVideoRef.current.innerHTML = "";
     localVideoRef.current.appendChild(video);
-  };
+  });
 
   useEffect(() => {
     if (activeCall?.call_type === "video") {
       attachLocalPreview();
     }
-  }, [activeCall]);
+  }, [activeCall, attachLocalPreview]);
   
   // Apply theme
   useEffect(() => {
@@ -227,55 +227,61 @@ const Chat = () => {
 
   // ===== Group Call: สร้าง peer connection กับ user คนหนึ่ง =====
   const createPeerForUser = async (targetUserId, call_id, call_type, isInitiator) => {
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }
-      ]
-    });
+    try {
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }
+        ]
+      });
 
-    pcsRef.current[targetUserId] = pc;
+      pcsRef.current[targetUserId] = pc;
 
-    // เพิ่ม local tracks
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
-    }
+      // เพิ่ม local tracks
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
+      }
 
-    pc.ontrack = (event) => {
-      const stream = event.streams[0];
-      setRemoteStreams(prev => ({ ...prev, [targetUserId]: stream }));
-    };
+      pc.ontrack = (event) => {
+        const stream = event.streams[0];
+        setRemoteStreams(prev => ({ ...prev, [targetUserId]: stream }));
+      };
 
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          window.electronAPI.sendRealtime({
+            type: "ice_candidate",
+            call_id,
+            conversation_id: currentCallConversationRef.current,
+            target_user_id: targetUserId,
+            candidate: {
+              candidate: event.candidate.candidate,
+              sdpMid: event.candidate.sdpMid,
+              sdpMLineIndex: event.candidate.sdpMLineIndex
+            }
+          });
+        }
+      };
+
+      if (isInitiator) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
         window.electronAPI.sendRealtime({
-          type: "ice_candidate",
+          type: "webrtc_offer",
           call_id,
           conversation_id: currentCallConversationRef.current,
           target_user_id: targetUserId,
-          candidate: {
-            candidate: event.candidate.candidate,
-            sdpMid: event.candidate.sdpMid,
-            sdpMLineIndex: event.candidate.sdpMLineIndex
-          }
+          offer,
+          call_type
         });
       }
-    };
 
-    if (isInitiator) {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      window.electronAPI.sendRealtime({
-        type: "webrtc_offer",
-        call_id,
-        conversation_id: currentCallConversationRef.current,
-        target_user_id: targetUserId,
-        offer,
-        call_type
-      });
+      return pc;
+    } catch (err) {
+      console.error("❌ createPeerForUser error:", err);
+      toast.error("Failed to create peer connection: " + (err?.message || "Unknown error"));
+      throw err; // Re-throw so caller knows this failed
     }
-
-    return pc;
   };
 
   const startWebRTC = async (call_id, conversation_id, call_type = 'audio') => {
@@ -593,54 +599,97 @@ const Chat = () => {
     return pc;
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!window.electronAPI) return;
 
     const handleOffer = async (data) => {
-      const fromUser = data.from_user || data.sender_id;
-      currentCallConversationRef.current = data.conversation_id;
-      callTypeRef.current = data.call_type || 'audio';
+      try {
+        const fromUser = data.from_user || data.sender_id;
+        currentCallConversationRef.current = data.conversation_id;
+        callTypeRef.current = data.call_type || 'audio';
 
-      if (isGroupCallRef.current && fromUser) {
-        // Group: สร้าง peer กับคนที่ส่ง offer มา (ไม่ใช่ initiator)
-        if (!localStreamRef.current) {
-          const constraints = callTypeRef.current === 'video'
-            ? { audio: true, video: { width: 640, height: 480 } }
-            : { audio: true };
-          localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+        if (isGroupCallRef.current && fromUser) {
+          // Group: สร้าง peer กับคนที่ส่ง offer มา (ไม่ใช่ initiator)
+          if (!localStreamRef.current) {
+            const constraints = callTypeRef.current === 'video'
+              ? { audio: true, video: { width: 640, height: 480 } }
+              : { audio: true };
+            localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+          }
+          const pc = pcsRef.current[fromUser] || await createPeerForUser(fromUser, data.call_id, callTypeRef.current, false);
+          pcsRef.current[fromUser] = pc;
+          await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          window.electronAPI.sendRealtime({
+            type: "webrtc_answer",
+            call_id: data.call_id,
+            conversation_id: data.conversation_id,
+            target_user_id: fromUser,
+            answer
+          });
+        } else {
+          // Direct: flow เดิม
+          const pc = await handleOfferLogic(data.offer, data.call_id, data.conversation_id);
+          setActiveCall({ call_id: data.call_id, pc, call_type: data.call_type || 'audio', is_group: false });
         }
-        const pc = pcsRef.current[fromUser] || await createPeerForUser(fromUser, data.call_id, callTypeRef.current, false);
-        pcsRef.current[fromUser] = pc;
-        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        window.electronAPI.sendRealtime({
-          type: "webrtc_answer",
-          call_id: data.call_id,
-          conversation_id: data.conversation_id,
-          target_user_id: fromUser,
-          answer
-        });
-      } else {
-        // Direct: flow เดิม
-        const pc = await handleOfferLogic(data.offer, data.call_id, data.conversation_id);
-        setActiveCall({ call_id: data.call_id, pc, call_type: data.call_type || 'audio', is_group: false });
+      } catch (err) {
+        console.error("❌ handleOffer error:", err);
+        toast.error("Error handling call offer: " + (err?.message || "Unknown error"));
       }
     };
 
     const handleAnswer = async (data) => {
-      const fromUser = data.from_user || data.sender_id;
-      if (isGroupCallRef.current && fromUser) {
-        const pc = pcsRef.current[fromUser];
-        if (!pc) return;
-        await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-      } else {
-        if (!pcRef.current) return;
-        await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
-        for (const candidate of pendingCandidatesRef.current) {
-          try { await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) {}
+      try {
+        const fromUser = data.from_user || data.sender_id;
+
+        // ✅ GROUP CALL ONLY
+        if (isGroupCallRef.current) {
+          if (!fromUser) return;
+
+          const pc = pcsRef.current[fromUser];
+          if (!pc) {
+            console.warn("❌ No PC for user:", fromUser);
+            return;
+          }
+
+          // 🔥 กัน set ซ้ำ
+          if (pc.signalingState === "stable") {
+            console.warn("⚠️ Skip duplicate answer (already stable)");
+            return;
+          }
+
+          await pc.setRemoteDescription(
+            new RTCSessionDescription(data.answer)
+          );
+        } 
+        
+        // ✅ DIRECT CALL ONLY
+        else {
+          if (!pcRef.current) return;
+
+          // 🔥 กัน set ซ้ำ
+          if (pcRef.current.signalingState === "stable") {
+            console.warn("⚠️ Skip duplicate answer (direct)");
+            return;
+          }
+
+          await pcRef.current.setRemoteDescription(
+            new RTCSessionDescription(data.answer)
+          );
+
+          for (const candidate of pendingCandidatesRef.current) {
+            try {
+              await pcRef.current.addIceCandidate(
+                new RTCIceCandidate(candidate)
+              );
+            } catch (e) {}
+          }
+          pendingCandidatesRef.current = [];
         }
-        pendingCandidatesRef.current = [];
+      } catch (err) {
+        console.error("❌ handleAnswer error:", err);
       }
     };
 
@@ -668,24 +717,29 @@ const Chat = () => {
       offAnswer();
       offICE();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const callingRef = useRef(calling);
 
   useEffect(() => {
     callingRef.current = calling;
   }, [calling]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!window.electronAPI) return;
     
     const handleIncoming = (data) => {
       console.log("Incoming call:", data);
 
-      // 🔥 กันเคสตัวเองได้รับ event
       if (callingRef.current && data.call_id === callingRef.current.call_id) {
         console.log("IGNORE self incoming");
         return;
       }
+
+      // ✅ สำคัญมาก
+      isGroupCallRef.current = Boolean(
+        data.is_group ?? data.conversation_type === "group"
+      );
 
       setIncomingCall(data);
     };
@@ -695,59 +749,76 @@ const Chat = () => {
       setCalling(null);
 
       const callType = callTypeRef.current || data.call_type || "audio";
-      const isGroup = data.is_group || isGroupCallRef.current;
+      const isGroup = Boolean(
+        data.is_group ??
+        incomingCall?.is_group ??
+        isGroupCallRef.current
+      );
 
       if (isCallerRef.current) {
         const convId = currentCallConversationRef.current || selectedConversation?.id;
         if (!convId) return;
 
-        setActiveCall({ call_id: data.call_id, call_type: callType, is_group: isGroup });
-        
-        // ✅ เซ็ต participants จาก response data
+        setActiveCall({
+          call_id: data.call_id,
+          call_type: callType,
+          is_group: isGroup
+        });
+
         if (data.participants) {
           setCallParticipants(data.participants);
         }
 
         setTimeout(async () => {
-          if (isGroup) {
-            // Group: สร้าง peer กับคนที่เพิ่งตอบรับ
-            const newParticipant = data.new_participant;
-            if (newParticipant && !pcsRef.current[newParticipant]) {
-              // เตรียม local stream ก่อน (ถ้ายังไม่มี)
-              if (!localStreamRef.current) {
-                const constraints = callType === 'video'
-                  ? { audio: true, video: { width: 640, height: 480 } }
-                  : { audio: true };
-                localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+          try {
+            if (isGroup) {
+              const newParticipant = data.new_participant;
+              if (newParticipant && !pcsRef.current[newParticipant]) {
+                if (!localStreamRef.current) {
+                  const constraints = callType === "video"
+                    ? { audio: true, video: { width: 640, height: 480 } }
+                    : { audio: true };
+
+                  localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+                }
+
+                await createPeerForUser(newParticipant, data.call_id, callType, true);
               }
-              await createPeerForUser(newParticipant, data.call_id, callType, true);
+            } else {
+              const pc = await startWebRTC(data.call_id, convId, callType);
+              setActiveCall(prev => ({ ...prev, pc }));
             }
-          } else {
-            // Direct: flow เดิม
-            const pc = await startWebRTC(data.call_id, convId, callType);
-            setActiveCall(prev => ({ ...prev, pc }));
+          } catch (err) {
+            console.error("❌ handleAnswered setTimeout error:", err);
+            toast.error("Call setup failed: " + (err?.message || "Unknown error"));
           }
         }, 0);
       } else {
-        // Callee: แสดง UI แล้วรอ offer
-        const isGroup = data.is_group || false;
-        setActiveCall({ call_id: data.call_id, call_type: callTypeRef.current || "audio", is_group: isGroup });
+        // ✅ Callee: ใช้ logic เดียวกับ caller
+        setActiveCall({
+          call_id: data.call_id,
+          call_type: callType,
+          is_group: isGroup
+        });
 
-        // ✅ เซ็ต participants ทันที จาก response data (รวมตัวเองด้วย)
         if (data.participants) {
           setCallParticipants(data.participants);
         }
 
-        // Group callee: สร้าง peer กับทุกคนที่อยู่ในสายแล้ว
         if (isGroup && data.existing_participants?.length > 0) {
-          const callType = callTypeRef.current || "audio";
-          const constraints = callType === 'video'
-            ? { audio: true, video: { width: 640, height: 480 } }
-            : { audio: true };
-          if (!localStreamRef.current) {
-            localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+          try {
+            const constraints = callType === "video"
+              ? { audio: true, video: { width: 640, height: 480 } }
+              : { audio: true };
+
+            if (!localStreamRef.current) {
+              localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+            }
+            // รอ offer จากคนที่อยู่ในสายแล้ว
+          } catch (err) {
+            console.error("❌ Callee media setup error:", err);
+            toast.error("Failed to access microphone/camera: " + (err?.message || "Unknown error"));
           }
-          // ไม่ต้อง initiate offer — รอ offer จากคนที่อยู่ในสายแล้ว
         }
       }
     };
@@ -795,7 +866,7 @@ const Chat = () => {
       offParticipants?.();
     };
 
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startCall = async (type) => {
     if (!selectedConversation) return;
@@ -837,14 +908,25 @@ const Chat = () => {
 
   const acceptCall = async () => {
     if (!incomingCall) return;
-    isCallerRef.current = false;
-    // ✅ บันทึก conversation_id เมื่อ callee ตอบรับ
-    currentCallConversationRef.current = incomingCall.conversation_id;
-    callTypeRef.current = incomingCall.call_type || 'audio'; // ✅ Set call type from incoming call
-    await window.electronAPI.answerCall(incomingCall.call_id);
-    console.log("WAITING FOR OFFER...");
-    // ❌ ไม่ต้อง setActiveCall ตรงนี้
-    setIncomingCall(null);
+    try {
+      isCallerRef.current = false;
+
+      // ✅ สำคัญมาก
+      isGroupCallRef.current = Boolean(
+        incomingCall.is_group ?? incomingCall.conversation_type === "group"
+      );
+
+      currentCallConversationRef.current = incomingCall.conversation_id;
+      callTypeRef.current = incomingCall.call_type || "audio";
+
+      await window.electronAPI.answerCall(incomingCall.call_id);
+      console.log("WAITING FOR OFFER...");
+      setIncomingCall(null);
+    } catch (err) {
+      console.error("❌ acceptCall error:", err);
+      toast.error("Failed to accept call: " + (err?.message || "Unknown error"));
+      setIncomingCall(null);
+    }
   };
 
   // ✅ Leave call (for group calls) - just leave, don't end for everyone
