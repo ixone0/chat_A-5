@@ -30,6 +30,33 @@ def get_other_user(conversation_id, user_id):
         cur.close()
         conn.close()
 
+def get_conversation_type(conversation_id):
+    """คืน type ของ conversation ('direct' หรือ 'group')"""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT type FROM conversations WHERE id = %s", (conversation_id,))
+        row = cur.fetchone()
+        return row[0] if row else None
+    finally:
+        cur.close()
+        conn.close()
+
+def get_all_members(conversation_id):
+    """ดึง user_id ทุกคนในห้อง"""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "SELECT user_id FROM conversation_members WHERE conversation_id = %s",
+            (conversation_id,)
+        )
+        return [str(row[0]) for row in cur.fetchall()]
+    finally:
+        cur.close()
+        conn.close()
+        conn.close()
+
 def create_conversation_db(title, owner_id, chat_type="group"):
     """สร้างห้องแชทแบบพื้นฐาน (1-on-1 หรือกลุ่มเริ่มต้น)"""
     conn = get_db_connection()

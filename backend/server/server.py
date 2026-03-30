@@ -627,78 +627,90 @@ def handle_client(conn, addr):
                     elif pkt_type == "webrtc_offer":
                         call_id = pkt.get("call_id")
                         offer = pkt.get("offer")
-
-                        print("[RELAY OFFER] Received offer:", call_id)
-                        print(f"[RELAY OFFER] Sender user_id: {user_id}")
-
-                        # 🔥 หาอีกฝั่ง
                         conversation_id = pkt.get("conversation_id")
-                        call_type = pkt.get("call_type", "audio")  # ✅ Get call type
-                        print(f"[RELAY OFFER] Conversation ID: {conversation_id}, Call Type: {call_type}")
-                        
-                        try:
-                            members = get_conversation_members_service(conversation_id)
-                            print(f"[RELAY OFFER] Members: {members}")
-                            print(f"[RELAY OFFER] Online users: {list(online_users.keys())}")
+                        call_type = pkt.get("call_type", "audio")
+                        target_user_id = pkt.get("target_user_id")  # group call: ส่งให้คนเดียว
 
-                            for user in members:
-                                print(f"[RELAY OFFER] Checking user {user}: is_not_sender={user != user_id}, is_online={user in online_users}")
-                                if user != user_id and user in online_users:
-                                    print(f"[RELAY OFFER] >>> Sending offer to user {user}")
-                                    send_packet(online_users[user], {
-                                        "type": "webrtc_offer",
-                                        "call_id": call_id,
-                                        "offer": offer,
-                                        "conversation_id": conversation_id,
-                                        "call_type": call_type  # ✅ Include call type
-                                    })
-                                    print(f"[RELAY OFFER] >>> Sent to {user}")
-                            print("[RELAY OFFER] Done relaying")
+                        try:
+                            if target_user_id and target_user_id in online_users:
+                                # Group call: ส่งให้ target โดยตรง
+                                send_packet(online_users[target_user_id], {
+                                    "type": "webrtc_offer",
+                                    "call_id": call_id,
+                                    "offer": offer,
+                                    "conversation_id": conversation_id,
+                                    "call_type": call_type,
+                                    "from_user": user_id
+                                })
+                            else:
+                                # Direct call: broadcast ไปทุกคนยกเว้นตัวเอง
+                                members = get_conversation_members_service(conversation_id)
+                                for u in members:
+                                    if u != user_id and u in online_users:
+                                        send_packet(online_users[u], {
+                                            "type": "webrtc_offer",
+                                            "call_id": call_id,
+                                            "offer": offer,
+                                            "conversation_id": conversation_id,
+                                            "call_type": call_type,
+                                            "from_user": user_id
+                                        })
                         except Exception as e:
-                            print(f"[ERROR RELAY OFFER] {traceback.format_exc()}")
+                            print(f"[ERROR RELAY OFFER] {e}")
+
                     elif pkt_type == "webrtc_answer":
                         call_id = pkt.get("call_id")
                         answer = pkt.get("answer")
                         conversation_id = pkt.get("conversation_id")
-                        print(f"[RELAY ANSWER] Received answer: {call_id}, sender: {user_id}")
+                        target_user_id = pkt.get("target_user_id")
 
                         try:
-                            members = get_conversation_members_service(conversation_id)
-                            print(f"[RELAY ANSWER] Members: {members}, Online: {list(online_users.keys())}")
-
-                            for user in members:
-                                print(f"[RELAY ANSWER] Checking user {user}: is_not_sender={user != user_id}, is_online={user in online_users}")
-                                if user != user_id and user in online_users:
-                                    print(f"[RELAY ANSWER] >>> Sending answer to user {user}")
-                                    send_packet(online_users[user], {
-                                        "type": "webrtc_answer",
-                                        "call_id": call_id,
-                                        "answer": answer
-                                    })
-                            print("[RELAY ANSWER] Done relaying")
+                            if target_user_id and target_user_id in online_users:
+                                send_packet(online_users[target_user_id], {
+                                    "type": "webrtc_answer",
+                                    "call_id": call_id,
+                                    "answer": answer,
+                                    "from_user": user_id
+                                })
+                            else:
+                                members = get_conversation_members_service(conversation_id)
+                                for u in members:
+                                    if u != user_id and u in online_users:
+                                        send_packet(online_users[u], {
+                                            "type": "webrtc_answer",
+                                            "call_id": call_id,
+                                            "answer": answer,
+                                            "from_user": user_id
+                                        })
                         except Exception as e:
-                            print(f"[ERROR RELAY ANSWER] {traceback.format_exc()}")
-                                
+                            print(f"[ERROR RELAY ANSWER] {e}")
+
                     elif pkt_type == "ice_candidate":
                         call_id = pkt.get("call_id")
                         candidate = pkt.get("candidate")
                         conversation_id = pkt.get("conversation_id")
-                        print(f"[RELAY ICE] Received candidate for call {call_id}, sender: {user_id}")
+                        target_user_id = pkt.get("target_user_id")
 
                         try:
-                            members = get_conversation_members_service(conversation_id)
-                            print(f"[RELAY ICE] Members: {members}")
-
-                            for user in members:
-                                if user != user_id and user in online_users:
-                                    print(f"[RELAY ICE] Sending candidate to {user}")
-                                    send_packet(online_users[user], {
-                                        "type": "ice_candidate",
-                                        "call_id": call_id,
-                                        "candidate": candidate
-                                    })
+                            if target_user_id and target_user_id in online_users:
+                                send_packet(online_users[target_user_id], {
+                                    "type": "ice_candidate",
+                                    "call_id": call_id,
+                                    "candidate": candidate,
+                                    "from_user": user_id
+                                })
+                            else:
+                                members = get_conversation_members_service(conversation_id)
+                                for u in members:
+                                    if u != user_id and u in online_users:
+                                        send_packet(online_users[u], {
+                                            "type": "ice_candidate",
+                                            "call_id": call_id,
+                                            "candidate": candidate,
+                                            "from_user": user_id
+                                        })
                         except Exception as e:
-                            print(f"[ERROR RELAY ICE] {traceback.format_exc()}")
+                            print(f"[ERROR RELAY ICE] {e}")
 
                     # ============ CREATE GROUP CHAT (NEW) ============
                     elif pkt_type == "create_group_chat":

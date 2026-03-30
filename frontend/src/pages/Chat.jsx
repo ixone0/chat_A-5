@@ -53,35 +53,33 @@ const Chat = () => {
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
 
+  // Group call: map of userId -> RTCPeerConnection
+  const pcsRef = useRef({});
+  // Group call: map of userId -> remote stream
+  const [remoteStreams, setRemoteStreams] = useState({});
+  const isGroupCallRef = useRef(false);
+
   const attachLocalPreview = () => {
-    if (
-      !localVideoRef.current ||
-      !localStreamRef.current ||
-      callTypeRef.current !== "video"
-    ) {
+    if (!localVideoRef.current || !localStreamRef.current || callTypeRef.current !== "video") return;
+    // Group call: localVideoRef เป็น <video> element โดยตรง
+    if (activeCall?.is_group) {
+      if (localVideoRef.current.srcObject !== localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
       return;
     }
-
+    // Direct call: append video element เหมือนเดิม
     const existing = localVideoRef.current.querySelector("video");
     if (existing) return;
-
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
     video.muted = true;
     video.srcObject = localStreamRef.current;
-    video.style.cssText =
-      "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
-
-    video.onloadedmetadata = () => {
-      video.play().catch((err) => {
-        console.warn("⚠️ Failed to auto-play local preview:", err);
-      });
-    };
-
+    video.style.cssText = "width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);";
+    video.onloadedmetadata = () => { video.play().catch(() => {}); };
     localVideoRef.current.innerHTML = "";
     localVideoRef.current.appendChild(video);
-    console.log("✅ Local preview attached");
   };
 
   useEffect(() => {
@@ -185,6 +183,14 @@ const Chat = () => {
       callTypeRef.current = null;
       setIsMicMuted(false);
       setIsCameraOff(false);
+
+      // cleanup group call peers
+      Object.values(pcsRef.current).forEach((pc) => {
+        try { pc.close(); } catch (e) {}
+      });
+      pcsRef.current = {};
+      setRemoteStreams({});
+      isGroupCallRef.current = false;
     } catch (err) {
       console.error("cleanupCall error:", err);
     }
@@ -215,6 +221,59 @@ const Chat = () => {
       track.enabled = !nextOff;
     });
     setIsCameraOff(nextOff);
+  };
+
+  // ===== Group Call: สร้าง peer connection กับ user คนหนึ่ง =====
+  const createPeerForUser = async (targetUserId, call_id, call_type, isInitiator) => {
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }
+      ]
+    });
+
+    pcsRef.current[targetUserId] = pc;
+
+    // เพิ่ม local tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
+    }
+
+    pc.ontrack = (event) => {
+      const stream = event.streams[0];
+      setRemoteStreams(prev => ({ ...prev, [targetUserId]: stream }));
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        window.electronAPI.sendRealtime({
+          type: "ice_candidate",
+          call_id,
+          conversation_id: currentCallConversationRef.current,
+          target_user_id: targetUserId,
+          candidate: {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          }
+        });
+      }
+    };
+
+    if (isInitiator) {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      window.electronAPI.sendRealtime({
+        type: "webrtc_offer",
+        call_id,
+        conversation_id: currentCallConversationRef.current,
+        target_user_id: targetUserId,
+        offer,
+        call_type
+      });
+    }
+
+    return pc;
   };
 
   const startWebRTC = async (call_id, conversation_id, call_type = 'audio') => {
@@ -536,52 +595,65 @@ const Chat = () => {
     if (!window.electronAPI) return;
 
     const handleOffer = async (data) => {
-      console.log("RECEIVED WEBRTC OFFER", data.call_id, { call_type: data.call_type });
-      
-      // ✅ Set conversation and call type from incoming offer
+      const fromUser = data.from_user || data.sender_id;
       currentCallConversationRef.current = data.conversation_id;
       callTypeRef.current = data.call_type || 'audio';
-      
-      const pc = await handleOfferLogic(data.offer, data.call_id, data.conversation_id);
-      console.log("ANSWER CREATED", data.call_id);
-      setActiveCall({ call_id: data.call_id, pc, call_type: data.call_type || 'audio' });
+
+      if (isGroupCallRef.current && fromUser) {
+        // Group: สร้าง peer กับคนที่ส่ง offer มา (ไม่ใช่ initiator)
+        if (!localStreamRef.current) {
+          const constraints = callTypeRef.current === 'video'
+            ? { audio: true, video: { width: 640, height: 480 } }
+            : { audio: true };
+          localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+        }
+        const pc = pcsRef.current[fromUser] || await createPeerForUser(fromUser, data.call_id, callTypeRef.current, false);
+        pcsRef.current[fromUser] = pc;
+        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        window.electronAPI.sendRealtime({
+          type: "webrtc_answer",
+          call_id: data.call_id,
+          conversation_id: data.conversation_id,
+          target_user_id: fromUser,
+          answer
+        });
+      } else {
+        // Direct: flow เดิม
+        const pc = await handleOfferLogic(data.offer, data.call_id, data.conversation_id);
+        setActiveCall({ call_id: data.call_id, pc, call_type: data.call_type || 'audio', is_group: false });
+      }
     };
 
     const handleAnswer = async (data) => {
-      if (!pcRef.current) return;
-      console.log("IS CALLER?", isCallerRef.current);
-      console.log("CALL_ID:", data.call_id);
-      await pcRef.current.setRemoteDescription(
-        new RTCSessionDescription(data.answer)
-      );
-
-      // ✅ Add pending candidates ที่สะสมไว้ระหว่างรอ answer
-      for (const candidate of pendingCandidatesRef.current) {
-        try {
-          await pcRef.current.addIceCandidate(
-            new RTCIceCandidate(candidate)
-          );
-          console.log("✅ Added pending candidate");
-        } catch (err) {
-          console.error("❌ Failed to add pending candidate:", err);
+      const fromUser = data.from_user || data.sender_id;
+      if (isGroupCallRef.current && fromUser) {
+        const pc = pcsRef.current[fromUser];
+        if (!pc) return;
+        await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+      } else {
+        if (!pcRef.current) return;
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+        for (const candidate of pendingCandidatesRef.current) {
+          try { await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) {}
         }
+        pendingCandidatesRef.current = [];
       }
-      pendingCandidatesRef.current = [];
     };
 
     const handleCandidate = async (data) => {
-      if (!pcRef.current || !pcRef.current.remoteDescription) {
-        pendingCandidatesRef.current.push(data.candidate);
-        return;
-      }
-
-      try {
-        await pcRef.current.addIceCandidate(
-          new RTCIceCandidate(data.candidate)
-        );
-        console.log("✅ Added ICE candidate");
-      } catch (err) {
-        console.error("❌ Failed to add ICE candidate:", err);
+      const fromUser = data.from_user || data.sender_id;
+      if (isGroupCallRef.current && fromUser) {
+        const pc = pcsRef.current[fromUser];
+        if (!pc || !pc.remoteDescription) return;
+        try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) {}
+      } else {
+        if (!pcRef.current || !pcRef.current.remoteDescription) {
+          pendingCandidatesRef.current.push(data.candidate);
+          return;
+        }
+        try { await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) {}
       }
     };
 
@@ -617,42 +689,54 @@ const Chat = () => {
     };
 
     const handleAnswered = async (data) => {
-      console.log("Call answered:", data);
-
       setIncomingCall(null);
       setCalling(null);
 
       const callType = callTypeRef.current || data.call_type || "audio";
+      const isGroup = data.is_group || isGroupCallRef.current;
 
       if (isCallerRef.current) {
-        const convId =
-          currentCallConversationRef.current || selectedConversation?.id;
+        const convId = currentCallConversationRef.current || selectedConversation?.id;
+        if (!convId) return;
 
-        if (!convId) {
-          console.error("❌ No conversation ID for call answered");
-          return;
-        }
+        setActiveCall({ call_id: data.call_id, call_type: callType, is_group: isGroup });
 
-        // ✅ render call UI ก่อน เพื่อให้ ref ถูก mount
-        setActiveCall({
-          call_id: data.call_id,
-          call_type: callType,
-        });
-
-        // ✅ รอ 1 tick ให้ localVideoRef / remoteVideoRef พร้อม
         setTimeout(async () => {
-          const pc = await startWebRTC(data.call_id, convId, callType);
-
-          setActiveCall((prev) => ({
-            ...prev,
-            pc,
-          }));
+          if (isGroup) {
+            // Group: สร้าง peer กับคนที่เพิ่งตอบรับ
+            const newParticipant = data.new_participant;
+            if (newParticipant && !pcsRef.current[newParticipant]) {
+              // เตรียม local stream ก่อน (ถ้ายังไม่มี)
+              if (!localStreamRef.current) {
+                const constraints = callType === 'video'
+                  ? { audio: true, video: { width: 640, height: 480 } }
+                  : { audio: true };
+                localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+              }
+              await createPeerForUser(newParticipant, data.call_id, callType, true);
+            }
+          } else {
+            // Direct: flow เดิม
+            const pc = await startWebRTC(data.call_id, convId, callType);
+            setActiveCall(prev => ({ ...prev, pc }));
+          }
         }, 0);
       } else {
-        setActiveCall({
-          call_id: data.call_id,
-          call_type: callTypeRef.current || "audio",
-        });
+        // Callee: แสดง UI แล้วรอ offer
+        const isGroup = data.is_group || false;
+        setActiveCall({ call_id: data.call_id, call_type: callTypeRef.current || "audio", is_group: isGroup });
+
+        // Group callee: สร้าง peer กับทุกคนที่อยู่ในสายแล้ว
+        if (isGroup && data.existing_participants?.length > 0) {
+          const callType = callTypeRef.current || "audio";
+          const constraints = callType === 'video'
+            ? { audio: true, video: { width: 640, height: 480 } }
+            : { audio: true };
+          if (!localStreamRef.current) {
+            localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+          }
+          // ไม่ต้อง initiate offer — รอ offer จากคนที่อยู่ในสายแล้ว
+        }
       }
     };
 
@@ -692,31 +776,38 @@ const Chat = () => {
 
   const startCall = async (type) => {
     if (!selectedConversation) return;
+
+    // เช็คจำนวนสมาชิกถ้าเป็นกลุ่ม
+    if (selectedConversation.type === "group") {
+      const memberCount = selectedConversation.member_count || 0;
+      if (memberCount > 4) {
+        toast.error("กลุ่มมีสมาชิกเกิน 4 คน ไม่สามารถโทรได้");
+        return;
+      }
+    }
+
     isCallerRef.current = true;
-    currentCallConversationRef.current = selectedConversation.id; // ✅ บันทึกตรงนี้
-    callTypeRef.current = type; // ✅ Set call type ref for caller
-    // ✅ set ทันที
-    setCalling({
-      call_id: "temp",   // temporary
-      type
-    });
+    isGroupCallRef.current = selectedConversation.type === "group";
+    currentCallConversationRef.current = selectedConversation.id;
+    callTypeRef.current = type;
+    setCalling({ call_id: "temp", type });
 
     try {
       const res = await window.electronAPI.startCall({
         conversation_id: selectedConversation.id,
         call_type: type
       });
-      
+
       if (res.status === "ok") {
-        // ✅ update call_id จริง
-        setCalling({
-          call_id: res.call_id,
-          type
-        });
+        setCalling({ call_id: res.call_id, type });
+      } else {
+        toast.error(res.message || "ไม่สามารถโทรได้");
+        setCalling(null);
+        isCallerRef.current = false;
       }
     } catch (err) {
       console.error(err);
-      setCalling(null); // ❌ error → reset
+      setCalling(null);
       isCallerRef.current = false;
     }
   };
@@ -1329,31 +1420,44 @@ const Chat = () => {
             {/* ✅ Show video containers ONLY for video calls */}
             {activeCall.call_type === 'video' && (
               <>
-                <div 
-                  ref={remoteVideoRef} 
-                  style={{
+                {activeCall.is_group ? (
+                  /* Group video call: grid layout */
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: Object.keys(remoteStreams).length === 0 ? '1fr' :
+                                         Object.keys(remoteStreams).length === 1 ? '1fr 1fr' : '1fr 1fr',
+                    gap: '8px',
                     width: '100%',
-                    height: '400px',
-                    backgroundColor: '#000',
-                    borderRadius: '8px',
-                    marginBottom: '10px',
-                    overflow: 'hidden'
-                  }}
-                />
-                <div 
-                  ref={localVideoRef} 
-                  style={{
-                    position: 'absolute',
-                    bottom: '100px',
-                    right: '20px',
-                    width: '150px',
-                    height: '120px',
-                    backgroundColor: '#000',
-                    borderRadius: '8px',
-                    border: '2px solid #fff',
-                    overflow: 'hidden'
-                  }}
-                />
+                    marginBottom: '10px'
+                  }}>
+                    {/* Local video */}
+                    <div style={{ position: 'relative', backgroundColor: '#000', borderRadius: '8px', overflow: 'hidden', aspectRatio: '4/3' }}>
+                      <video
+                        ref={localVideoRef}
+                        autoPlay playsInline muted
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
+                        onLoadedMetadata={e => e.target.play().catch(() => {})}
+                      />
+                      <span style={{ position: 'absolute', bottom: 4, left: 8, color: '#fff', fontSize: 12, background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: 4 }}>คุณ</span>
+                    </div>
+                    {/* Remote videos */}
+                    {Object.entries(remoteStreams).map(([uid, stream]) => (
+                      <div key={uid} style={{ position: 'relative', backgroundColor: '#000', borderRadius: '8px', overflow: 'hidden', aspectRatio: '4/3' }}>
+                        <video
+                          autoPlay playsInline
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          ref={el => { if (el && el.srcObject !== stream) el.srcObject = stream; }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Direct video call: layout เดิม */
+                  <>
+                    <div ref={remoteVideoRef} style={{ width: '100%', height: '400px', backgroundColor: '#000', borderRadius: '8px', marginBottom: '10px', overflow: 'hidden' }} />
+                    <div ref={localVideoRef} style={{ position: 'absolute', bottom: '100px', right: '20px', width: '150px', height: '120px', backgroundColor: '#000', borderRadius: '8px', border: '2px solid #fff', overflow: 'hidden' }} />
+                  </>
+                )}
               </>
             )}
             
