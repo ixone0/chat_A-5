@@ -702,6 +702,11 @@ const Chat = () => {
         if (!convId) return;
 
         setActiveCall({ call_id: data.call_id, call_type: callType, is_group: isGroup });
+        
+        // ✅ เซ็ต participants จาก response data
+        if (data.participants) {
+          setCallParticipants(data.participants);
+        }
 
         setTimeout(async () => {
           if (isGroup) {
@@ -727,6 +732,11 @@ const Chat = () => {
         // Callee: แสดง UI แล้วรอ offer
         const isGroup = data.is_group || false;
         setActiveCall({ call_id: data.call_id, call_type: callTypeRef.current || "audio", is_group: isGroup });
+
+        // ✅ เซ็ต participants ทันที จาก response data (รวมตัวเองด้วย)
+        if (data.participants) {
+          setCallParticipants(data.participants);
+        }
 
         // Group callee: สร้าง peer กับทุกคนที่อยู่ในสายแล้ว
         if (isGroup && data.existing_participants?.length > 0) {
@@ -768,10 +778,13 @@ const Chat = () => {
     const offAnswered = window.electronAPI.onCallAnswered(handleAnswered);
     const offEnded = window.electronAPI.onCallEnded(handleEnded);
 
-    // ✅ Listen for participant list updates
+    // ✅ Listen for participant list updates (อัพเดท real-time เมื่อมีคนเข้า/ออก)
     const handleParticipantsUpdate = (data) => {
       console.log("📍 Participants update:", data);
-      setCallParticipants(data.participants || []);
+      // ✅ Filter out stale participants (those who have left)
+      const activeParticipants = data.participants?.filter(p => !p.left_at) || [];
+      setCallParticipants(activeParticipants);
+      console.log("📍 Active participants now:", activeParticipants);
     };
     const offParticipants = window.electronAPI.onCallParticipantsUpdate?.(handleParticipantsUpdate);
 

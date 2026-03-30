@@ -110,15 +110,15 @@ def get_call_participants(call_id):
 
 
 def get_call_participants_info(call_id):
-    """ดึงข้อมูล participants พร้อม username/display_name"""
+    """ดึงข้อมูล participants พร้อม username/display_name (เฉพาะคนที่ยังอยู่ในสาย)"""
     conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT cp.user_id, u.username, u.display_name
+        SELECT cp.user_id, u.username, u.display_name, cp.left_at
         FROM call_participants cp
         JOIN users u ON u.id = cp.user_id
-        WHERE cp.call_id = %s
+        WHERE cp.call_id = %s AND cp.left_at IS NULL
     """, (call_id,))
 
     rows = cur.fetchall()
@@ -129,7 +129,8 @@ def get_call_participants_info(call_id):
         {
             "user_id": str(row[0]),
             "username": row[1],
-            "display_name": row[2] or row[1]
+            "display_name": row[2] or row[1],
+            "left_at": row[3]
         }
         for row in rows
     ]

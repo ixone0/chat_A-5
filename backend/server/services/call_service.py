@@ -30,18 +30,20 @@ def send_packet_to_user(user_id, packet):
             online_users.pop(user_id, None)
 
 def _broadcast_participants(call_id, conversation_id):
-    """Broadcast participant list ไปทุกคนใน conversation"""
+    """Broadcast participant list ไปทุกคนใน conversation ที่ online"""
     participants_info = get_call_participants_info(call_id)
     members = get_conversation_members_service(str(conversation_id))
     for mid in members:
-        if mid in online_users:
+        mid_str = str(mid)
+        if mid_str in online_users:
             try:
-                send_packet(online_users[mid], {
+                send_packet(online_users[mid_str], {
                     "type": "call_participants_update",
                     "call_id": call_id,
                     "participants": participants_info
                 })
-            except Exception:
+            except Exception as e:
+                print(f"❌ broadcast_participants failed to {mid_str}: {e}")
                 pass
 
 def start_call_service(pkt, user_id):
@@ -90,11 +92,15 @@ def start_call_service(pkt, user_id):
         # broadcast participant list ทันทีหลัง caller เข้าสาย
         _broadcast_participants(call_id, conversation_id)
 
+        # ✅ ส่ง initial participants list ให้ caller รู้
+        initial_participants = get_call_participants_info(call_id)
+        
         return {
             "type": "start_call_response",
             "status": "ok",
             "call_id": call_id,
-            "is_group": is_group
+            "is_group": is_group,
+            "participants": initial_participants
         }
 
     except Exception as e:
@@ -116,13 +122,20 @@ def join_call_service(pkt, user_id):
 
     # ดึงคนที่อยู่ในสายแล้ว (ก่อนคนนี้เข้า)
     participants = get_call_participants(call_id)
+    
+    # ✅ ดึง full participant info (รวม display_name, username)
+    participants_info = get_call_participants_info(call_id)
+    # Filter out the current user from existing_participants
+    existing_participants_info = [p for p in participants_info if str(p['user_id']) != str(user_id)]
 
     packet = {
         "type": "call_answered",
         "call_id": call_id,
         "is_group": is_group,
-        # ส่ง list ของคนที่อยู่ในสายแล้วให้คนใหม่รู้ว่าต้องสร้าง peer กับใครบ้าง
-        "existing_participants": [p for p in participants if str(p) != str(user_id)]
+        # ส่ง list ของคนที่อยู่ในสายแล้วให้คนใหม่รู้ว่าต้องสร้าง peer กับใครบ้าง (รวม display_name, username)
+        "existing_participants": existing_participants_info,
+        # ✅ ส่ง full participant list รวมแม้กระทั่งคนใหม่เข้า
+        "participants": participants_info
     }
 
     # แจ้งทุกคนที่อยู่ในสายแล้วว่ามีคนใหม่เข้ามา
