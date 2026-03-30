@@ -3,6 +3,8 @@ import "./ChatWindow.css";
 import MessageAttachment from "./MessageAttachment";
 import FilePreview from "./FilePreview";
 import { AlertCircleIcon, MessageCircleIcon } from "./Icons";
+import { useToast } from "./Toast";
+import { EmptyChat } from "./EmptyState";
 
 const ChatWindow = ({
   conversation = null,
@@ -15,6 +17,7 @@ const ChatWindow = ({
   onShowMembers = null,
   isTyping = false,
 }) => {
+  const toast = useToast();
   const [inputText, setInputText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
@@ -134,7 +137,7 @@ const ChatWindow = ({
       if (res.status === "success") {
         setIsEditing(false);
       } else {
-        alert(res.message || "Failed to rename group");
+        toast.error(res.message || "Failed to rename group");
       }
     } catch (err) {
       console.error("Rename Error:", err);
@@ -178,6 +181,32 @@ const ChatWindow = ({
 
   const [reactions, setReactions] = useState({});
 
+  // Listen for reaction updates from other users
+  useEffect(() => {
+    if (!window.electronAPI?.onReactionUpdate) return;
+    const unsub = window.electronAPI.onReactionUpdate((data) => {
+      if (String(data.conversation_id) !== String(selected?.id)) return;
+      setReactions(prev => {
+        const msgReactions = [...(prev[data.message_id] || [])];
+        const existing = msgReactions.find(r => r.reaction === data.reaction);
+        if (data.action === 'added') {
+          if (existing) {
+            existing.count += 1;
+            existing.users = [...existing.users, data.user_id];
+          } else {
+            msgReactions.push({ reaction: data.reaction, count: 1, users: [data.user_id] });
+          }
+        } else if (data.action === 'removed' && existing) {
+          existing.count -= 1;
+          existing.users = existing.users.filter(u => u !== data.user_id);
+          if (existing.count <= 0) return { ...prev, [data.message_id]: msgReactions.filter(r => r.reaction !== data.reaction) };
+        }
+        return { ...prev, [data.message_id]: msgReactions };
+      });
+    });
+    return () => unsub?.();
+  }, [selected?.id]);
+
   const handleReaction = async (messageId, reaction) => {
     if (!selected?.id) return;
     try {
@@ -219,8 +248,8 @@ const ChatWindow = ({
 
   if (!selected) {
     return (
-      <div className="chat-window-root" style={{ justifyContent: 'center', alignItems: 'center', color: '#94B4C1' }}>
-        <p>Select a user or group to chat</p>
+      <div className="chat-window-root" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <EmptyChat />
       </div>
     );
   }
@@ -555,7 +584,7 @@ const ChatWindow = ({
                 
                 if (!response || response.status === 'cancelled') return;
                 if (response.status === 'error') {
-                  alert(response.message);
+                  toast.error(response.message);
                   return;
                 }
 

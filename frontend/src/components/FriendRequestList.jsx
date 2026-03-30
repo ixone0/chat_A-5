@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './FriendRequestList.css';
+import { useToast } from './Toast';
 
 const FriendRequestList = ({ onClose }) => {
+    const toast = useToast();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -38,7 +40,7 @@ const FriendRequestList = ({ onClose }) => {
                 // ลบรายการออกจากหน้าจอทันที (ไม่ต้องรอโหลดใหม่)ให้ UI รู้สึกเร็ว
                 setRequests((prev) => prev.filter(req => req.sender_id !== senderId));
             } else {
-                alert("Failed to accept: " + result.message);
+                toast.error("Failed to accept: " + result.message);
             }
         } catch (error) {
             console.error("Error accepting:", error);

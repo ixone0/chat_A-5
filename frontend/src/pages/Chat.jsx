@@ -14,8 +14,10 @@ import CallingModal from "../components/CallingModal";
 import CreateGroupForm from "../components/CreateGroupForm";
 import GroupMembersModal from "../components/GroupMembersModal";
 import { PhoneIcon } from "../components/Icons";
+import { useToast } from "../components/Toast";
 
 const Chat = () => {
+  const toast = useToast();
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -35,6 +37,7 @@ const Chat = () => {
   const [sidebarSearch, setSidebarSearch] = useState("");
   const [typingUserId, setTypingUserId] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [sidebarLoading, setSidebarLoading] = useState(true);
   const [callElapsedTime, setCallElapsedTime] = useState(0); // ✅ Call duration in seconds
   const callElapsedTimeRef = useRef(0);
   const isCallerRef = useRef(false);
@@ -96,7 +99,6 @@ const Chat = () => {
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const refreshData = async () => {
-
     if (!window.electronAPI) return;
     try {
       const [convRes, friendRes] = await Promise.all([
@@ -108,6 +110,9 @@ const Chat = () => {
         setFriends(friendRes.friends || friendRes.data || []);
     } catch (err) {
       console.error("Refresh Error:", err);
+    } finally {
+      setSidebarLoading(false);
+    }
     }
   };
   
@@ -462,7 +467,7 @@ const Chat = () => {
       setIsMicMuted(false);
     } catch (err) {
       console.error("❌ getUserMedia error (callee):", err);
-      alert("Cannot access camera: " + err.message);
+      toast.error("Cannot access camera: " + err.message);
       return pc;
     }
     
@@ -1067,7 +1072,7 @@ const Chat = () => {
         });
         setCurrentView("add_preview");
       } else {
-        alert(res?.message || "User not found");
+        toast.error(res?.message || "User not found");
       }
     } catch (err) {
       console.error(err);
@@ -1249,6 +1254,7 @@ const Chat = () => {
         unreadMap={unreadMap}
         searchQuery={sidebarSearch}
         onSearchChange={setSidebarSearch}
+        loading={sidebarLoading}
       />
 
       <div className="chat-area">{renderRightPanel()}</div>

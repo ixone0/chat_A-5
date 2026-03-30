@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import './GroupMembersModal.css';
 import { XIcon, ArrowLeftIcon, CheckIcon, CrownIcon, TrashIcon, LogOutIcon } from './Icons';
+import { useConfirm } from './ConfirmDialog';
+import { useToast } from './Toast';
 
 const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, onClose, onRefresh }) => {
+  const confirm = useConfirm();
+  const toast = useToast();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddPanel, setShowAddPanel] = useState(false);
@@ -41,12 +45,13 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
   const isAdminOrOwner = myMember?.role === 'owner' || myMember?.role === 'admin';
 
   const handleKick = async (targetUserId, displayName) => {
-    if (!window.confirm(`Kick ${displayName} from the group?`)) return;
+    const ok = await confirm(`Kick ${displayName} from the group?`, { title: 'Kick Member', confirmText: 'Kick', danger: true });
+    if (!ok) return;
     try {
       const res = await window.electronAPI.kickGroupMember({ conversation_id: conversationId, target_user_id: targetUserId });
-      if (res?.status === 'success') { await fetchMembers(); if (onRefresh) onRefresh(); }
-      else alert(res?.message || 'Failed to kick member');
-    } catch (err) { alert('Error: ' + err.message); }
+      if (res?.status === 'success') { toast.success(`${displayName} was removed`); await fetchMembers(); if (onRefresh) onRefresh(); }
+      else toast.error(res?.message || 'Failed to kick member');
+    } catch (err) { toast.error(err.message); }
   };
 
   const handleAddMembers = async () => {
@@ -54,45 +59,48 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
     setAddLoading(true);
     try {
       const res = await window.electronAPI.addGroupMembers({ conversation_id: conversationId, members: selectedToAdd });
-      if (res?.status === 'success') { setShowAddPanel(false); setSelectedToAdd([]); await fetchMembers(); if (onRefresh) onRefresh(); }
-      else alert(res?.message || 'Failed to add members');
-    } catch (err) { alert('Error: ' + err.message); }
+      if (res?.status === 'success') { toast.success('Members added'); setShowAddPanel(false); setSelectedToAdd([]); await fetchMembers(); if (onRefresh) onRefresh(); }
+      else toast.error(res?.message || 'Failed to add members');
+    } catch (err) { toast.error(err.message); }
     finally { setAddLoading(false); }
   };
 
   const handleLeaveGroup = async () => {
-    if (!window.confirm('Leave this group?')) return;
+    const ok = await confirm('Leave this group?', { title: 'Leave Group', confirmText: 'Leave', danger: true });
+    if (!ok) return;
     try {
       const res = await window.electronAPI.leaveGroup(conversationId);
-      if (res?.status === 'success') { onClose(); if (onRefresh) onRefresh(); }
-      else alert(res?.message || 'Failed to leave group');
-    } catch (err) { alert('Error: ' + err.message); }
+      if (res?.status === 'success') { toast.success('You left the group'); onClose(); if (onRefresh) onRefresh(); }
+      else toast.error(res?.message || 'Failed to leave group');
+    } catch (err) { toast.error(err.message); }
   };
 
   const handleDeleteGroup = async () => {
-    if (!window.confirm('Delete this group permanently? All messages will be lost.')) return;
+    const ok = await confirm('Delete this group permanently? All messages will be lost.', { title: 'Delete Group', confirmText: 'Delete', danger: true });
+    if (!ok) return;
     try {
       const res = await window.electronAPI.deleteGroup(conversationId);
-      if (res?.status === 'success') { onClose(); if (onRefresh) onRefresh(); }
-      else alert(res?.message || 'Failed to delete group');
-    } catch (err) { alert('Error: ' + err.message); }
+      if (res?.status === 'success') { toast.success('Group deleted'); onClose(); if (onRefresh) onRefresh(); }
+      else toast.error(res?.message || 'Failed to delete group');
+    } catch (err) { toast.error(err.message); }
   };
 
   const handleTransferOwnership = async (newOwnerId, displayName) => {
-    if (!window.confirm(`Transfer ownership to ${displayName}?`)) return;
+    const ok = await confirm(`Transfer ownership to ${displayName}?`, { title: 'Transfer Ownership', confirmText: 'Transfer' });
+    if (!ok) return;
     try {
       const res = await window.electronAPI.transferOwnership({ conversation_id: conversationId, new_owner_id: newOwnerId });
-      if (res?.status === 'success') { setShowTransferPanel(false); await fetchMembers(); if (onRefresh) onRefresh(); }
-      else alert(res?.message || 'Failed to transfer ownership');
-    } catch (err) { alert('Error: ' + err.message); }
+      if (res?.status === 'success') { toast.success('Ownership transferred'); setShowTransferPanel(false); await fetchMembers(); if (onRefresh) onRefresh(); }
+      else toast.error(res?.message || 'Failed to transfer ownership');
+    } catch (err) { toast.error(err.message); }
   };
 
   const handleSaveDescription = async () => {
     try {
       const res = await window.electronAPI.updateGroupDescription({ conversation_id: conversationId, description: descDraft });
-      if (res?.status === 'success') { setDescription(descDraft); setEditingDesc(false); }
-      else alert(res?.message || 'Failed to update description');
-    } catch (err) { alert('Error: ' + err.message); }
+      if (res?.status === 'success') { toast.success('Description updated'); setDescription(descDraft); setEditingDesc(false); }
+      else toast.error(res?.message || 'Failed to update description');
+    } catch (err) { toast.error(err.message); }
   };
 
   const handleToggleMute = async () => {
@@ -105,12 +113,13 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
 
   const handleSetRole = async (targetUserId, newRole, displayName) => {
     const label = newRole === 'admin' ? 'Promote' : 'Demote';
-    if (!window.confirm(`${label} ${displayName} to ${newRole}?`)) return;
+    const ok = await confirm(`${label} ${displayName} to ${newRole}?`, { title: 'Change Role', confirmText: label });
+    if (!ok) return;
     try {
       const res = await window.electronAPI.setMemberRole({ conversation_id: conversationId, target_user_id: targetUserId, role: newRole });
-      if (res?.status === 'success') await fetchMembers();
-      else alert(res?.message || 'Failed to change role');
-    } catch (err) { alert('Error: ' + err.message); }
+      if (res?.status === 'success') { toast.success(`${displayName} is now ${newRole}`); await fetchMembers(); }
+      else toast.error(res?.message || 'Failed to change role');
+    } catch (err) { toast.error(err.message); }
   };
 
   const toggleAddMember = (friendId) => {
