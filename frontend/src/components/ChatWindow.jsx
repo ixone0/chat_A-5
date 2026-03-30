@@ -20,6 +20,9 @@ const ChatWindow = ({
   const [tempTitle, setTempTitle] = useState("");
   const [uploadState, setUploadState] = useState(null);
   const [previewData, setPreviewData] = useState(null);
+  const [pinnedMessages, setPinnedMessages] = useState([]);
+  const [showPinned, setShowPinned] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
   const scrollRef = useRef(null);
 
   const selected = conversation || selectedUser;
@@ -97,6 +100,15 @@ const ChatWindow = ({
   useEffect(() => {
     setUploadState(null);
     setPreviewData(null);
+    setShowPinned(false);
+    setContextMenu(null);
+    // Fetch pinned messages
+    if (selected?.id && window.electronAPI?.getPinnedMessages) {
+      window.electronAPI.getPinnedMessages(selected.id).then(res => {
+        if (res?.status === 'success') setPinnedMessages(res.messages || []);
+        else setPinnedMessages([]);
+      }).catch(() => setPinnedMessages([]));
+    }
   }, [selected?.id]);
 
   const handleStartEdit = () => {
@@ -127,6 +139,39 @@ const ChatWindow = ({
       console.error("Rename Error:", err);
     }
   };
+
+  const handlePinMessage = async (messageId) => {
+    try {
+      const res = await window.electronAPI.pinMessage({ conversation_id: selected.id, message_id: messageId });
+      if (res?.status === 'success') {
+        const pinRes = await window.electronAPI.getPinnedMessages(selected.id);
+        if (pinRes?.status === 'success') setPinnedMessages(pinRes.messages || []);
+      }
+    } catch (err) { console.error(err); }
+    setContextMenu(null);
+  };
+
+  const handleUnpinMessage = async (messageId) => {
+    try {
+      const res = await window.electronAPI.unpinMessage({ conversation_id: selected.id, message_id: messageId });
+      if (res?.status === 'success') {
+        setPinnedMessages(prev => prev.filter(p => p.id !== messageId));
+      }
+    } catch (err) { console.error(err); }
+    setContextMenu(null);
+  };
+
+  const handleContextMenu = (e, msgId) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, messageId: msgId });
+  };
+
+  // Close context menu on click anywhere
+  useEffect(() => {
+    const close = () => setContextMenu(null);
+    if (contextMenu) window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, [contextMenu]);
 
   const handleSend = (e) => {
     e.preventDefault();
@@ -251,6 +296,15 @@ const ChatWindow = ({
                 </svg>
               </button>
             )}
+
+            {pinnedMessages.length > 0 && (
+              <button className="call-btn" onClick={() => setShowPinned(!showPinned)} title={`${pinnedMessages.length} pinned message(s)`}>
+                <svg viewBox="0 0 24 24" fill="none" stroke={showPinned ? "#ffc107" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+                  <path d="M12 2L12 12" /><path d="M18 6L18 12" /><path d="M6 6L6 12" />
+                  <path d="M2 12h20" /><path d="M12 12v10" />
+                </svg>
+              </button>
+            )}
             
             <button className="call-btn" onClick={() => startCall("voice")} title="Voice Call">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
@@ -268,6 +322,35 @@ const ChatWindow = ({
           </div>
         )}
       </div>
+
+      {/* Pinned messages bar */}
+      {showPinned && pinnedMessages.length > 0 && (
+        <div className="pinned-bar">
+          <div className="pinned-bar-header">
+            <span className="pinned-bar-title">Pinned Messages ({pinnedMessages.length})</span>
+            <button className="pinned-bar-close" onClick={() => setShowPinned(false)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+          {pinnedMessages.map(pm => (
+            <div key={pm.id} className="pinned-item">
+              <div className="pinned-item-content">
+                <span className="pinned-item-author">{pm.display_name || pm.username || 'System'}</span>
+                <span className="pinned-item-text">{pm.content?.length > 80 ? pm.content.slice(0, 80) + '...' : pm.content}</span>
+              </div>
+              {isOwner && (
+                <button className="pinned-unpin-btn" onClick={() => handleUnpinMessage(pm.id)} title="Unpin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* --- Messages Area --- */}
       <div className="messages-display" ref={scrollRef}>
@@ -305,7 +388,7 @@ const ChatWindow = ({
                         <div className="chat-avatar-img">{headerAvatarChar}</div>
                       </div>
                     )}
-                    <div className="chat-bubble">
+                    <div className="chat-bubble" onContextMenu={(e) => handleContextMenu(e, msg.id)}>
                       {msg.msg_type === "file" && msg.attachment ? (
                         <MessageAttachment attachment={msg.attachment} />
                       ) : (
@@ -453,6 +536,17 @@ const ChatWindow = ({
             </button>
         </div>
       </form>
+
+      {/* Context menu for pin */}
+      {contextMenu && (
+        <div className="msg-context-menu" style={{ top: contextMenu.y, left: contextMenu.x }}>
+          {pinnedMessages.some(p => p.id === contextMenu.messageId) ? (
+            <button onClick={() => handleUnpinMessage(contextMenu.messageId)}>Unpin message</button>
+          ) : (
+            <button onClick={() => handlePinMessage(contextMenu.messageId)}>Pin message</button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
