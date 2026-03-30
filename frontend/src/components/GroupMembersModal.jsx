@@ -9,35 +9,40 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
   const [selectedToAdd, setSelectedToAdd] = useState([]);
   const [addLoading, setAddLoading] = useState(false);
   const [showTransferPanel, setShowTransferPanel] = useState(false);
+  const [description, setDescription] = useState('');
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [descDraft, setDescDraft] = useState('');
+  const [isMuted, setIsMuted] = useState(false);
 
   const fetchMembers = async () => {
     try {
       const res = await window.electronAPI.getGroupMembers(conversationId);
-      if (res?.status === 'success') {
-        setMembers(res.members || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch members:', err);
-    } finally {
-      setLoading(false);
-    }
+      if (res?.status === 'success') setMembers(res.members || []);
+    } catch (err) { console.error('Failed to fetch members:', err); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchMembers(); }, [conversationId]);
+  const fetchGroupInfo = async () => {
+    try {
+      const res = await window.electronAPI.getGroupInfo(conversationId);
+      if (res?.status === 'success' && res.data) {
+        setDescription(res.data.description || '');
+      }
+    } catch (err) { console.error('Failed to fetch group info:', err); }
+  };
+
+  useEffect(() => { fetchMembers(); fetchGroupInfo(); }, [conversationId]);
+
+  // Check if current user is admin or owner
+  const myMember = members.find(m => String(m.user_id) === String(currentUserId));
+  const isAdminOrOwner = myMember?.role === 'owner' || myMember?.role === 'admin';
 
   const handleKick = async (targetUserId, displayName) => {
     if (!window.confirm(`Kick ${displayName} from the group?`)) return;
     try {
-      const res = await window.electronAPI.kickGroupMember({
-        conversation_id: conversationId,
-        target_user_id: targetUserId
-      });
-      if (res?.status === 'success') {
-        await fetchMembers();
-        if (onRefresh) onRefresh();
-      } else {
-        alert(res?.message || 'Failed to kick member');
-      }
+      const res = await window.electronAPI.kickGroupMember({ conversation_id: conversationId, target_user_id: targetUserId });
+      if (res?.status === 'success') { await fetchMembers(); if (onRefresh) onRefresh(); }
+      else alert(res?.message || 'Failed to kick member');
     } catch (err) { alert('Error: ' + err.message); }
   };
 
@@ -45,18 +50,9 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
     if (selectedToAdd.length === 0) return;
     setAddLoading(true);
     try {
-      const res = await window.electronAPI.addGroupMembers({
-        conversation_id: conversationId,
-        members: selectedToAdd
-      });
-      if (res?.status === 'success') {
-        setShowAddPanel(false);
-        setSelectedToAdd([]);
-        await fetchMembers();
-        if (onRefresh) onRefresh();
-      } else {
-        alert(res?.message || 'Failed to add members');
-      }
+      const res = await window.electronAPI.addGroupMembers({ conversation_id: conversationId, members: selectedToAdd });
+      if (res?.status === 'success') { setShowAddPanel(false); setSelectedToAdd([]); await fetchMembers(); if (onRefresh) onRefresh(); }
+      else alert(res?.message || 'Failed to add members');
     } catch (err) { alert('Error: ' + err.message); }
     finally { setAddLoading(false); }
   };
@@ -65,12 +61,8 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
     if (!window.confirm('Leave this group?')) return;
     try {
       const res = await window.electronAPI.leaveGroup(conversationId);
-      if (res?.status === 'success') {
-        onClose();
-        if (onRefresh) onRefresh();
-      } else {
-        alert(res?.message || 'Failed to leave group');
-      }
+      if (res?.status === 'success') { onClose(); if (onRefresh) onRefresh(); }
+      else alert(res?.message || 'Failed to leave group');
     } catch (err) { alert('Error: ' + err.message); }
   };
 
@@ -78,43 +70,54 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
     if (!window.confirm('Delete this group permanently? All messages will be lost.')) return;
     try {
       const res = await window.electronAPI.deleteGroup(conversationId);
-      if (res?.status === 'success') {
-        onClose();
-        if (onRefresh) onRefresh();
-      } else {
-        alert(res?.message || 'Failed to delete group');
-      }
+      if (res?.status === 'success') { onClose(); if (onRefresh) onRefresh(); }
+      else alert(res?.message || 'Failed to delete group');
     } catch (err) { alert('Error: ' + err.message); }
   };
 
   const handleTransferOwnership = async (newOwnerId, displayName) => {
     if (!window.confirm(`Transfer ownership to ${displayName}?`)) return;
     try {
-      const res = await window.electronAPI.transferOwnership({
-        conversation_id: conversationId,
-        new_owner_id: newOwnerId
-      });
-      if (res?.status === 'success') {
-        setShowTransferPanel(false);
-        await fetchMembers();
-        if (onRefresh) onRefresh();
-      } else {
-        alert(res?.message || 'Failed to transfer ownership');
-      }
+      const res = await window.electronAPI.transferOwnership({ conversation_id: conversationId, new_owner_id: newOwnerId });
+      if (res?.status === 'success') { setShowTransferPanel(false); await fetchMembers(); if (onRefresh) onRefresh(); }
+      else alert(res?.message || 'Failed to transfer ownership');
+    } catch (err) { alert('Error: ' + err.message); }
+  };
+
+  const handleSaveDescription = async () => {
+    try {
+      const res = await window.electronAPI.updateGroupDescription({ conversation_id: conversationId, description: descDraft });
+      if (res?.status === 'success') { setDescription(descDraft); setEditingDesc(false); }
+      else alert(res?.message || 'Failed to update description');
+    } catch (err) { alert('Error: ' + err.message); }
+  };
+
+  const handleToggleMute = async () => {
+    const newMuted = !isMuted;
+    try {
+      const res = await window.electronAPI.toggleMute({ conversation_id: conversationId, muted: newMuted });
+      if (res?.status === 'success') setIsMuted(newMuted);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSetRole = async (targetUserId, newRole, displayName) => {
+    const label = newRole === 'admin' ? 'Promote' : 'Demote';
+    if (!window.confirm(`${label} ${displayName} to ${newRole}?`)) return;
+    try {
+      const res = await window.electronAPI.setMemberRole({ conversation_id: conversationId, target_user_id: targetUserId, role: newRole });
+      if (res?.status === 'success') await fetchMembers();
+      else alert(res?.message || 'Failed to change role');
     } catch (err) { alert('Error: ' + err.message); }
   };
 
   const toggleAddMember = (friendId) => {
-    setSelectedToAdd(prev =>
-      prev.includes(friendId) ? prev.filter(id => id !== friendId) : [...prev, friendId]
-    );
+    setSelectedToAdd(prev => prev.includes(friendId) ? prev.filter(id => id !== friendId) : [...prev, friendId]);
   };
 
   const memberIds = members.map(m => String(m.user_id));
   const availableFriends = (friends || []).filter(f => !memberIds.includes(String(f.id)));
   const nonOwnerMembers = members.filter(m => m.role !== 'owner' && String(m.user_id) !== String(currentUserId));
 
-  // Determine current panel
   const currentPanel = showTransferPanel ? 'transfer' : showAddPanel ? 'add' : 'main';
   const panelTitle = currentPanel === 'transfer' ? 'Transfer Ownership' : currentPanel === 'add' ? 'Add Members' : 'Group Members';
 
@@ -122,6 +125,12 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
     if (showTransferPanel) setShowTransferPanel(false);
     else if (showAddPanel) setShowAddPanel(false);
     else onClose();
+  };
+
+  const getRoleBadge = (role) => {
+    if (role === 'owner') return <span className="gm-role-badge">Owner</span>;
+    if (role === 'admin') return <span className="gm-role-badge gm-role-admin">Admin</span>;
+    return null;
   };
 
   return (
@@ -146,9 +155,7 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
                     <div key={member.user_id} className="gm-item gm-item-selectable"
                       onClick={() => handleTransferOwnership(member.user_id, name)}>
                       <div className="gm-avatar">{name.charAt(0).toUpperCase()}</div>
-                      <div className="gm-info">
-                        <span className="gm-name">{name}</span>
-                      </div>
+                      <div className="gm-info"><span className="gm-name">{name}</span></div>
                       <span className="gm-transfer-icon"><CrownIcon size={18} color="#ffc107" /></span>
                     </div>
                   );
@@ -166,26 +173,48 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
                   <div key={friend.id}
                     className={`gm-item gm-item-selectable ${selectedToAdd.includes(friend.id) ? 'gm-item-selected' : ''}`}
                     onClick={() => toggleAddMember(friend.id)}>
-                    <div className="gm-avatar">
-                      {(friend.display_name || friend.username || '?').charAt(0).toUpperCase()}
-                    </div>
-                    <div className="gm-info">
-                      <span className="gm-name">{friend.display_name || friend.username}</span>
-                    </div>
+                    <div className="gm-avatar">{(friend.display_name || friend.username || '?').charAt(0).toUpperCase()}</div>
+                    <div className="gm-info"><span className="gm-name">{friend.display_name || friend.username}</span></div>
                     <div className="gm-checkbox">{selectedToAdd.includes(friend.id) ? <CheckIcon size={16} color="#5865f2" /> : ''}</div>
                   </div>
                 ))}
               </div>
             )}
             {availableFriends.length > 0 && (
-              <button className="gm-add-confirm-btn" onClick={handleAddMembers}
-                disabled={selectedToAdd.length === 0 || addLoading}>
+              <button className="gm-add-confirm-btn" onClick={handleAddMembers} disabled={selectedToAdd.length === 0 || addLoading}>
                 {addLoading ? 'Adding...' : `Add ${selectedToAdd.length} member${selectedToAdd.length !== 1 ? 's' : ''}`}
               </button>
             )}
           </div>
         ) : (
           <>
+            {/* Description section */}
+            <div className="gm-desc-section">
+              {editingDesc ? (
+                <div className="gm-desc-edit">
+                  <textarea className="gm-desc-input" value={descDraft} onChange={e => setDescDraft(e.target.value)}
+                    placeholder="Add a group description..." maxLength={200} rows={2} autoFocus />
+                  <div className="gm-desc-edit-actions">
+                    <button className="gm-desc-cancel" onClick={() => setEditingDesc(false)}>Cancel</button>
+                    <button className="gm-desc-save" onClick={handleSaveDescription}>Save</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="gm-desc-display" onClick={() => { if (isOwner) { setDescDraft(description); setEditingDesc(true); } }}>
+                  <p className="gm-desc-text">{description || (isOwner ? 'Tap to add description...' : 'No description')}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Mute toggle */}
+            <div className="gm-mute-row" onClick={handleToggleMute}>
+              <span className="gm-mute-label">{isMuted ? 'Unmute notifications' : 'Mute notifications'}</span>
+              <div className={`gm-toggle ${isMuted ? 'gm-toggle-on' : ''}`}>
+                <div className="gm-toggle-knob" />
+              </div>
+            </div>
+
+            {/* Members list */}
             {loading ? (
               <p className="gm-loading">Loading...</p>
             ) : (
@@ -193,20 +222,27 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
                 {members.map(member => {
                   const name = member.display_name || member.username || 'Unknown';
                   const isMe = String(member.user_id) === String(currentUserId);
+                  const canManageRole = isOwner && !isMe && member.role !== 'owner';
+                  const canKick = isAdminOrOwner && !isMe && member.role !== 'owner';
                   return (
                     <div key={member.user_id} className="gm-item">
                       <div className="gm-avatar">{name.charAt(0).toUpperCase()}</div>
                       <div className="gm-info">
-                        <span className="gm-name">
-                          {name} {isMe && <span className="gm-you">(You)</span>}
-                        </span>
-                        {member.role === 'owner' && <span className="gm-role-badge">Owner</span>}
+                        <span className="gm-name">{name} {isMe && <span className="gm-you">(You)</span>}</span>
+                        {getRoleBadge(member.role)}
                       </div>
-                      {isOwner && !isMe && member.role !== 'owner' && (
-                        <button className="gm-kick-btn" onClick={() => handleKick(member.user_id, name)}>
-                          Kick
-                        </button>
-                      )}
+                      <div className="gm-item-actions">
+                        {canManageRole && (
+                          <button className="gm-role-toggle-btn"
+                            onClick={() => handleSetRole(member.user_id, member.role === 'admin' ? 'member' : 'admin', name)}
+                            title={member.role === 'admin' ? 'Demote to member' : 'Promote to admin'}>
+                            {member.role === 'admin' ? 'Demote' : 'Admin'}
+                          </button>
+                        )}
+                        {canKick && (
+                          <button className="gm-kick-btn" onClick={() => handleKick(member.user_id, name)}>Kick</button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -214,7 +250,7 @@ const GroupMembersModal = ({ conversationId, isOwner, currentUserId, friends, on
             )}
             <div className="gm-footer">
               <span className="gm-count">{members.length} member{members.length !== 1 ? 's' : ''}</span>
-              {isOwner && (
+              {isAdminOrOwner && (
                 <button className="gm-add-btn" onClick={() => setShowAddPanel(true)}>+ Add</button>
               )}
             </div>

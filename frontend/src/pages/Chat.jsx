@@ -871,11 +871,15 @@ const Chat = () => {
           console.warn("Notification failed:", e);
         }
 
-        // ใช้ unread map เพื่อแสดง badge ใน sidebar
-        setUnreadMap(prev => ({
-          ...prev,
-          [convId]: (prev[convId] || 0) + 1
-        }));
+        // ใช้ unread map เพื่อแสดง badge ใน sidebar (ไม่นับข้อความที่ส่งเอง)
+        const senderId = String(msg.sender_id ?? msg.message?.sender_id ?? '');
+        const myId = localStorage.getItem("user_id");
+        if (senderId && senderId !== String(myId)) {
+          setUnreadMap(prev => ({
+            ...prev,
+            [convId]: (prev[convId] || 0) + 1
+          }));
+        }
       }
     });
 

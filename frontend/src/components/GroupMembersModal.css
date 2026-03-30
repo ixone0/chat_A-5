@@ -234,3 +234,112 @@
   font-size: 18px;
   flex-shrink: 0;
 }
+
+/* Description section */
+.gm-desc-section {
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(84,119,146,0.2);
+}
+
+.gm-desc-display {
+  cursor: pointer;
+}
+
+.gm-desc-text {
+  color: #94B4C1;
+  font-size: 0.8rem;
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.gm-desc-edit { display: flex; flex-direction: column; gap: 8px; }
+
+.gm-desc-input {
+  width: 100%;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid #547792;
+  border-radius: 8px;
+  color: #EAE0CF;
+  font-size: 0.8rem;
+  padding: 8px 10px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
+.gm-desc-input:focus { border-color: #94B4C1; }
+
+.gm-desc-edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.gm-desc-cancel, .gm-desc-save {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gm-desc-cancel { background: #547792; color: #EAE0CF; }
+.gm-desc-save { background: #5865f2; color: white; }
+
+/* Mute toggle row */
+.gm-mute-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(84,119,146,0.2);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.gm-mute-row:hover { background: rgba(255,255,255,0.03); }
+
+.gm-mute-label { color: #94B4C1; font-size: 0.85rem; }
+
+.gm-toggle {
+  width: 36px; height: 20px;
+  background: #547792;
+  border-radius: 10px;
+  position: relative;
+  transition: background 0.2s;
+}
+.gm-toggle-on { background: #5865f2; }
+
+.gm-toggle-knob {
+  width: 16px; height: 16px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px; left: 2px;
+  transition: transform 0.2s;
+}
+.gm-toggle-on .gm-toggle-knob { transform: translateX(16px); }
+
+/* Admin badge */
+.gm-role-admin {
+  background: rgba(46,204,113,0.15);
+  color: #2ecc71;
+  border-color: rgba(46,204,113,0.3);
+}
+
+/* Role toggle button */
+.gm-role-toggle-btn {
+  background: rgba(88,101,242,0.12);
+  color: #a5b0f5;
+  border: 1px solid rgba(88,101,242,0.25);
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.gm-role-toggle-btn:hover { background: rgba(88,101,242,0.25); }
+
+/* Item actions container */
+.gm-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}

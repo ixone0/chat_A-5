@@ -81,6 +81,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ✅ โอนหัวหน้ากลุ่ม
   transferOwnership: (payload) => ipcRenderer.invoke("transfer-ownership", payload),
 
+  // Group info & description
+  getGroupInfo: (conversationId) => ipcRenderer.invoke("get-group-info", conversationId),
+  updateGroupDescription: (payload) => ipcRenderer.invoke("update-group-description", payload),
+
+  // Mute
+  toggleMute: (payload) => ipcRenderer.invoke("toggle-mute", payload),
+
+  // Pin messages
+  pinMessage: (payload) => ipcRenderer.invoke("pin-message", payload),
+  unpinMessage: (payload) => ipcRenderer.invoke("unpin-message", payload),
+  getPinnedMessages: (conversationId) => ipcRenderer.invoke("get-pinned-messages", conversationId),
+
+  // Set member role
+  setMemberRole: (payload) => ipcRenderer.invoke("set-member-role", payload),
+
   // ✅ ฟังการแจ้งเตือนเมื่อชื่อกลุ่มเปลี่ยน
   onGroupRenamed: (callback) => {
     const listener = (_, data) => callback(data);

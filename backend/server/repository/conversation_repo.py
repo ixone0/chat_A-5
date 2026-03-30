@@ -394,3 +394,182 @@ def get_member_count_db(conversation_id):
             return row[0] if row else 0
     finally:
         conn.close()
+
+# ==========================================
+# 📝 Group Description
+# ==========================================
+def update_group_description_db(conv_id, description):
+    """อัปเดต description ของกลุ่ม (ต้องมี column description ใน conversations table)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE conversations SET description = %s WHERE id = %s",
+            (description, conv_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(f"Error update_group_description_db: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_group_info_db(conv_id):
+    """ดึงข้อมูลกลุ่ม (title, description, owner_id)"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, title, type, owner_id, description
+                FROM conversations WHERE id = %s
+            """, (conv_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return {
+                "id": str(row[0]),
+                "title": row[1],
+                "type": row[2],
+                "owner_id": str(row[3]) if row[3] else None,
+                "description": row[4] or ""
+            }
+    except Exception as e:
+        # ถ้า column description ยังไม่มี ให้ fallback
+        print(f"get_group_info_db error: {e}")
+        return None
+    finally:
+        conn.close()
+
+# ==========================================
+# 🔇 Mute/Unmute group (per user)
+# ==========================================
+def set_mute_status_db(conversation_id, user_id, muted):
+    """ตั้งค่า mute สำหรับ user ใน conversation (ใช้ column muted ใน conversation_members)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE conversation_members SET muted = %s
+            WHERE conversation_id = %s AND user_id = %s
+        """, (muted, conversation_id, user_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(f"Error set_mute_status_db: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+# ==========================================
+# 📌 Pin Message
+# ==========================================
+def pin_message_db(conversation_id, message_id):
+    """Pin a message in a conversation"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE messages SET pinned = TRUE
+            WHERE id = %s AND conversation_id = %s
+        """, (message_id, conversation_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(f"Error pin_message_db: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def unpin_message_db(conversation_id, message_id):
+    """Unpin a message"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE messages SET pinned = FALSE
+            WHERE id = %s AND conversation_id = %s
+        """, (message_id, conversation_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(f"Error unpin_message_db: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_pinned_messages_db(conversation_id):
+    """ดึงข้อความที่ถูก pin ทั้งหมด"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT m.id, m.content, m.sender_id, m.created_at, u.username, u.display_name
+                FROM messages m
+                LEFT JOIN users u ON u.id = m.sender_id
+                WHERE m.conversation_id = %s AND m.pinned = TRUE
+                ORDER BY m.created_at DESC
+            """, (conversation_id,))
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": str(row[0]),
+                    "content": row[1],
+                    "sender_id": str(row[2]) if row[2] else None,
+                    "created_at": row[3].isoformat() if row[3] else None,
+                    "username": row[4],
+                    "display_name": row[5]
+                }
+                for row in rows
+            ]
+    except Exception as e:
+        print(f"Error get_pinned_messages_db: {e}")
+        return []
+    finally:
+        conn.close()
+
+# ==========================================
+# 🛡️ Admin role management
+# ==========================================
+def set_member_role_db(conversation_id, target_user_id, new_role):
+    """เปลี่ยน role ของสมาชิก (owner ห้ามเปลี่ยนผ่านฟังก์ชันนี้)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        if new_role not in ('admin', 'member'):
+            return False
+        cursor.execute("""
+            UPDATE conversation_members SET role = %s
+            WHERE conversation_id = %s AND user_id = %s AND role != 'owner'
+        """, (new_role, conversation_id, target_user_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(f"Error set_member_role_db: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def is_conversation_admin_or_owner(conversation_id, user_id):
+    """เช็คว่า user เป็น owner หรือ admin"""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT role FROM conversation_members
+                WHERE conversation_id = %s AND user_id = %s
+            """, (conversation_id, user_id))
+            row = cursor.fetchone()
+            return row[0] in ('owner', 'admin') if row else False
+    finally:
+        conn.close()

@@ -808,7 +808,7 @@ def handle_client(conn, addr):
                         except Exception as e:
                             send_packet(conn, {"type": "get_group_members_response", "request_id": request_id, "status": "error", "message": str(e)})
 
-                    # ============ ADD GROUP MEMBERS (Owner Only) ============
+                    # ============ ADD GROUP MEMBERS (Owner/Admin) ============
                     elif pkt_type == "add_group_members":
                         conv_id = pkt.get("conversation_id")
                         new_members = pkt.get("members", [])
@@ -816,9 +816,9 @@ def handle_client(conn, addr):
                             send_packet(conn, {"type": "add_group_members_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
                             continue
                         try:
-                            from repository.conversation_repo import is_conversation_owner, add_members_to_group_db
-                            if not is_conversation_owner(conv_id, user_id):
-                                send_packet(conn, {"type": "add_group_members_response", "request_id": request_id, "status": "error", "message": "Only owner can add members"})
+                            from repository.conversation_repo import is_conversation_admin_or_owner, add_members_to_group_db
+                            if not is_conversation_admin_or_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "add_group_members_response", "request_id": request_id, "status": "error", "message": "Only owner/admin can add members"})
                                 continue
 
                             added = add_members_to_group_db(conv_id, new_members)
@@ -868,7 +868,7 @@ def handle_client(conn, addr):
                         except Exception as e:
                             send_packet(conn, {"type": "add_group_members_response", "request_id": request_id, "status": "error", "message": str(e)})
 
-                    # ============ KICK GROUP MEMBER (Owner Only) ============
+                    # ============ KICK GROUP MEMBER (Owner/Admin) ============
                     elif pkt_type == "kick_group_member":
                         conv_id = pkt.get("conversation_id")
                         target_id = pkt.get("target_user_id")
@@ -876,9 +876,9 @@ def handle_client(conn, addr):
                             send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
                             continue
                         try:
-                            from repository.conversation_repo import is_conversation_owner, remove_member_from_group_db
-                            if not is_conversation_owner(conv_id, user_id):
-                                send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Only owner can kick members"})
+                            from repository.conversation_repo import is_conversation_admin_or_owner, remove_member_from_group_db
+                            if not is_conversation_admin_or_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Only owner/admin can kick members"})
                                 continue
                             if str(target_id) == str(user_id):
                                 send_packet(conn, {"type": "kick_group_member_response", "request_id": request_id, "status": "error", "message": "Cannot kick yourself"})
@@ -1057,6 +1057,119 @@ def handle_client(conn, addr):
                                 send_packet(conn, {"type": "transfer_ownership_response", "request_id": request_id, "status": "error", "message": "Failed to transfer ownership"})
                         except Exception as e:
                             send_packet(conn, {"type": "transfer_ownership_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ UPDATE GROUP DESCRIPTION ============
+                    elif pkt_type == "update_group_description":
+                        conv_id = pkt.get("conversation_id")
+                        description = pkt.get("description", "")
+                        if not user_id:
+                            send_packet(conn, {"type": "update_group_description_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import is_conversation_owner, update_group_description_db
+                            if not is_conversation_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "update_group_description_response", "request_id": request_id, "status": "error", "message": "Only owner can update description"})
+                                continue
+                            success = update_group_description_db(conv_id, description)
+                            send_packet(conn, {"type": "update_group_description_response", "request_id": request_id, "status": "success" if success else "error", "description": description})
+                        except Exception as e:
+                            send_packet(conn, {"type": "update_group_description_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ GET GROUP INFO ============
+                    elif pkt_type == "get_group_info":
+                        conv_id = pkt.get("conversation_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "get_group_info_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import get_group_info_db
+                            info = get_group_info_db(conv_id)
+                            if info:
+                                send_packet(conn, {"type": "get_group_info_response", "request_id": request_id, "status": "success", "data": info})
+                            else:
+                                send_packet(conn, {"type": "get_group_info_response", "request_id": request_id, "status": "error", "message": "Group not found"})
+                        except Exception as e:
+                            send_packet(conn, {"type": "get_group_info_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ MUTE/UNMUTE GROUP ============
+                    elif pkt_type == "toggle_mute":
+                        conv_id = pkt.get("conversation_id")
+                        muted = pkt.get("muted", False)
+                        if not user_id:
+                            send_packet(conn, {"type": "toggle_mute_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import set_mute_status_db
+                            success = set_mute_status_db(conv_id, user_id, muted)
+                            send_packet(conn, {"type": "toggle_mute_response", "request_id": request_id, "status": "success" if success else "error", "muted": muted})
+                        except Exception as e:
+                            send_packet(conn, {"type": "toggle_mute_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ PIN/UNPIN MESSAGE ============
+                    elif pkt_type == "pin_message":
+                        conv_id = pkt.get("conversation_id")
+                        message_id = pkt.get("message_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "pin_message_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import is_conversation_admin_or_owner, pin_message_db
+                            if not is_conversation_admin_or_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "pin_message_response", "request_id": request_id, "status": "error", "message": "Only owner/admin can pin messages"})
+                                continue
+                            success = pin_message_db(conv_id, message_id)
+                            send_packet(conn, {"type": "pin_message_response", "request_id": request_id, "status": "success" if success else "error", "message_id": message_id})
+                        except Exception as e:
+                            send_packet(conn, {"type": "pin_message_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    elif pkt_type == "unpin_message":
+                        conv_id = pkt.get("conversation_id")
+                        message_id = pkt.get("message_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "unpin_message_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import is_conversation_admin_or_owner, unpin_message_db
+                            if not is_conversation_admin_or_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "unpin_message_response", "request_id": request_id, "status": "error", "message": "Only owner/admin can unpin messages"})
+                                continue
+                            success = unpin_message_db(conv_id, message_id)
+                            send_packet(conn, {"type": "unpin_message_response", "request_id": request_id, "status": "success" if success else "error", "message_id": message_id})
+                        except Exception as e:
+                            send_packet(conn, {"type": "unpin_message_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    elif pkt_type == "get_pinned_messages":
+                        conv_id = pkt.get("conversation_id")
+                        if not user_id:
+                            send_packet(conn, {"type": "get_pinned_messages_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import get_pinned_messages_db
+                            pinned = get_pinned_messages_db(conv_id)
+                            send_packet(conn, {"type": "get_pinned_messages_response", "request_id": request_id, "status": "success", "messages": pinned})
+                        except Exception as e:
+                            send_packet(conn, {"type": "get_pinned_messages_response", "request_id": request_id, "status": "error", "message": str(e)})
+
+                    # ============ SET MEMBER ROLE (Owner Only) ============
+                    elif pkt_type == "set_member_role":
+                        conv_id = pkt.get("conversation_id")
+                        target_id = pkt.get("target_user_id")
+                        new_role = pkt.get("role")
+                        if not user_id:
+                            send_packet(conn, {"type": "set_member_role_response", "request_id": request_id, "status": "error", "message": "Unauthorized"})
+                            continue
+                        try:
+                            from repository.conversation_repo import is_conversation_owner, set_member_role_db
+                            if not is_conversation_owner(conv_id, user_id):
+                                send_packet(conn, {"type": "set_member_role_response", "request_id": request_id, "status": "error", "message": "Only owner can change roles"})
+                                continue
+                            success = set_member_role_db(conv_id, target_id, new_role)
+                            if success:
+                                send_packet(conn, {"type": "set_member_role_response", "request_id": request_id, "status": "success", "target_user_id": target_id, "role": new_role})
+                            else:
+                                send_packet(conn, {"type": "set_member_role_response", "request_id": request_id, "status": "error", "message": "Failed to change role"})
+                        except Exception as e:
+                            send_packet(conn, {"type": "set_member_role_response", "request_id": request_id, "status": "error", "message": str(e)})
 
                     # ---------------- UNKNOWN ----------------
                     else:

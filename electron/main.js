@@ -198,6 +198,45 @@ ipcMain.handle('transfer-ownership', async (event, payload) => {
   }
 });
 
+// Group info & description
+ipcMain.handle('get-group-info', async (event, conversationId) => {
+  try { return await send({ type: "get_group_info", conversation_id: conversationId }); }
+  catch (err) { return { status: "error", message: err.message }; }
+});
+
+ipcMain.handle('update-group-description', async (event, payload) => {
+  try { return await send({ type: "update_group_description", conversation_id: payload.conversation_id, description: payload.description }); }
+  catch (err) { return { status: "error", message: err.message }; }
+});
+
+// Mute
+ipcMain.handle('toggle-mute', async (event, payload) => {
+  try { return await send({ type: "toggle_mute", conversation_id: payload.conversation_id, muted: payload.muted }); }
+  catch (err) { return { status: "error", message: err.message }; }
+});
+
+// Pin messages
+ipcMain.handle('pin-message', async (event, payload) => {
+  try { return await send({ type: "pin_message", conversation_id: payload.conversation_id, message_id: payload.message_id }); }
+  catch (err) { return { status: "error", message: err.message }; }
+});
+
+ipcMain.handle('unpin-message', async (event, payload) => {
+  try { return await send({ type: "unpin_message", conversation_id: payload.conversation_id, message_id: payload.message_id }); }
+  catch (err) { return { status: "error", message: err.message }; }
+});
+
+ipcMain.handle('get-pinned-messages', async (event, conversationId) => {
+  try { return await send({ type: "get_pinned_messages", conversation_id: conversationId }); }
+  catch (err) { return { status: "error", message: err.message }; }
+});
+
+// Set member role
+ipcMain.handle('set-member-role', async (event, payload) => {
+  try { return await send({ type: "set_member_role", conversation_id: payload.conversation_id, target_user_id: payload.target_user_id, role: payload.role }); }
+  catch (err) { return { status: "error", message: err.message }; }
+});
+
 // ✅ เพิ่ม IPC Listener สำหรับ Register
 ipcMain.handle('register-request', async (event, data) => {
   console.log('UI Request Register:', data.username);
