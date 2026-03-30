@@ -32,6 +32,7 @@ const {
   startCall,
   answerCall,
   endCall,
+  leaveCall,
   sendFile,
   getActiveCall
 } = tcpClient;
@@ -451,6 +452,14 @@ ipcMain.handle("answer-call", async (event, callId) => {
 ipcMain.handle("end-call", async (event, callId, duration) => {
   try {
     return await endCall(callId, duration);
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+});
+
+ipcMain.handle("leave-call", async (event, callId) => {
+  try {
+    return await leaveCall(callId);
   } catch (err) {
     return { status: "error", message: err.message };
   }

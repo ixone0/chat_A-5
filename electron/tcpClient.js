@@ -288,6 +288,13 @@ function endCall(call_id, duration) {
   });
 }
 
+function leaveCall(call_id) {
+  return send({
+    type: "leave_call",
+    call_id
+  });
+}
+
 function getActiveCall(conversation_id) {
   return send({ type: "get_active_call", conversation_id });
 }
@@ -319,6 +326,7 @@ module.exports = {
   startCall,
   answerCall,
   endCall,
+  leaveCall,
   sendFile,
   sendRealtime,
   getActiveCall

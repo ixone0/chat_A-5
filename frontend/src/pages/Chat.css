@@ -117,11 +117,43 @@
 
 
 /* ===== Active Call (In-Call Screen) ===== */
+.call-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(23, 25, 45, 0.95) 0%, rgba(35, 39, 62, 0.95) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
 .active-call-box {
-  background: var(--bg-primary);
+  background: linear-gradient(180deg, rgba(30, 33, 54, 0.8) 0%, rgba(45, 50, 80, 0.8) 100%);
   color: var(--text-primary);
+  padding: 24px;
+  border-radius: 16px;
+  width: 95%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+
+.active-call-box h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #fff;
   text-align: center;
-  padding: 20px;
 }
 
 .active-call-box button {
@@ -130,10 +162,228 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .active-call-box button:hover {
-  opacity: 0.85;
-  transform: scale(1.08);
-  transition: all 0.15s ease;
+  opacity: 0.9;
+  transform: scale(1.05);
 }
+
+/* ===== Video Grid Styles ===== */
+.video-grid {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.video-container {
+  position: relative;
+  background-color: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  min-height: 200px;
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.video-label {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 12px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+  max-width: 85%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 2;
+}
+
+/* ===== Participants Info Box ===== */
+.participants-info {
+  font-size: 13px;
+  color: #fff;
+  margin-bottom: 12px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.participants-info-header {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.participants-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.participant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(88, 101, 242, 0.3);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.participant-badge.current-user {
+  border-color: #5865f2;
+  background-color: rgba(88, 101, 242, 0.5);
+}
+
+.participant-badge:hover {
+  background-color: rgba(88, 101, 242, 0.5);
+  border-color: #5865f2;
+  transform: translateY(-2px);
+}
+
+/* ===== Call Timer ===== */
+.call-timer {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 16px;
+  font-weight: bold;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+.call-id-display {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  margin-top: 12px;
+  font-family: 'Courier New', monospace;
+  word-break: break-all;
+}
+.call-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.call-control-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 0;
+}
+
+.call-control-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.call-control-btn.mic-active {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.call-control-btn.mic-muted {
+  background-color: #d9534f;
+  color: #fff;
+}
+
+.call-control-btn.camera-active {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.call-control-btn.camera-off {
+  background-color: #d9534f;
+  color: #fff;
+}
+
+.call-control-btn.end-call {
+  width: 56px;
+  background-color: #d9534f;
+  color: #fff;
+}
+
+.call-control-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.08);
+}
+
+.call-control-btn.end-call:hover {
+  background-color: #c7302a;
+}
+
+/* ===== Responsive Grid ===== */
+/* 1 video */
+.video-grid.one-video {
+  grid-template-columns: 1fr;
+}
+
+/* 2 videos */
+.video-grid.two-videos {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* 3-4 videos */
+.video-grid.multi-video {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Responsive for small screens */
+@media (max-width: 768px) {
+  .active-call-box {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .video-grid {
+    gap: 8px;
+  }
+
+  .video-container {
+    min-height: 150px;
+  }
+
+  .call-control-btn {
+    width: 42px;
+    height: 42px;
+  }
+
+  .call-control-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+

@@ -164,7 +164,13 @@ def get_active_call_service(pkt, user_id):
 
 def leave_call_service(pkt, user_id):
     call_id = pkt.get("call_id")
+    conversation_id = get_call_by_id(call_id)
+    
     leave_call(call_id, user_id)
+    
+    # broadcast updated participant list to remaining participants
+    _broadcast_participants(call_id, conversation_id)
+    
     return {
         "type": "leave_call_response",
         "status": "success"
