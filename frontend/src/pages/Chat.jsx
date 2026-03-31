@@ -1585,6 +1585,7 @@ const Chat = () => {
         <CallingModal
           call={calling}
           onCancel={() => endCall(calling.call_id)}
+          selectedConversation={selectedConversation}
         />
       )}
 

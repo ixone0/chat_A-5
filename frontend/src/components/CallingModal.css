@@ -1,70 +1,160 @@
-/* ===== Overlay ===== */
-.call-modal {
+/* ===== Calling Overlay ===== */
+.calling-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-
-  background: rgba(0,0,0,0.55);
-
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
-
   z-index: 9999;
+  animation: overlayFadeIn 0.3s ease;
 }
 
-/* ===== Modal Box ===== */
-.call-box {
-  width: 320px;
-  background: #213448;
-  border-radius: 16px;
-  padding: 30px;
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
+/* ===== Card ===== */
+.calling-card {
+  width: 340px;
+  background: linear-gradient(165deg, #1e2140 0%, #2a2d4a 50%, #1a1d35 100%);
+  border-radius: 24px;
+  padding: 48px 32px 36px;
   text-align: center;
-  color: #EAE0CF;
-
-  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-
-  animation: callPopup 0.25s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: cardSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes callPopup {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+@keyframes cardSlideUp {
+  from { transform: translateY(30px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-.call-box h2 {
-  margin-bottom: 10px;
+/* ===== Avatar with Ripple ===== */
+.calling-avatar-wrapper {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 28px;
 }
 
-.call-box p {
-  color: #94B4C1;
-  margin-bottom: 20px;
+.calling-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5865f2, #7c6aef);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 20px rgba(88, 101, 242, 0.4);
+}
+
+.calling-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(88, 101, 242, 0.15);
+  transform: translate(-50%, -50%);
+  animation: rippleOut 2.4s ease-out infinite;
+  z-index: 1;
+}
+
+.calling-ripple.delay1 {
+  animation-delay: 0.8s;
+}
+
+.calling-ripple.delay2 {
+  animation-delay: 1.6s;
+}
+
+@keyframes rippleOut {
+  0% { width: 96px; height: 96px; opacity: 0.6; }
+  100% { width: 180px; height: 180px; opacity: 0; }
+}
+
+/* ===== Info ===== */
+.calling-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 36px;
+}
+
+.calling-status {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.calling-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin: 2px 0;
+}
+
+.calling-hint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.35);
 }
 
 /* ===== Cancel Button ===== */
-.call-box button {
-  background: #d9534f;
+.calling-cancel-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
+  background: none;
   border: none;
-  color: white;
-  padding: 10px 20px;
-
-  border-radius: 8px;
-  font-size: 14px;
-
   cursor: pointer;
-  transition: 0.2s;
+  transition: transform 0.2s ease;
 }
 
-.call-box button:hover {
-  background: #c9302c;
-  transform: scale(1.05);
+.calling-cancel-btn:hover {
+  transform: scale(1.1);
+}
+
+.calling-cancel-btn:active {
+  transform: scale(0.95);
+}
+
+.calling-cancel-btn svg {
+  width: 28px;
+  height: 28px;
+  padding: 16px;
+  border-radius: 50%;
+  background: #e74c3c;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
+  transition: box-shadow 0.2s ease;
+}
+
+.calling-cancel-btn:hover svg {
+  box-shadow: 0 6px 24px rgba(231, 76, 60, 0.6);
+}
+
+.calling-cancel-btn span {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
 }

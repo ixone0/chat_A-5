@@ -1,78 +1,176 @@
-.call-modal {
+/* ===== Incoming Call Overlay ===== */
+.incoming-call-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-
-  background: rgba(0,0,0,0.55);
-
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
-
   z-index: 9999;
+  animation: overlayFadeIn 0.3s ease;
 }
 
-.call-box {
-  width: 320px;
-  background: #213448;
-  border-radius: 16px;
-  padding: 30px;
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
+/* ===== Card ===== */
+.incoming-call-card {
+  width: 340px;
+  background: linear-gradient(165deg, #1e2140 0%, #2a2d4a 50%, #1a1d35 100%);
+  border-radius: 24px;
+  padding: 40px 32px 32px;
   text-align: center;
-  color: #EAE0CF;
-
-  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-
-  animation: callPopup 0.25s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: cardSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.call-box h2 {
-  margin-bottom: 10px;
+@keyframes cardSlideUp {
+  from { transform: translateY(30px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-.call-box p {
-  color: #94B4C1;
-  margin-bottom: 20px;
+/* ===== Avatar with Pulse ===== */
+.incoming-avatar-wrapper {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 24px;
 }
 
-/* ===== Buttons ===== */
-.call-actions {
+.incoming-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5865f2, #7c6aef);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 20px rgba(88, 101, 242, 0.4);
+}
+
+.incoming-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid rgba(88, 101, 242, 0.5);
+  transform: translate(-50%, -50%);
+  animation: pulseRing 2s ease-out infinite;
+  z-index: 1;
+}
+
+.incoming-pulse-ring.delay {
+  animation-delay: 0.6s;
+}
+
+@keyframes pulseRing {
+  0% { width: 96px; height: 96px; opacity: 1; }
+  100% { width: 160px; height: 160px; opacity: 0; }
+}
+
+/* ===== Call Info ===== */
+.incoming-call-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 32px;
+}
+
+.incoming-call-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.incoming-caller-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin: 4px 0;
+}
+
+.incoming-call-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.incoming-call-type {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 4px;
+}
+
+/* ===== Action Buttons ===== */
+.incoming-call-actions {
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 40px;
 }
 
-.call-actions button {
+.incoming-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: none;
   border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-
-  font-size: 14px;
   cursor: pointer;
-
-  transition: 0.2s;
+  transition: transform 0.2s ease;
 }
 
-/* Accept */
-.accept {
-  background: #28a745;
-  color: white;
+.incoming-btn:hover {
+  transform: scale(1.1);
 }
 
-.accept:hover {
-  background: #218838;
-  transform: scale(1.05);
+.incoming-btn:active {
+  transform: scale(0.95);
 }
 
-/* Reject */
-.reject {
-  background: #d9534f;
-  color: white;
+.incoming-btn svg {
+  width: 28px;
+  height: 28px;
+  padding: 16px;
+  border-radius: 50%;
+  transition: box-shadow 0.2s ease;
 }
 
-.reject:hover {
-  background: #c9302c;
-  transform: scale(1.05);
+.incoming-btn.reject svg {
+  background: #e74c3c;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
+}
+
+.incoming-btn.reject:hover svg {
+  box-shadow: 0 6px 24px rgba(231, 76, 60, 0.6);
+}
+
+.incoming-btn.accept svg {
+  background: #2ecc71;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(46, 204, 113, 0.4);
+}
+
+.incoming-btn.accept:hover svg {
+  box-shadow: 0 6px 24px rgba(46, 204, 113, 0.6);
+}
+
+.incoming-btn span {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
 }
