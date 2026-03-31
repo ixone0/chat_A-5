@@ -16,7 +16,7 @@ def get_call_by_id(call_id):
     if not row:
         raise Exception("Call not found")
 
-    return row[0]   # ✅ เหมือน create_call ที่ใช้ index
+    return str(row[0])
 
 def create_call(conversation_id, started_by, call_type):
     conn = get_connection()
@@ -59,7 +59,7 @@ def leave_call(call_id, user_id):
     cur.execute("""
         UPDATE call_participants
         SET left_at = NOW()
-        WHERE call_id=%s AND user_id=%s
+        WHERE call_id=%s AND user_id=%s AND left_at IS NULL
     """, (call_id, user_id))
 
     conn.commit()
@@ -70,6 +70,13 @@ def leave_call(call_id, user_id):
 def end_call(call_id):
     conn = get_connection()
     cur = conn.cursor()
+
+    # mark ทุกคนที่ยังอยู่ในสายว่า left
+    cur.execute("""
+        UPDATE call_participants
+        SET left_at = NOW()
+        WHERE call_id=%s AND left_at IS NULL
+    """, (call_id,))
 
     cur.execute("""
         UPDATE calls

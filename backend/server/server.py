@@ -534,59 +534,36 @@ def handle_client(conn, addr):
                     elif pkt_type == "start_call":
                         try:
                             print("START CALL")
-                            call = start_call_service(pkt, user_id)   # อาจขว้าง exception
-                            call_id = call["call_id"]
-                            conversation_id = pkt["conversation_id"]
-                            print("CALL ID:", call_id)
+                            call = start_call_service(pkt, user_id)
 
-                            # ตอบกลับ caller ว่าสร้าง call สำเร็จ
-                            send_packet(conn, {
-                                "type": "start_call_response",
-                                "request_id": request_id,
-                                "status": "ok",
-                                "call_id": call_id,
-                                "conversation_id": conversation_id
-                            })
+                            # ถ้า service return error (เช่น กลุ่มเกิน 4 คน)
+                            if call.get("status") == "error":
+                                call["request_id"] = request_id
+                                send_packet(conn, call)
+                            else:
+                                call_id = call.get("call_id")
+                                conversation_id = pkt["conversation_id"]
+                                print("CALL ID:", call_id)
 
-                            # ส่ง event ไปหาสมาชิก
-                            members = get_conversation_members_service(conversation_id)
-
-                            for m in members:
-                                target_id = str(m)
-                                if target_id == user_id:
-                                    continue
-                                callee_conn = online_users.get(target_id)
-                                if not callee_conn:
-                                    print(f"user {target_id} not online")
-                                    continue
-
-                                payload = {
-                                    "type": "incoming_call",
+                                # ตอบกลับ caller ว่าสร้าง call สำเร็จ
+                                send_packet(conn, {
+                                    "type": "start_call_response",
+                                    "request_id": request_id,
+                                    "status": "ok",
                                     "call_id": call_id,
-                                    "conversation_id": conversation_id,
-                                    "from_user": user_id,        # ใช้ชื่อฟิลด์ให้ชัดเจน/คงที่
-                                    "call_type": pkt.get("call_type", "voice")
-                                }
-                                try:
-                                    send_packet(callee_conn, payload)
-                                except Exception as e:
-                                    # แยก logging ให้ชัดเจน ถ้าการส่งล้มเหลว อย่าให้ทั้ง handler ล่ม
-                                    print(f"Failed to send incoming_call to {target_id}: {e}")
-                                    # อาจจะ mark user offline หรือลบจาก online_users
-                                    try:
-                                        callee_conn.close()
-                                    except Exception:
-                                        pass
-                                    online_users.pop(target_id, None)
+                                    "conversation_id": conversation_id
+                                })
+                                # incoming_call ถูกส่งจาก start_call_service แล้ว ไม่ต้องส่งซ้ำ
 
                         except Exception as e:
                             import traceback
                             traceback.print_exc()
                             send_packet(conn, {
-                                "type": "error",
+                                "type": "start_call_response",
                                 "request_id": request_id,
+                                "status": "error",
                                 "message": "Internal server error",
-                                "detail": str(e)   # ใน dev ให้ใส่ detail แต่ใน production ระวังความลับ
+                                "detail": str(e)
                             })
                                                     
                     elif pkt_type == "join_call":

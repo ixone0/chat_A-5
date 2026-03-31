@@ -113,7 +113,8 @@ def start_call_service(pkt, user_id):
         import traceback
         traceback.print_exc()
         return {
-            "type": "error",
+            "type": "start_call_response",
+            "status": "error",
             "message": "start_call_service failed",
             "detail": str(e)
         }
@@ -187,8 +188,14 @@ def leave_call_service(pkt, user_id):
     
     leave_call(call_id, user_id)
     
-    # broadcast updated participant list to remaining participants
-    _broadcast_participants(call_id, conversation_id)
+    # เช็คว่ายังมีคนเหลือในสายไหม ถ้าไม่มีให้ end call อัตโนมัติ
+    remaining = get_call_participants_info(call_id)
+    if len(remaining) == 0:
+        print(f"⚠️ No participants left in call {call_id} — auto-ending")
+        end_call(call_id)
+    else:
+        # broadcast updated participant list to remaining participants
+        _broadcast_participants(call_id, conversation_id)
     
     return {
         "type": "leave_call_response",
