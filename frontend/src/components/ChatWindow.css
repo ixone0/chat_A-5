@@ -574,3 +574,27 @@
 .reaction-chip:hover {
   background: rgba(88,101,242,0.3);
 }
+
+/* ===== SENDER NAME + MESSAGE CONTAINER ===== */
+.chat-message-container {
+  display: flex;
+  flex-direction: column;
+  max-width: 65%;
+}
+
+.row-me .chat-message-container {
+  align-items: flex-end;
+}
+
+.sender-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+  font-weight: 600;
+  padding-left: 4px;
+}
+
+/* Override bubble max-width when inside container */
+.chat-message-container .chat-bubble {
+  max-width: 100%;
+}

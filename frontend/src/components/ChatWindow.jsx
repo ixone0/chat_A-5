@@ -91,6 +91,8 @@ const ChatWindow = ({
           time,
           dateStr,
           sender: m.msg_type === "system" ? "system" : (String(m.sender_id) === String(currentUserId) ? "me" : "other"),
+          sender_username: m.username ?? m.display_name ?? "Unknown",
+          sender_id: m.sender_id,
           msg_type: inferredMsgType,  
           attachment,                  
         };
@@ -486,41 +488,47 @@ const ChatWindow = ({
                 </div>
               ) : (() => {
                 const isMe = msg.sender === "me";
+                const senderAvatarChar = msg.sender_username?.charAt(0).toUpperCase() || "?";
                 return (
                   <div className={`chat-row ${isMe ? "row-me" : "row-other"}`}>
                     {!isMe && (
                       <div className="chat-avatar-container">
-                        <div className="chat-avatar-img">{headerAvatarChar}</div>
+                        <div className="chat-avatar-img">{senderAvatarChar}</div>
                       </div>
                     )}
-                    <div className="chat-bubble"
-                      onContextMenu={(e) => handleContextMenu(e, msg.id)}
-                      onDoubleClick={() => setActiveReactionMsgId(prev => prev === msg.id ? null : msg.id)}>
-                      {msg.msg_type === "file" && msg.attachment ? (
-                        <MessageAttachment attachment={msg.attachment} />
-                      ) : (
-                        <p className="msg-text">{msg.text}</p>
+                    <div className="chat-message-container">
+                      {!isMe && isGroup && (
+                        <div className="sender-name">{msg.sender_username}</div>
                       )}
-                      <span className="msg-time">{msg.time}</span>
-                      {/* Reaction display */}
-                      {reactions[msg.id]?.length > 0 && (
-                        <div className="reaction-display">
-                          {reactions[msg.id].map(r => (
-                            <span key={r.reaction} className="reaction-chip" onClick={() => handleReaction(msg.id, r.reaction)}
-                              title={`${r.count} reaction(s)`}>
-                              {r.reaction} {r.count > 1 ? r.count : ''}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {/* Reaction picker on double-click */}
-                      {activeReactionMsgId === msg.id && (
-                        <div className="reaction-picker reaction-picker-visible">
-                          {REACTIONS.map(r => (
-                            <button key={r} className="reaction-pick-btn" onClick={() => { handleReaction(msg.id, r); setActiveReactionMsgId(null); }}>{r}</button>
-                          ))}
-                        </div>
-                      )}
+                      <div className="chat-bubble"
+                        onContextMenu={(e) => handleContextMenu(e, msg.id)}
+                        onDoubleClick={() => setActiveReactionMsgId(prev => prev === msg.id ? null : msg.id)}>
+                        {msg.msg_type === "file" && msg.attachment ? (
+                          <MessageAttachment attachment={msg.attachment} />
+                        ) : (
+                          <p className="msg-text">{msg.text}</p>
+                        )}
+                        <span className="msg-time">{msg.time}</span>
+                        {/* Reaction display */}
+                        {reactions[msg.id]?.length > 0 && (
+                          <div className="reaction-display">
+                            {reactions[msg.id].map(r => (
+                              <span key={r.reaction} className="reaction-chip" onClick={() => handleReaction(msg.id, r.reaction)}
+                                title={`${r.count} reaction(s)`}>
+                                {r.reaction} {r.count > 1 ? r.count : ''}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {/* Reaction picker on double-click */}
+                        {activeReactionMsgId === msg.id && (
+                          <div className="reaction-picker reaction-picker-visible">
+                            {REACTIONS.map(r => (
+                              <button key={r} className="reaction-pick-btn" onClick={() => { handleReaction(msg.id, r); setActiveReactionMsgId(null); }}>{r}</button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
