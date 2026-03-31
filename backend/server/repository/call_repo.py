@@ -144,7 +144,7 @@ def get_active_call_for_conversation(conversation_id):
     cur.execute("""
         SELECT id, call_type FROM calls
         WHERE conversation_id = %s AND status IN ('ringing', 'active')
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY id DESC LIMIT 1
     """, (conversation_id,))
 
     row = cur.fetchone()
