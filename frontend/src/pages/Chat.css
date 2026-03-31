@@ -246,12 +246,18 @@
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 12px 12px;
-  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: voiceBarSlide 0.25s ease;
+  min-width: 280px;
+}
+
+.ac-voice-bar-top {
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  animation: voiceBarSlide 0.25s ease;
+  padding: 8px 14px;
 }
 
 @keyframes voiceBarSlide {
@@ -264,6 +270,7 @@
   align-items: center;
   gap: 8px;
   color: var(--text-primary);
+  flex: 1;
 }
 
 .ac-voice-indicator {
@@ -272,6 +279,7 @@
   border-radius: 50%;
   background: #43b581;
   animation: voicePulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 @keyframes voicePulse {
@@ -289,21 +297,27 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   background: var(--hover-bg);
-  padding: 2px 7px;
+  padding: 2px 6px;
   border-radius: 8px;
 }
 
 .ac-voice-controls {
   display: flex;
+  align-items: center;
   gap: 6px;
 }
 
+.ac-voice-chevron {
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
 .ac-voice-btn {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
@@ -318,6 +332,57 @@
 .ac-voice-btn:hover { transform: scale(1.1); }
 .ac-voice-btn.danger { background: #d9534f; color: #fff; }
 .ac-voice-btn.danger:hover { background: #c7302a; }
+
+/* Expanded panel */
+.ac-voice-panel {
+  border-top: 1px solid var(--border);
+  padding: 8px 14px 10px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ac-voice-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.ac-voice-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.ac-voice-member-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ac-voice-member-avatar svg { color: #fff; }
+
+.ac-voice-you {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.ac-voice-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
 
 @media (max-width: 768px) {
   .ac-video-box { padding: 12px; border-radius: 10px; }

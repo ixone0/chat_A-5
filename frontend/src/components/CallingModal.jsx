@@ -37,7 +37,7 @@ const PhoneOffIcon = () => (
   </svg>
 );
 
-export default function CallingModal({ call, onCancel, selectedConversation }) {
+export default function CallingModal({ call, onCancel, selectedConversation, onMinimize }) {
   if (!call) return null;
 
   const callType = call.type || "voice";
@@ -77,6 +77,12 @@ export default function CallingModal({ call, onCancel, selectedConversation }) {
           <div className="btn-icon"><PhoneOffIcon /></div>
           <span>Cancel</span>
         </button>
+        {onMinimize && (
+          <button className="calling-minimize-btn" onClick={onMinimize} title="Minimize">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            <span>Minimize</span>
+          </button>
+        )}
       </div>
     </div>
   );
