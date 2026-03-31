@@ -350,41 +350,19 @@ const ChatWindow = ({
         {/* Call Buttons + Members */}
         {conversation && (
           <>
-            {/* ✅ Show participants info and Join button if group call is active */}
-            {activeCall && activeCall.is_group && callParticipants.length > 0 && (
-              <div style={{
-                backgroundColor: 'rgba(88, 101, 242, 0.1)',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                marginBottom: '8px',
-                fontSize: '12px',
-                color: '#a5b0f5',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <span>
-                  👥 {callParticipants.length} {callParticipants.length === 1 ? 'person' : 'people'} in call{': '}
-                  {callParticipants.slice(0, 3).map(p => p.username || `User ${p.user_id}`).join(', ')}
-                  {callParticipants.length > 3 && ` +${callParticipants.length - 3}`}
-                </span>
-                {/* Join Call Button */}
-                <button 
-                  onClick={acceptCall}
-                  style={{
-                    backgroundColor: '#5865f2',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '4px 12px',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    marginLeft: '8px',
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Join the active group call"
-                >
+            {/* Show join bar only when there's a group call we haven't joined yet */}
+            {!activeCall && callParticipants.length > 0 && conversation?.type === 'group' && (
+              <div className="cw-join-call-bar">
+                <div className="cw-join-call-info">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span>
+                    {callParticipants.length} {callParticipants.length === 1 ? 'person' : 'people'} in call
+                    {callParticipants.length <= 3 && ': '}
+                    {callParticipants.slice(0, 3).map(p => p.display_name || p.username).join(', ')}
+                    {callParticipants.length > 3 && ` +${callParticipants.length - 3}`}
+                  </span>
+                </div>
+                <button className="cw-join-call-btn" onClick={acceptCall} title="Join call">
                   Join Call
                 </button>
               </div>
