@@ -5,172 +5,191 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  animation: overlayFadeIn 0.3s ease;
+  animation: icFadeIn 0.25s ease;
 }
 
-@keyframes overlayFadeIn {
+@keyframes icFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
 /* ===== Card ===== */
 .incoming-call-card {
-  width: 340px;
-  background: linear-gradient(165deg, #1e2140 0%, #2a2d4a 50%, #1a1d35 100%);
-  border-radius: 24px;
-  padding: 40px 32px 32px;
+  width: 320px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px 28px;
   text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  animation: cardSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: icSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes cardSlideUp {
-  from { transform: translateY(30px) scale(0.95); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
+@keyframes icSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-/* ===== Avatar with Pulse ===== */
+/* ===== Avatar ===== */
 .incoming-avatar-wrapper {
   position: relative;
-  width: 96px;
-  height: 96px;
-  margin: 0 auto 24px;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
 }
 
 .incoming-avatar {
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #5865f2, #7c6aef);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 700;
   color: #fff;
   position: relative;
   z-index: 2;
-  box-shadow: 0 4px 20px rgba(88, 101, 242, 0.4);
+}
+
+.incoming-avatar svg {
+  width: 32px;
+  height: 32px;
+  color: #fff;
 }
 
 .incoming-pulse-ring {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  border: 2px solid rgba(88, 101, 242, 0.5);
+  border: 1.5px solid var(--accent);
   transform: translate(-50%, -50%);
-  animation: pulseRing 2s ease-out infinite;
+  animation: icPulse 2s ease-out infinite;
   z-index: 1;
 }
 
 .incoming-pulse-ring.delay {
-  animation-delay: 0.6s;
+  animation-delay: 0.5s;
 }
 
-@keyframes pulseRing {
-  0% { width: 96px; height: 96px; opacity: 1; }
-  100% { width: 160px; height: 160px; opacity: 0; }
+@keyframes icPulse {
+  0% { width: 72px; height: 72px; opacity: 0.6; }
+  100% { width: 120px; height: 120px; opacity: 0; }
 }
 
 /* ===== Call Info ===== */
 .incoming-call-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 32px;
+  gap: 2px;
+  margin-bottom: 24px;
 }
 
 .incoming-call-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
 }
 
 .incoming-caller-name {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 4px 0;
 }
 
 .incoming-call-subtitle {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .incoming-call-type {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.45);
-  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.incoming-call-type svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* ===== Action Buttons ===== */
 .incoming-call-actions {
   display: flex;
   justify-content: center;
-  gap: 40px;
+  gap: 32px;
 }
 
 .incoming-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: none;
   border: none;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.15s ease;
 }
 
 .incoming-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 .incoming-btn:active {
   transform: scale(0.95);
 }
 
-.incoming-btn svg {
-  width: 28px;
-  height: 28px;
-  padding: 16px;
+.incoming-btn .btn-icon {
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  transition: box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.15s ease;
 }
 
-.incoming-btn.reject svg {
-  background: #e74c3c;
+.incoming-btn .btn-icon svg {
+  width: 24px;
+  height: 24px;
   color: #fff;
-  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
 }
 
-.incoming-btn.reject:hover svg {
-  box-shadow: 0 6px 24px rgba(231, 76, 60, 0.6);
+.incoming-btn.reject .btn-icon {
+  background: #d9534f;
 }
 
-.incoming-btn.accept svg {
-  background: #2ecc71;
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(46, 204, 113, 0.4);
+.incoming-btn.reject:hover .btn-icon {
+  box-shadow: 0 0 16px rgba(217, 83, 79, 0.35);
 }
 
-.incoming-btn.accept:hover svg {
-  box-shadow: 0 6px 24px rgba(46, 204, 113, 0.6);
+.incoming-btn.accept .btn-icon {
+  background: #43b581;
+}
+
+.incoming-btn.accept:hover .btn-icon {
+  box-shadow: 0 0 16px rgba(67, 181, 129, 0.35);
 }
 
 .incoming-btn span {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
 }
