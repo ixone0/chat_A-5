@@ -617,18 +617,39 @@ const Chat = () => {
               : { audio: true };
             localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
           }
+
+          // ถ้ามี peer เดิมที่ signaling state ไม่ใช่ stable ให้ปิดแล้วสร้างใหม่
+          if (pcsRef.current[fromUser]) {
+            const existingPc = pcsRef.current[fromUser];
+            if (existingPc.signalingState !== 'stable') {
+              try { existingPc.close(); } catch (e) {}
+              delete pcsRef.current[fromUser];
+            }
+          }
+
           const pc = pcsRef.current[fromUser] || await createPeerForUser(fromUser, data.call_id, callTypeRef.current, false);
           pcsRef.current[fromUser] = pc;
-          await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          window.electronAPI.sendRealtime({
-            type: "webrtc_answer",
-            call_id: data.call_id,
-            conversation_id: data.conversation_id,
-            target_user_id: fromUser,
-            answer
-          });
+
+          // ถ้า pc ยังไม่มี remote description ค่อย set
+          if (!pc.remoteDescription) {
+            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+            // flush buffered ICE candidates
+            if (pc._pendingCandidates?.length > 0) {
+              for (const c of pc._pendingCandidates) {
+                try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) {}
+              }
+              pc._pendingCandidates = [];
+            }
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            window.electronAPI.sendRealtime({
+              type: "webrtc_answer",
+              call_id: data.call_id,
+              conversation_id: data.conversation_id,
+              target_user_id: fromUser,
+              answer
+            });
+          }
         } else {
           // Direct: flow เดิม
           const pc = await handleOfferLogic(data.offer, data.call_id, data.conversation_id);
@@ -663,6 +684,14 @@ const Chat = () => {
           await pc.setRemoteDescription(
             new RTCSessionDescription(data.answer)
           );
+
+          // flush buffered ICE candidates
+          if (pc._pendingCandidates?.length > 0) {
+            for (const c of pc._pendingCandidates) {
+              try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) {}
+            }
+            pc._pendingCandidates = [];
+          }
         } 
         
         // ✅ DIRECT CALL ONLY
@@ -697,7 +726,13 @@ const Chat = () => {
       const fromUser = data.from_user || data.sender_id;
       if (isGroupCallRef.current && fromUser) {
         const pc = pcsRef.current[fromUser];
-        if (!pc || !pc.remoteDescription) return;
+        if (!pc) return;
+        if (!pc.remoteDescription) {
+          // buffer candidate จนกว่าจะมี remoteDescription
+          if (!pc._pendingCandidates) pc._pendingCandidates = [];
+          pc._pendingCandidates.push(data.candidate);
+          return;
+        }
         try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) {}
       } else {
         if (!pcRef.current || !pcRef.current.remoteDescription) {
@@ -885,6 +920,24 @@ const Chat = () => {
     currentCallConversationRef.current = selectedConversation.id;
     callTypeRef.current = type;
     setCalling({ call_id: "temp", type });
+
+    // Group call: get media stream ทันทีเพื่อให้พร้อมก่อน callee join
+    if (isGroupCallRef.current && !localStreamRef.current) {
+      try {
+        const constraints = type === "video"
+          ? { audio: true, video: { width: 640, height: 480 } }
+          : { audio: true };
+        localStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+        setIsMicMuted(false);
+        setIsCameraOff(false);
+      } catch (err) {
+        console.error("❌ getUserMedia error (group caller):", err);
+        toast.error("ไม่สามารถเข้าถึงไมโครโฟน/กล้อง: " + (err?.message || ""));
+        setCalling(null);
+        isCallerRef.current = false;
+        return;
+      }
+    }
 
     try {
       const res = await window.electronAPI.startCall({
@@ -1568,7 +1621,7 @@ const Chat = () => {
             </div>
             
             {/* ✅ Show video containers ONLY for video calls */}
-            {activeCall.call_type === 'video' && (
+            {activeCall.call_type === 'video' ? (
               <>
                 {activeCall.is_group ? (
                   /* Group video call: grid layout */
@@ -1613,6 +1666,16 @@ const Chat = () => {
                   </>
                 )}
               </>
+            ) : (
+              /* Audio call: hidden audio elements for group call remote streams */
+              activeCall.is_group && Object.entries(remoteStreams).map(([uid, stream]) => (
+                <audio
+                  key={uid}
+                  autoPlay
+                  playsInline
+                  ref={el => { if (el && el.srcObject !== stream) el.srcObject = stream; }}
+                />
+              ))
             )}
             
             <div className="call-id-display">Call ID: {activeCall.call_id}</div>
