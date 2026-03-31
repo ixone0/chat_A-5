@@ -1590,155 +1590,117 @@ const Chat = () => {
       )}
 
       {activeCall && (
-        <div className="call-modal">
+        <div className="active-call-overlay">
           <div className="active-call-box">
-            <h2><PhoneIcon size={22} style={{ verticalAlign: 'middle', marginRight: 8 }} />In Call</h2>
-            
-            {/* ✅ Participants Info with Better Layout */}
+            {/* Header: timer + call type */}
+            <div className="ac-header">
+              <div className="ac-timer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {String(Math.floor(callElapsedTime / 60)).padStart(2, '0')}:{String(callElapsedTime % 60).padStart(2, '0')}
+              </div>
+              <div className="ac-type-badge">
+                {activeCall.call_type === 'video' ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                )}
+                {activeCall.call_type === 'video' ? 'Video' : 'Voice'}{activeCall.is_group ? ' · Group' : ''}
+              </div>
+            </div>
+
+            {/* Participants (group only) */}
             {activeCall.is_group && callParticipants.length > 0 && (
-              <div className="participants-info">
-                <div className="participants-info-header">
-                  👥 In Call ({callParticipants.length} {callParticipants.length === 1 ? 'participant' : 'participants'})
+              <div className="ac-participants">
+                <div className="ac-participants-header">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  {callParticipants.length} in call
                 </div>
-                <div className="participants-list">
+                <div className="ac-participants-list">
                   {callParticipants.map((p) => (
-                    <div
-                      key={p.user_id}
-                      className={`participant-badge ${String(p.user_id) === String(currentUser?.id) ? 'current-user' : ''}`}
-                    >
-                      <span style={{ fontSize: '14px' }}>📹</span>
-                      <span>{p.display_name || p.username || `User ${p.user_id}`}</span>
-                      {String(p.user_id) === String(currentUser?.id) && (
-                        <span style={{ fontSize: '10px', opacity: 0.7 }}>(You)</span>
-                      )}
+                    <div key={p.user_id} className={`ac-participant ${String(p.user_id) === String(currentUser?.id) ? 'is-you' : ''}`}>
+                      <div className="ac-participant-avatar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      </div>
+                      <span>{p.display_name || p.username || 'User'}</span>
+                      {String(p.user_id) === String(currentUser?.id) && <span className="ac-you-tag">You</span>}
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            {/* ✅ Call Duration Display */}
-            <div className="call-timer">
-              ⏱️ {String(Math.floor(callElapsedTime / 60)).padStart(2, '0')}:{String(callElapsedTime % 60).padStart(2, '0')}
-            </div>
-            
-            {/* ✅ Show video containers ONLY for video calls */}
+
+            {/* Video area */}
             {activeCall.call_type === 'video' ? (
               <>
                 {activeCall.is_group ? (
-                  /* Group video call: grid layout */
                   <div className={`video-grid ${
                     Object.keys(remoteStreams).length === 0 ? 'one-video' :
-                    Object.keys(remoteStreams).length === 1 ? 'two-videos' :
-                    'multi-video'
+                    Object.keys(remoteStreams).length === 1 ? 'two-videos' : 'multi-video'
                   }`}>
-                    {/* Local video */}
                     <div className="video-container">
-                      <video
-                        ref={localVideoRef}
-                        autoPlay playsInline muted
-                        onLoadedMetadata={e => e.target.play().catch(() => {})}
-                        style={{ transform: 'scaleX(-1)' }}
-                      />
-                      <div className="video-label">
-                        👤 {currentUser?.username || 'You'} (คุณ)
-                      </div>
+                      <video ref={localVideoRef} autoPlay playsInline muted onLoadedMetadata={e => e.target.play().catch(() => {})} style={{ transform: 'scaleX(-1)' }} />
+                      <div className="video-label">{currentUser?.username || 'You'} (You)</div>
                     </div>
-                    {/* Remote videos */}
                     {Object.entries(remoteStreams).map(([uid, stream]) => {
                       const participant = callParticipants.find(p => String(p.user_id) === String(uid));
                       return (
                         <div key={uid} className="video-container">
-                          <video
-                            autoPlay playsInline
-                            ref={el => { if (el && el.srcObject !== stream) el.srcObject = stream; }}
-                          />
-                          <div className="video-label">
-                            📹 {participant?.display_name || participant?.username || `User ${uid}`}
-                          </div>
+                          <video autoPlay playsInline ref={el => { if (el && el.srcObject !== stream) el.srcObject = stream; }} />
+                          <div className="video-label">{participant?.display_name || participant?.username || 'User'}</div>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  /* Direct video call: layout เดิม */
-                  <>
-                    <div ref={remoteVideoRef} style={{ width: '100%', height: '400px', backgroundColor: '#000', borderRadius: '8px', marginBottom: '10px', overflow: 'hidden' }} />
-                    <div ref={localVideoRef} style={{ position: 'absolute', bottom: '100px', right: '20px', width: '150px', height: '120px', backgroundColor: '#000', borderRadius: '8px', border: '2px solid #fff', overflow: 'hidden' }} />
-                  </>
+                  <div className="ac-direct-video">
+                    <div className="ac-remote-video" ref={remoteVideoRef} />
+                    <div className="ac-local-video" ref={localVideoRef} />
+                  </div>
                 )}
               </>
             ) : (
-              /* Audio call: hidden audio elements for group call remote streams */
-              activeCall.is_group && Object.entries(remoteStreams).map(([uid, stream]) => (
-                <audio
-                  key={uid}
-                  autoPlay
-                  playsInline
-                  ref={el => { if (el && el.srcObject !== stream) el.srcObject = stream; }}
-                />
-              ))
+              /* Audio call: show avatar grid for group, simple display for direct */
+              activeCall.is_group ? (
+                <>
+                  <div className="ac-audio-grid">
+                    {callParticipants.filter(p => String(p.user_id) !== String(currentUser?.id)).map((p) => (
+                      <div key={p.user_id} className="ac-audio-avatar">
+                        <div className="ac-audio-avatar-circle">
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                        <span>{p.display_name || p.username || 'User'}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {Object.entries(remoteStreams).map(([uid, stream]) => (
+                    <audio key={uid} autoPlay playsInline ref={el => { if (el && el.srcObject !== stream) el.srcObject = stream; }} />
+                  ))}
+                </>
+              ) : null
             )}
-            
-            <div className="call-id-display">Call ID: {activeCall.call_id}</div>
 
-            <div className="call-controls">
-              {/* Mic toggle */}
-              <button
-                onClick={toggleMic}
-                className={`call-control-btn ${isMicMuted ? 'mic-muted' : 'mic-active'}`}
-                title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
-              >
+            {/* Controls */}
+            <div className="ac-controls">
+              <button onClick={toggleMic} className={`ac-ctrl-btn ${isMicMuted ? 'active-danger' : ''}`} title={isMicMuted ? 'Unmute' : 'Mute'}>
                 {isMicMuted ? (
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                    <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>
-                    <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.13 1.49-.35 2.17"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.13 1.49-.35 2.17"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                 ) : (
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                 )}
               </button>
 
-              {/* Camera toggle (video call only) */}
               {activeCall.call_type === 'video' && (
-                <button
-                  onClick={toggleCamera}
-                  className={`call-control-btn ${isCameraOff ? 'camera-off' : 'camera-active'}`}
-                  title={isCameraOff ? 'Turn on camera' : 'Turn off camera'}
-                >
+                <button onClick={toggleCamera} className={`ac-ctrl-btn ${isCameraOff ? 'active-danger' : ''}`} title={isCameraOff ? 'Turn on camera' : 'Turn off camera'}>
                   {isCameraOff ? (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                      <path d="M21 7l-5 3.5"/>
-                      <path d="M16 16V5a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11"/>
-                      <path d="M23 7v10"/>
-                    </svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 7l-5 3.5"/><path d="M16 16V5a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11"/><path d="M23 7v10"/></svg>
                   ) : (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M23 7l-7 5 7 5V7z"/>
-                      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-                    </svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                   )}
                 </button>
               )}
 
-              {/* End/Leave call */}
-              <button
-                onClick={() => activeCall.is_group ? leaveCall(activeCall.call_id) : endCall(activeCall.call_id)}
-                className="call-control-btn end-call"
-                title={activeCall.is_group ? "Leave call" : "End call"}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
-                  <line x1="23" y1="1" x2="1" y2="23"/>
-                </svg>
+              <button onClick={() => activeCall.is_group ? leaveCall(activeCall.call_id) : endCall(activeCall.call_id)} className="ac-ctrl-btn end-call" title={activeCall.is_group ? 'Leave call' : 'End call'}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
               </button>
             </div>
           </div>
