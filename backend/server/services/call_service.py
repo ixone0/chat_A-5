@@ -64,6 +64,12 @@ def start_call_service(pkt, user_id):
                     "message": "กลุ่มมีสมาชิกเกิน 4 คน ไม่สามารถโทรได้"
                 }
 
+        # ถ้ามี active/ringing call ค้างอยู่ ให้ end ทิ้งก่อน (stale call)
+        existing = get_active_call_for_conversation(conversation_id)
+        if existing:
+            print(f"⚠️ Found stale call {existing['call_id']} — auto-ending before new call")
+            end_call(existing["call_id"])
+
         call_id = create_call(conversation_id, user_id, call_type)
         join_call(call_id, user_id)
 
