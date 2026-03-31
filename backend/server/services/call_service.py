@@ -10,7 +10,7 @@ from repository.call_repo import (
     get_active_call_for_conversation
 )
 
-from repository.conversation_repo import get_other_user, get_conversation_type, get_all_members
+from repository.conversation_repo import get_other_user, get_conversation_type, get_all_members, get_group_info_db
 from state.online_users import online_users
 from utils.network import send_packet
 from services.message_service import create_message_service, get_conversation_members_service
@@ -28,6 +28,22 @@ def send_packet_to_user(user_id, packet):
             except:
                 pass
             online_users.pop(user_id, None)
+
+def _get_display_name(user_id):
+    """ดึง display_name หรือ username จาก user_id"""
+    try:
+        from connection import get_connection
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT display_name, username FROM users WHERE id = %s", (user_id,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if row:
+            return row[0] or row[1] or "Unknown"
+        return "Unknown"
+    except:
+        return "Unknown"
 
 def _broadcast_participants(call_id, conversation_id):
     """Broadcast participant list ไปทุกคนใน conversation ที่ online"""
@@ -73,7 +89,12 @@ def start_call_service(pkt, user_id):
         call_id = create_call(conversation_id, user_id, call_type)
         join_call(call_id, user_id)
 
+        caller_name = _get_display_name(user_id)
+
         if is_group:
+            group_info = get_group_info_db(conversation_id)
+            group_name = group_info.get("title", "Group") if group_info else "Group"
+
             for member_id in members:
                 if str(member_id) != str(user_id):
                     send_packet_to_user(member_id, {
@@ -81,8 +102,10 @@ def start_call_service(pkt, user_id):
                         "call_id": call_id,
                         "conversation_id": conversation_id,
                         "from_user": user_id,
+                        "caller_name": caller_name,
                         "call_type": call_type,
-                        "is_group": True
+                        "is_group": True,
+                        "group_name": group_name
                     })
         else:
             other_user_id = get_other_user(conversation_id, user_id)
@@ -91,6 +114,7 @@ def start_call_service(pkt, user_id):
                 "call_id": call_id,
                 "conversation_id": conversation_id,
                 "from_user": user_id,
+                "caller_name": caller_name,
                 "call_type": call_type,
                 "is_group": False
             })
