@@ -1,11 +1,11 @@
 // electron/tcpClient.js
-const net = require('net');
+const tls = require('tls');
 const { v4: uuidv4 } = require('uuid');
 
 let client = null;
 let win = null;
-let buffer = ""; // ✅ เพิ่ม buffer สำหรับ TCP framing
-const pending = new Map(); // request_id => {resolve, reject, timeout}
+let buffer = "";
+const pending = new Map();
 
 const TCP_CONFIG = {
   host: '13.212.120.46',
@@ -14,10 +14,13 @@ const TCP_CONFIG = {
 
 function initTcpClient(mainWindow) {
   win = mainWindow;
-  client = new net.Socket();
 
-  client.connect(TCP_CONFIG.port, TCP_CONFIG.host, () => {
-    console.log(`✅ TCP Connected to ${TCP_CONFIG.host}:${TCP_CONFIG.port}`);
+  client = tls.connect({
+    host: TCP_CONFIG.host,
+    port: TCP_CONFIG.port,
+    rejectUnauthorized: false  // self-signed cert
+  }, () => {
+    console.log(`✅ TLS Connected to ${TCP_CONFIG.host}:${TCP_CONFIG.port}`);
   });
 
   // ✅ แก้ใหม่ทั้งหมด (รองรับ packet แตกครึ่ง + หลาย packet ในครั้งเดียว)
