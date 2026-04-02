@@ -54,11 +54,53 @@ print(f"Server started on {HOST}:{PORT} (TLS)")
 
 
 # ============================================================
+# Bandwidth Monitoring
+# ============================================================
+import time
+
+stats = {
+    "bytes_in": 0,
+    "bytes_out": 0,
+    "packets_in": 0,
+    "packets_out": 0,
+    "connections": 0,
+    "start_time": time.time(),
+}
+stats_lock = threading.Lock()
+
+
+def _add_stat(key, value):
+    with stats_lock:
+        stats[key] += value
+
+
+def _print_stats():
+    while True:
+        time.sleep(60)
+        with stats_lock:
+            elapsed = time.time() - stats["start_time"]
+            mins = int(elapsed // 60)
+            mb_in = stats["bytes_in"] / (1024 * 1024)
+            mb_out = stats["bytes_out"] / (1024 * 1024)
+            print(f"\n{'='*60}")
+            print(f"[BANDWIDTH] Uptime: {mins} min | Connections: {stats['connections']}")
+            print(f"[BANDWIDTH] Received: {mb_in:.2f} MB ({stats['packets_in']} packets)")
+            print(f"[BANDWIDTH] Sent:     {mb_out:.2f} MB ({stats['packets_out']} packets)")
+            print(f"[BANDWIDTH] Online:   {len(online_users)} users")
+            print(f"{'='*60}\n")
+
+threading.Thread(target=_print_stats, daemon=True).start()
+
+
+# ============================================================
 # Helpers
 # ============================================================
 def send_pkt(conn, data: dict):
     try:
-        conn.sendall(packet.encode(data) + b"\n")
+        encoded = packet.encode(data) + b"\n"
+        _add_stat("bytes_out", len(encoded))
+        _add_stat("packets_out", 1)
+        conn.sendall(encoded)
     except Exception as e:
         print(f"[SEND ERROR] {e}")
 
@@ -586,8 +628,10 @@ HANDLERS = {
 # ============================================================
 def handle_client(conn, addr):
     print(f"[CONNECT] {addr}")
+    _add_stat("connections", 1)
     user_id = None
     buffer = b""
+    MAX_BUFFER_SIZE = 15 * 1024 * 1024  # 15MB
 
     def set_uid(new_uid):
         nonlocal user_id
@@ -599,7 +643,14 @@ def handle_client(conn, addr):
             if not data:
                 break
 
+            _add_stat("bytes_in", len(data))
             buffer += data
+
+            # ป้องกัน buffer overflow (DoS protection)
+            if len(buffer) > MAX_BUFFER_SIZE:
+                print(f"[ERROR] Buffer overflow from {addr} ({len(buffer)} bytes), closing")
+                send_pkt(conn, {"type": "error", "message": "Packet too large"})
+                break
 
             while b"\n" in buffer:
                 raw, buffer = buffer.split(b"\n", 1)
@@ -612,6 +663,7 @@ def handle_client(conn, addr):
                     send_pkt(conn, {"type": "error", "message": "Invalid packet"})
                     continue
 
+                _add_stat("packets_in", 1)
                 rid = pkt.get("request_id")
                 pkt_type = pkt.get("type")
 
