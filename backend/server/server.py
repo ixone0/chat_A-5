@@ -695,8 +695,11 @@ while True:
     raw_conn, addr = srv_socket.accept()
     try:
         conn = ssl_context.wrap_socket(raw_conn, server_side=True)
-    except ssl.SSLError as e:
-        print(f"[SSL ERROR] {addr}: {e}")
-        raw_conn.close()
+    except (ssl.SSLError, ConnectionResetError, OSError) as e:
+        print(f"[TLS HANDSHAKE FAILED] {addr}: {e}")
+        try:
+            raw_conn.close()
+        except Exception:
+            pass
         continue
     threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
