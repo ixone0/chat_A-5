@@ -698,7 +698,9 @@ while True:
     try:
         conn = ssl_context.wrap_socket(raw_conn, server_side=True)
     except (ssl.SSLError, ConnectionResetError, OSError) as e:
-        print(f"[TLS HANDSHAKE FAILED] {addr}: {e}")
+        print(f"[TLS HANDSHAKE FAILED] {addr}: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         try:
             raw_conn.close()
         except Exception:
