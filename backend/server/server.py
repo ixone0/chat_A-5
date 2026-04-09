@@ -628,7 +628,21 @@ HANDLERS = {
 # ============================================================
 # Client connection loop
 # ============================================================
-def handle_client(conn, addr):
+def handle_client(raw_conn, addr, do_tls=True):
+    conn = raw_conn
+    if do_tls:
+        try:
+            raw_conn.settimeout(10)
+            conn = ssl_context.wrap_socket(raw_conn, server_side=True)
+            conn.settimeout(None)
+        except (ssl.SSLError, ConnectionResetError, OSError) as e:
+            print(f"[TLS FAILED] {addr}: {e}")
+            try:
+                raw_conn.close()
+            except Exception:
+                pass
+            return
+
     print(f"[CONNECT] {addr}")
     _add_stat("connections", 1)
     user_id = None
@@ -695,15 +709,4 @@ def handle_client(conn, addr):
 # ============================================================
 while True:
     raw_conn, addr = srv_socket.accept()
-    try:
-        conn = ssl_context.wrap_socket(raw_conn, server_side=True)
-    except (ssl.SSLError, ConnectionResetError, OSError) as e:
-        print(f"[TLS HANDSHAKE FAILED] {addr}: {type(e).__name__}: {e}")
-        import traceback
-        traceback.print_exc()
-        try:
-            raw_conn.close()
-        except Exception:
-            pass
-        continue
-    threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
+    threading.Thread(target=handle_client, args=(raw_conn, addr, True), daemon=True).start()
