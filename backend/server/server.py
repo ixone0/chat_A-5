@@ -41,6 +41,7 @@ HOST = "0.0.0.0"
 PORT = int(os.getenv("PORT", 8082))
 
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
 ssl_context.load_cert_chain(
     certfile=os.path.join(os.path.dirname(__file__), "server.crt"),
     keyfile=os.path.join(os.path.dirname(__file__), "server.key"),
